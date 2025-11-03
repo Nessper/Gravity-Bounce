@@ -1,0 +1,45 @@
+﻿Canvas (Screen Space - Overlay)
+│
+├── SafeAreas
+│   ├── TopSafe (vide, sert de repère)
+│   └── BottomSafe (vide, sert de repère)
+│
+├── TopDecor
+│   ├── LevelID (W1-L1)
+│   ├── PauseButton (||)
+│   └── ProgressBar (objectif)
+│
+├── GameBoardLayer
+│   ├── BoardFrame (visuel fixe, décor)
+│   ├── ProgressBar_Vertical (optionnelle, à droite)
+│   ├── MessageOverlay (start/end/game over)
+│   ├── ComboToasts
+│   └── (FX, highlight visuels)
+│
+├── HUDLayer
+│   ├── HUD_Right (mode droitier)
+│   │   ├── Score (bottom-left)
+│   │   ├── Timer (bottom-right)
+│   │   ├── Lives (under Timer)
+│   │   └── Background_HUD (ombre légère, gradient)
+│   ├── HUD_Left (mode gaucher, désactivé)
+│
+├── ControlsLayer
+│   ├── PowerUps_Right (mode droitier)
+│   │   ├── PowerUp_1
+│   │   ├── PowerUp_2
+│   │   ├── PowerUp_3
+│   │   └── CloseBinButton
+│   ├── PowerUps_Left (mode gaucher, désactivé)
+│   │   ├── PowerUp_1
+│   │   ├── PowerUp_2
+│   │   ├── PowerUp_3
+│   │   └── CloseBinButton
+│   └── ThumbTouchArea (overlay invisible bas)
+│
+└── Overlays
+    ├── CountdownStart (3,2,1)
+    ├── EndLevelStats (résumé)
+    ├── PauseMenu
+    └── BlackFade (transition)
+

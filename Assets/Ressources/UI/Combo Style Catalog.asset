@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a61ecaf4f7fbe0a449b3f658f59b74d8, type: 3}
+  m_Name: Combo Style Catalog
+  m_EditorClassIdentifier: Assembly-CSharp::ComboStyleCatalog
+  entries:
+  - id: WhiteStreak
+    displayKey: combo.white_streak
+    format: '{label} +{points}'
+    color: {r: 0.95, g: 0.95, b: 0.95, a: 0}
+  - id: BlueRush
+    displayKey: combo.blue_rush
+    format: '{label} +{points}'
+    color: {r: 0.2, g: 0.6, b: 1, a: 0}
+  - id: RedStorm
+    displayKey: combo.red_storm
+    format: '{label} +{points}'
+    color: {r: 1, g: 0, b: 0.3, a: 0}
+  - id: FastFlush
+    displayKey: combo.fast_flush
+    format: '{label} +{points}'
+    color: {r: 0, g: 0.85, b: 0.7, a: 0}

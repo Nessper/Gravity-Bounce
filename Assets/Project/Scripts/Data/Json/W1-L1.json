@@ -1,0 +1,31 @@
+﻿{
+  "LevelID": "W1-L1",
+  "World": "City",
+  "Titre": "First Contact",
+  "ObjectifPourcentage": 50,
+  "Objectif": "Collect at least half of the marbles.",
+  "Objectif2": "Trigger a White Combo.",
+  "Objectif3": "Trigger an Extraball Combo.",
+  "LevelDurationSec": 60,
+  "Lives": 3,
+  "ScoreGoals": [
+      { "Type": "Bronze", "Points": 1200 },
+      { "Type": "Silver", "Points": 2300 },
+      { "Type": "Gold", "Points": 4200 }
+  ],
+  "Tip": "Try putting 5 marbles of the same color in a container.",
+
+  "Spawn": {
+    "Intervalle": 1.0
+  },
+
+  "Billes": [
+    { "Type": "White", "Points": 100, "Poids": 0.60 },
+    { "Type": "Blue", "Points": 150, "Poids": 0.24 },
+    { "Type": "Red", "Points": 200, "Poids": 0.05 },
+    { "Type": "Black", "Points": -120, "Poids": 0.11 }
+  ],
+
+  
+  "Theme": "City"
+}
