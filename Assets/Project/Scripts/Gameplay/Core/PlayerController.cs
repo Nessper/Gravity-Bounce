@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] private float xRange = 2.2f;
+    [SerializeField] private float xRange = 1.7f;
     [SerializeField] Camera mainCam; // pour pouvoir convetir la position du pointeur en coordonée monde (X)
     [SerializeField] private bool canControl = true; // mouvement du jouer = true
 

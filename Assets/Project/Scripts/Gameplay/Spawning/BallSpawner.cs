@@ -1,6 +1,6 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Enum = System.Enum;
 
 public class BallSpawner : MonoBehaviour
 {
@@ -17,33 +17,36 @@ public class BallSpawner : MonoBehaviour
     [SerializeField] private bool spawnAtT0 = false;
     [SerializeField] private bool includeEndTick = false;
 
+    [Header("UI Phase Display")]
+    [SerializeField] private GameObject messageOverlay;
+    [SerializeField] private TMPro.TMP_Text messageTxt;
+    [SerializeField] private float messageDuration = 1.0f;
+
+    private Coroutine phaseMsgRoutine;
+
+
     public int PlannedSpawnCount { get; private set; }
 
     private Coroutine loop;
     private bool running;
 
-    // -------- Config de distribution (depuis JSON universel) --------
-    [System.Serializable]
-    public class BallChoice
-    {
-        public BallType type;
-        public float weight;
-        public int points; // toujours fixé par le JSON
-    }
+    private readonly Dictionary<BallType, int> pointsByType = new();
+    private LevelData levelData;
+    private bool usePhases;
+    private int currentPhaseIndex;
+    private float currentPhaseElapsed;
 
-    private readonly List<BallChoice> choices = new();
-    private float totalWeight;
+    private struct PhasePick { public BallType type; public float w; }
+    private readonly List<PhasePick> currentMix = new();
+    private float currentMixTotal;
 
-    /// <summary>
-    /// Configure le spawner directement depuis LevelData (JSON universel).
-    /// - Lit data.Billes[].Type (White/Blue/Red/Black), Points, Poids
-    /// - Met à jour l'intervalle depuis data.Spawn.Intervalle (si >0)
-    /// - Recalcule le plan prévu
-    /// </summary>
     public void ConfigureFromLevel(LevelData data)
     {
-        choices.Clear();
-        totalWeight = 0f;
+        levelData = data;
+        pointsByType.Clear();
+        usePhases = (data != null && data.Phases != null && data.Phases.Length > 0);
+        currentPhaseIndex = 0;
+        currentPhaseElapsed = 0f;
 
         if (data == null)
         {
@@ -51,63 +54,60 @@ public class BallSpawner : MonoBehaviour
             return;
         }
 
-        // 1) Charger la distribution depuis le JSON
         if (data.Billes != null)
         {
             foreach (var b in data.Billes)
             {
                 if (string.IsNullOrWhiteSpace(b.Type)) continue;
-
-                // JSON universel : Type = "White" | "Blue" | "Red" | "Black"
-                if (!Enum.TryParse<BallType>(b.Type, true, out var t))
-                {
-                    Debug.LogWarning($"[BallSpawner] Type JSON inconnu: '{b.Type}' (attendu: White/Blue/Red/Black)");
-                    continue;
-                }
-
-                var weight = Mathf.Max(0f, b.Poids);
-                if (weight <= 0f) continue;
-
-                choices.Add(new BallChoice
-                {
-                    type = t,
-                    weight = weight,
-                    points = b.Points
-                });
-                totalWeight += weight;
+                if (!System.Enum.TryParse<BallType>(b.Type, true, out var t)) continue;
+                pointsByType[t] = b.Points;
             }
         }
+        if (pointsByType.Count == 0)
+            pointsByType[BallType.White] = 100;
 
-        // Fallback si JSON vide/malsaisi
-        if (choices.Count == 0)
-        {
-            Debug.LogWarning("[BallSpawner] Aucune bille valide dans le JSON, fallback White.");
-            choices.Add(new BallChoice { type = BallType.White, weight = 1f, points = 100 });
-            totalWeight = 1f;
-        }
-
-        // 2) Cadence depuis JSON
         if (data.Spawn != null && data.Spawn.Intervalle > 0f)
             interval = data.Spawn.Intervalle;
 
-        // 3) Plan de spawn estimé
+        if (usePhases)
+            BuildCurrentMix(data.Phases[0]);
+
         RecalculatePlan(data.LevelDurationSec, interval);
     }
 
-    private BallChoice PickChoice()
+    private void BuildCurrentMix(PhaseData ph)
     {
-        if (choices.Count == 0) return new BallChoice { type = BallType.White, weight = 1f, points = 100 };
-
-        float r = Random.value * totalWeight;
-        float acc = 0f;
-        foreach (var c in choices)
+        if (messageOverlay != null && messageTxt != null)
         {
-            acc += c.weight;
-            if (r <= acc) return c;
+            if (phaseMsgRoutine != null) StopCoroutine(phaseMsgRoutine);
+            phaseMsgRoutine = StartCoroutine(ShowPhaseMessage(levelData.Phases[currentPhaseIndex].Name));
         }
-        return choices[choices.Count - 1];
+
+        currentMix.Clear();
+        currentMixTotal = 0f;
+        if (ph == null || ph.Mix == null || ph.Mix.Length == 0)
+        {
+            foreach (var kv in pointsByType)
+                currentMix.Add(new PhasePick { type = kv.Key, w = 1f });
+            currentMixTotal = currentMix.Count;
+            return;
+        }
+        foreach (var m in ph.Mix)
+        {
+            if (string.IsNullOrWhiteSpace(m.Type)) continue;
+            if (!System.Enum.TryParse<BallType>(m.Type, true, out var t)) continue;
+            float w = Mathf.Max(0f, m.Poids);
+            if (w <= 0f) continue;
+            currentMix.Add(new PhasePick { type = t, w = w });
+            currentMixTotal += w;
+        }
+        if (currentMix.Count == 0)
+        {
+            foreach (var kv in pointsByType)
+                currentMix.Add(new PhasePick { type = kv.Key, w = 1f });
+            currentMixTotal = currentMix.Count;
+        }
     }
-    // ------------------------------------------------------
 
     public void RecalculatePlan(float durationSec, float newInterval)
     {
@@ -125,7 +125,7 @@ public class BallSpawner : MonoBehaviour
         if (loop == null)
         {
             running = true;
-            loop = StartCoroutine(SpawnLoop());
+            loop = usePhases ? StartCoroutine(SpawnLoopPhased()) : StartCoroutine(SpawnLoop());
         }
     }
 
@@ -139,7 +139,7 @@ public class BallSpawner : MonoBehaviour
         }
     }
 
-    private System.Collections.IEnumerator SpawnLoop()
+    private IEnumerator SpawnLoop()
     {
         if (spawnAtT0 && running)
             SpawnOne();
@@ -154,46 +154,131 @@ public class BallSpawner : MonoBehaviour
         loop = null;
     }
 
+    private IEnumerator SpawnLoopPhased()
+    {
+        float total = 0f;
+        float t = 0f;
+
+        if (spawnAtT0 && running)
+            SpawnOne();
+
+        float totalDuration = Mathf.Max(0f, levelData != null ? levelData.LevelDurationSec : 0f);
+
+        while (running && total < totalDuration)
+        {
+            float dt = Time.deltaTime;
+            total += dt;
+            currentPhaseElapsed += dt;
+            t += dt;
+
+            var ph = GetCurrentPhase();
+            if (ph != null && currentPhaseElapsed >= ph.DurationSec)
+            {
+                AdvancePhase();
+                t = 0f;
+            }
+
+            float curInterval = GetPhaseInterval(ph);
+            if (t >= curInterval)
+            {
+                SpawnOne();
+                t = 0f;
+            }
+            yield return null;
+        }
+
+        loop = null;
+    }
+
+    private IEnumerator ShowPhaseMessage(string name)
+    {
+        messageOverlay.SetActive(true);
+        messageTxt.text = name.ToUpperInvariant();
+
+        yield return new WaitForSeconds(messageDuration);
+
+        messageOverlay.SetActive(false);
+    }
+
+
     private void SpawnOne()
     {
         float x = Random.Range(-xRange, xRange);
-        Vector3 spawnPos = new Vector3(x, ySpawn, zSpawn);
-
+        Vector3 spawnPos = new(x, ySpawn, zSpawn);
         var go = Instantiate(ballPrefab, spawnPos, Quaternion.identity);
         var st = go.GetComponent<BallState>();
-
         if (st != null)
         {
-            // Tirage pondéré selon les poids du JSON
-            var choice = PickChoice();
-
-            // Échelle
-            go.transform.localScale = st.Scale;
-
-            // Init depuis JSON universel (type + points)
+            var choice = PickChoicePhasedOrEqual();
             st.Initialize(choice.type, choice.points);
         }
+    }
+
+    private BallChoice PickChoicePhasedOrEqual()
+    {
+        if (usePhases && currentMix.Count > 0 && currentMixTotal > 0f)
+        {
+            float r = Random.value * currentMixTotal;
+            float acc = 0f;
+            for (int i = 0; i < currentMix.Count; i++)
+            {
+                acc += currentMix[i].w;
+                if (r <= acc)
+                {
+                    var t = currentMix[i].type;
+                    return new BallChoice { type = t, points = pointsByType.TryGetValue(t, out var p) ? p : 0 };
+                }
+            }
+        }
+        if (pointsByType.Count > 0)
+        {
+            int idx = Random.Range(0, pointsByType.Count);
+            int i = 0;
+            foreach (var kv in pointsByType)
+            {
+                if (i++ == idx)
+                    return new BallChoice { type = kv.Key, points = kv.Value };
+            }
+        }
+        return new BallChoice { type = BallType.White, points = 100 };
+    }
+
+    private PhaseData GetCurrentPhase()
+    {
+        if (!usePhases || levelData == null || levelData.Phases == null || levelData.Phases.Length == 0) return null;
+        return levelData.Phases[Mathf.Clamp(currentPhaseIndex, 0, levelData.Phases.Length - 1)];
+    }
+
+    private void AdvancePhase()
+    {
+        if (levelData == null || levelData.Phases == null) return;
+        if (currentPhaseIndex < levelData.Phases.Length - 1)
+        {
+            currentPhaseIndex++;
+            currentPhaseElapsed = 0f;
+            BuildCurrentMix(levelData.Phases[currentPhaseIndex]);
+        }
+    }
+
+    private float GetPhaseInterval(PhaseData ph)
+    {
+        if (ph != null && ph.Intervalle > 0f) return ph.Intervalle;
+        return interval;
     }
 
     private int ComputePlannedCount(float duration, float z, bool atT0, bool allowEnd)
     {
         if (duration <= 0f || z <= 0f) return 0;
         const float eps = 1e-6f;
-
         if (atT0)
-        {
-            if (allowEnd) return Mathf.FloorToInt(duration / z) + 1;
-            else return Mathf.FloorToInt((duration - eps) / z) + 1;
-        }
+            return allowEnd ? Mathf.FloorToInt(duration / z) + 1 : Mathf.FloorToInt((duration - eps) / z) + 1;
         else
-        {
-            if (allowEnd) return Mathf.FloorToInt(duration / z);
-            else return Mathf.FloorToInt((duration - eps) / z);
-        }
+            return allowEnd ? Mathf.FloorToInt(duration / z) : Mathf.FloorToInt((duration - eps) / z);
     }
 
-    private void OnDisable()
+    private struct BallChoice
     {
-        StopSpawning();
+        public BallType type;
+        public int points;
     }
 }

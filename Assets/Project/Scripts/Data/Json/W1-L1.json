@@ -20,11 +20,49 @@
   },
 
   "Billes": [
-    { "Type": "White", "Points": 100, "Poids": 0.60 },
-    { "Type": "Blue", "Points": 150, "Poids": 0.24 },
-    { "Type": "Red", "Points": 200, "Poids": 0.05 },
-    { "Type": "Black", "Points": -120, "Poids": 0.11 }
+    { "Type": "White", "Points": 100 },
+    { "Type": "Blue", "Points": 150 },
+    { "Type": "Red", "Points": 200 },
+    { "Type": "Black", "Points": -120 }
   ],
+
+  "Phases": [
+    {
+        "Name": "Intro",
+        "DurationSec": 20,
+        "Intervalle": 1.0,
+        "AngleMin": 0,
+        "AngleMax": 0,
+        "Mix": [
+            { "Type": "White", "Poids": 0.90 },
+            { "Type": "Blue", "Poids": 0.10 }
+        ]
+    },
+    {
+        "Name": "Tension",
+        "DurationSec": 30,
+        "Intervalle": 1.0,
+        "AngleMin": 0,
+        "AngleMax": 0,
+        "Mix": [
+            { "Type": "White", "Poids": 0.85 },
+            { "Type": "Blue", "Poids": 0.08 },
+            { "Type": "Black", "Poids": 0.07 }
+        ]
+    },
+    {
+        "Name": "Final Rush",
+        "DurationSec": 10,
+        "Intervalle": 0.8,
+        "AngleMin": 0,
+        "AngleMax": 0,
+        "Mix": [
+            { "Type": "White", "Poids": 0.80 },
+            { "Type": "Blue", "Poids": 0.05 },
+            { "Type": "Black", "Poids": 0.15 }
+        ]
+    }
+],
 
   
   "Theme": "City"
