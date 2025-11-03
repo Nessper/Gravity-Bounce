@@ -9,6 +9,7 @@ public class LevelManager : MonoBehaviour
     // ------------------------------
     [Header("Gameplay")]
     [SerializeField] private PlayerController player;
+    [SerializeField] private CloseBinController closeBinController;
     [SerializeField] private LevelTimer levelTimer;
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private BallSpawner ballSpawner;
@@ -95,12 +96,14 @@ public class LevelManager : MonoBehaviour
                     if (countdownUI != null)
                     {
                         player?.SetActiveControl(false);
+                        closeBinController?.SetActiveControl(false);
                         pauseController?.EnablePause(false);
 
                         // Lance le décompte 3-2-1 puis start le niveau
                         StartCoroutine(countdownUI.PlayCountdown(() =>
                         {
                             player?.SetActiveControl(true);
+                            closeBinController?.SetActiveControl(true);
                             pauseController?.EnablePause(true);
                             StartLevel();
                         }));
@@ -109,6 +112,7 @@ public class LevelManager : MonoBehaviour
                     {
                         // Pas de countdown : on démarre directement
                         player?.SetActiveControl(true);
+                        closeBinController?.SetActiveControl(true);
                         pauseController?.EnablePause(true);
                         StartLevel();
                     }
