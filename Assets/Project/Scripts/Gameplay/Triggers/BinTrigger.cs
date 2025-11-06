@@ -23,7 +23,6 @@ public class BinTrigger : MonoBehaviour
     /// </summary>
     public List<BallState> TakeSnapshotAndClear()
     {
-        Debug.Log("DebugSnapshotAndClear");
         var snapshot = new List<BallState>(present.Count);
         foreach (var st in present)
         {

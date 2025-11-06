@@ -5,6 +5,9 @@ public class LevelTimer : MonoBehaviour
 {
     private float levelDuration;
     private float timeLeft;
+    // Temps écoulé depuis le début du niveau
+    public float GetElapsedTime() => Mathf.Clamp(levelDuration - timeLeft, 0f, levelDuration);
+
     public bool isOver => timeLeft <= 0f;
 
     public event Action OnTimerEnd;

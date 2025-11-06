@@ -44,7 +44,6 @@ public class BinCollector : MonoBehaviour
     {
         if (leftBin == null || flushingLeft) return;
         flushingLeft = true;
-        Debug.Log($"[BinCollector] Collect LEFT scheduled (delay {(skipDelay ? 0f : delayBeforeTeleport):0.00}s, force={force})");
         StartCoroutine(CollectWithOptions(Side.Left, force, skipDelay));
     }
 
@@ -52,7 +51,6 @@ public class BinCollector : MonoBehaviour
     {
         if (rightBin == null || flushingRight) return;
         flushingRight = true;
-        Debug.Log($"[BinCollector] Collect RIGHT scheduled (delay {(skipDelay ? 0f : delayBeforeTeleport):0.00}s, force={force})");
         StartCoroutine(CollectWithOptions(Side.Right, force, skipDelay));
     }
 
@@ -72,12 +70,10 @@ public class BinCollector : MonoBehaviour
         // En mode normal : revalider le seuil au moment du flush
         if (!force && trigger.Count < trigger.flushThreshold)
         {
-            Debug.Log($"[BinCollector] Flush {side} annulé: {trigger.Count}/{trigger.flushThreshold}");
             SetFlushing(side, false);
             yield break;
         }
 
-        Debug.Log("DebugSnapshotAndClear");
         List<BallState> lot = trigger.TakeSnapshotAndClear();
         if (lot == null || lot.Count == 0)
         {
@@ -113,7 +109,6 @@ public class BinCollector : MonoBehaviour
 
     private void DropIntoContainer(BallState st)
     {
-        Debug.Log($"[DropIntoContainer] {st.name}");
         st.collected = true;
 
         var go = st.gameObject;

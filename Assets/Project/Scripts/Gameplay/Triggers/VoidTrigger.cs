@@ -22,7 +22,6 @@ public class VoidTrigger : MonoBehaviour
         if (scoreManager != null)
         {
             scoreManager.RegisterLost(state);
-            Debug.Log($"[VoidTrigger] Bille perdue : {state.type} ({state.points} pts)");
         }
         else
         {

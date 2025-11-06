@@ -46,25 +46,9 @@ public class IntroLevelUI : MonoBehaviour
         onBackCallback = onBack;
 
         if (levelIdText) levelIdText.text = data.LevelID.ToString();
-        if (titleText) titleText.text = data.Titre;
-        if (objectifText) objectifText.text = data.Objectif;
-        if (objectifText2) objectifText2.text = data.Objectif2;
-        if (objectifText3) objectifText3.text = data.Objectif3;
-        // Objectif 4
-        if (objectifText4)
-        {
-            bool hasObj4 = !string.IsNullOrEmpty(data.Objectif4);
-            objectifText4.transform.parent.gameObject.SetActive(hasObj4);
-            if (hasObj4) objectifText4.text = data.Objectif4;
-        }
-
-        // Objectif 5
-        if (objectifText5)
-        {
-            bool hasObj5 = !string.IsNullOrEmpty(data.Objectif5);
-            objectifText5.transform.parent.gameObject.SetActive(hasObj5);
-            if (hasObj5) objectifText5.text = data.Objectif5;
-        }
+        if (titleText) titleText.text = data.Title;
+        if (objectifText) objectifText.text = data.MainObjective.Text;
+       
         if (levelDurationSec) levelDurationSec.text = data.LevelDurationSec.ToString();
         if (lives) lives.text = "x"+data.Lives.ToString();
         if (tip) tip.text = data.Tip.ToString();

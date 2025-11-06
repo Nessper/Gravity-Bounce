@@ -49,7 +49,6 @@ public class ComboEngine : MonoBehaviour
 
         var batchIds = new List<(string id, int points)>();
 
-        Debug.Log($"[FastFlushDBG] dt={snapshot.timestamp - _lastFlushTime:0.000} pos={positivePoints} last={_lastFlushTime:0.000} now={snapshot.timestamp:0.000}");
 
         // ===== COMBO: FAST FLUSH =====
         // Condition: deux flushs a moins de FAST_FLUSH_WINDOW secondes d'intervalle

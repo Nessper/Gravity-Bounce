@@ -1,55 +1,75 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class ScoreManager : MonoBehaviour
 {
-    [SerializeField] private int totalBillesPrevues;
+    [Header("Planned Target")]
+    [SerializeField, Tooltip("Nombre total de billes prévues dans le niveau (fixé par LevelManager)")]
+    private int totalBillesPrevues;
     public int TotalBillesPrevues => totalBillesPrevues;
+
+    // --- RUNTIME STATS (non sérialisés) ---
+    private int totalBilles;
+    private int totalPertes;
+    private int currentScore;
+    private int realSpawned;
+    private int pointsPerdus;
+
+    public int TotalBilles => totalBilles;
+    public int TotalPertes => totalPertes;
+    public int CurrentScore => currentScore;
+    public int GetRealSpawned() => realSpawned;
+
+    // --- DÉTAILS INTERNES ---
+    private readonly Dictionary<string, int> totauxParType = new();
+    private readonly Dictionary<string, int> pertesParType = new();
+    private readonly List<BinSnapshot> historique = new();
+
+    [System.Serializable]
+    public class IntEvent : UnityEvent<int> { }
+
+    // Caché dans l'inspector : utilisé uniquement par le code (ProgressBarUI, etc.)
+    [HideInInspector]
+    public IntEvent onScoreChanged = new();
+
+    // ------------------------------
+    // INIT / RESET
+    // ------------------------------
     public void SetPlannedBalls(int count)
     {
         totalBillesPrevues = Mathf.Max(0, count);
-        Debug.Log($"[ScoreManager] TotalBillesPrevues = {count}");
     }
-
-    private int totalBilles;
-    private Dictionary<string, int> totauxParType = new();
-    private List<BinSnapshot> historique = new();
-
-    // NEW: pertes
-    private Dictionary<string, int> pertesParType = new();
-    private int totalPertes;
-    private int pointsPerdus;
-
-    public int CurrentScore { get; private set; }
-    public int TotalBilles => totalBilles;
-
-    [System.Serializable] public class IntEvent : UnityEngine.Events.UnityEvent<int> { }
-    public IntEvent onScoreChanged;
 
     public void ResetScore(int start = 0)
     {
-        CurrentScore = start;
+        currentScore = start;
         totalBilles = 0;
-        historique.Clear();
-        totauxParType.Clear();
-
-        pertesParType.Clear();
         totalPertes = 0;
         pointsPerdus = 0;
+        realSpawned = 0;
 
-        onScoreChanged?.Invoke(CurrentScore);
+        totauxParType.Clear();
+        pertesParType.Clear();
+        historique.Clear();
+
+        onScoreChanged?.Invoke(currentScore);
     }
 
-    // --- NOUVELLE MÉTHODE UNIQUE DE CALCUL ---
+    // ------------------------------
+    // SCORE & EVENTS
+    // ------------------------------
+    public void RegisterRealSpawn() => realSpawned++;
+
     public void AddPoints(int amount, string reason = null)
     {
-        CurrentScore += amount;
-        onScoreChanged?.Invoke(CurrentScore);
+        currentScore += amount;
+        onScoreChanged?.Invoke(currentScore);
+
         if (!string.IsNullOrEmpty(reason))
-            Debug.Log($"[ScoreManager] +{amount} ({reason}) -> Total = {CurrentScore}");
+            Debug.Log($"[ScoreManager] +{amount} ({reason}) -> Total = {currentScore}");
     }
 
-    // --- SNAPSHOT --- (ne gère plus le score directement)
     public void GetSnapshot(BinSnapshot snapshot)
     {
         if (snapshot == null || snapshot.nombreDeBilles <= 0) return;
@@ -57,7 +77,6 @@ public class ScoreManager : MonoBehaviour
         historique.Add(snapshot);
         totalBilles += snapshot.nombreDeBilles;
 
-        // Comptabilise les billes par type
         if (snapshot.parType != null)
         {
             foreach (var kv in snapshot.parType)
@@ -68,7 +87,6 @@ public class ScoreManager : MonoBehaviour
             }
         }
 
-        //  Ajout du score via la nouvelle méthode
         AddPoints(snapshot.totalPointsDuLot, "Flush Base");
     }
 
@@ -81,24 +99,28 @@ public class ScoreManager : MonoBehaviour
             pertesParType[key] = 0;
         pertesParType[key] += 1;
 
-        totalPertes += 1;
+        totalPertes++;
         pointsPerdus += ball.points;
     }
 
-    public EndLevelStats BuildEndLevelStats()
+    // ------------------------------
+    // END LEVEL STATS
+    // ------------------------------
+    public EndLevelStats BuildEndLevelStats(int timeElapsedSec)
     {
-        var stats = new EndLevelStats
+        return new EndLevelStats
         {
-            totalCollectees = totalBilles,
-            totalPrevues = totalBillesPrevues,
-            totalPerdues = totalPertes,
-            scoreFinal = CurrentScore,
-            pointsPerdus = pointsPerdus,
-            collecteesParType = new Dictionary<string, int>(totauxParType),
-            perduesParType = new Dictionary<string, int>(pertesParType)
+            TimeElapsedSec = Mathf.Max(0, timeElapsedSec),
+            BallsCollected = totalBilles,
+            BallsLost = totalPertes,
+            RawScore = currentScore,
+            FinalScore = currentScore
         };
-        return stats;
     }
 
-    public bool IsCountConsistent() => true;
+    public bool IsCountConsistent()
+    {
+        // Optionnel : comparer realSpawned vs collected+lost avec tolérance
+        return true;
+    }
 }

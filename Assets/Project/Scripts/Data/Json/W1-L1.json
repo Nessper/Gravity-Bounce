@@ -1,11 +1,12 @@
 ﻿{
   "LevelID": "W1-L1",
   "World": "City",
-  "Titre": "First Contact",
-  "ObjectifPourcentage": 50,
-  "Objectif": "Collect at least half of the marbles.",
-  "Objectif2": "Trigger a White Combo.",
-  "Objectif3": "Trigger an Extraball Combo.",
+  "Title": "First Contact",
+  "MainObjective": { 
+    "Text": "Collect at least half of the marbles.", 
+    "ThresholdPct": 50, 
+    "Bonus": 300 
+  },
   "LevelDurationSec": 60,
   "Lives": 3,
   "ScoreGoals": [
@@ -19,7 +20,7 @@
     "Intervalle": 1.0
   },
 
-  "Billes": [
+  "Balls": [
     { "Type": "White", "Points": 100 },
     { "Type": "Blue", "Points": 150 },
     { "Type": "Red", "Points": 200 },
