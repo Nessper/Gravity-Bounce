@@ -16,6 +16,9 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private BallTracker ballTracker;
     [SerializeField] private BinCollector collector;
 
+    // Orchestrateur de fin (nouveau)
+    [SerializeField] private EndSequenceController endSequence;
+
     // ------------------------------
     //   RÉFÉRENCES UI / OVERLAYS
     // ------------------------------
@@ -89,13 +92,24 @@ public class LevelManager : MonoBehaviour
         {
             int threshold = (data.MainObjective != null) ? data.MainObjective.ThresholdPct : 0;
             progressBarUI.Configure(scoreManager.TotalBillesPrevues, threshold);
-            progressBarUI.Refresh(); // force l’affichage à 0 de suite
+            progressBarUI.Refresh();
         }
 
         // 6) Verrou gameplay jusqu’au GO
         player?.SetActiveControl(false);
         closeBinController?.SetActiveControl(false);
         pauseController?.EnablePause(false);
+
+        // 7) Configurer l'orchestrateur de fin
+        endSequence?.Configure(
+            ballTracker,
+            collector,
+            player,
+            closeBinController,
+            pauseController
+            // , grace, poll si tu veux surcharger
+        );
+
 
         // --- INTRO + COUNTDOWN ---
         if (levelIntroUI != null && data != null)
@@ -167,9 +181,10 @@ public class LevelManager : MonoBehaviour
         endSequenceRunning = false;
         timerElapsed = false;
 
-        endLevelUI?.Hide();
+        // Reset de l'orchestrateur de fin
+        endSequence?.ResetState();
 
-        // Le score/vies/progressbar/spawner sont déjà configurés avant le countdown
+        endLevelUI?.Hide();
 
         // Démarre réellement le timer maintenant
         if (levelTimer != null)
@@ -188,33 +203,19 @@ public class LevelManager : MonoBehaviour
 
         timerElapsed = true;
         ballSpawner?.StopSpawning();
-
-        StartCoroutine(TryFinishWhenStable());
-    }
-
-    private IEnumerator TryFinishWhenStable()
-    {
-        yield return new WaitUntil(() =>
-            timerElapsed &&
-            collector != null && !collector.IsAnyFlushActive &&
-            ballTracker != null && ballTracker.AllBallsInBinOrCollected()
-        );
-
         endSequenceRunning = true;
 
-        yield return new WaitForSeconds(0.35f);
-
-        if (collector != null)
+        // Délègue toute la séquence de fin à l'orchestrateur
+        endSequence?.BeginEndSequence(() =>
         {
-            collector.CollectAll(force: true, skipDelay: false);
-            yield return new WaitUntil(() => !collector.IsAnyFlushActive);
-        }
-
-        pauseController?.EnablePause(false);
-        EvaluateLevelResult();
-        player?.SetActiveControl(false);
+            // Retour ici quand tout est lock et stable (grace + drain + flush final faits)
+            EvaluateLevelResult();
+        });
     }
 
+    // ------------------------------
+    //   ÉVALUATION
+    // ------------------------------
     private void EvaluateLevelResult()
     {
         if (scoreManager == null || data == null)
