@@ -24,6 +24,9 @@ public class BallState : MonoBehaviour
 
     private bool initialized;
 
+    // --- AJOUT UTILE : nom de type lisible pour ScoreManager / ComboEngine ---
+    public string TypeName => type.ToString();
+
     /// <summary>
     /// Initialise la bille avec les données venant du JSON (via le spawner).
     /// </summary>
@@ -35,13 +38,11 @@ public class BallState : MonoBehaviour
         ApplyVisuals(type);
     }
 
-    // Ne PAS écraser les valeurs si non initialisé : fallback visuel léger uniquement.
     private void Start()
     {
         if (!initialized)
         {
             ApplyVisuals(type);
-            // points volontairement laissés tels quels (0) si pas initialisé par le spawner.
         }
     }
 

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using System;
 
 public class ScoreManager : MonoBehaviour
 {
@@ -29,9 +30,12 @@ public class ScoreManager : MonoBehaviour
     [System.Serializable]
     public class IntEvent : UnityEvent<int> { }
 
-    // Caché dans l'inspector : utilisé uniquement par le code (ProgressBarUI, etc.)
     [HideInInspector]
     public IntEvent onScoreChanged = new();
+
+    // --- NOUVEAU : ÉVÉNEMENT DE PERTE DE BILLE ---
+    // Exemple : OnBallLost?.Invoke("White");
+    public event Action<string> OnBallLost;
 
     // ------------------------------
     // INIT / RESET
@@ -90,17 +94,30 @@ public class ScoreManager : MonoBehaviour
         AddPoints(snapshot.totalPointsDuLot, "Flush Base");
     }
 
+    // ------------------------------
+    // PERTE DE BILLE (depuis VoidTrigger)
+    // ------------------------------
+    public void RegisterLost(string ballType)
+    {
+        if (string.IsNullOrEmpty(ballType)) ballType = "Unknown";
+
+        if (!pertesParType.ContainsKey(ballType))
+            pertesParType[ballType] = 0;
+        pertesParType[ballType]++;
+
+        totalPertes++;
+
+        // On notifie les autres systèmes (ComboEngine, etc.)
+        OnBallLost?.Invoke(ballType);
+
+        Debug.Log($"[ScoreManager] Bille perdue : {ballType} (total pertes = {totalPertes})");
+    }
+
+    // --- Surcharge rétrocompatible (si RegisterLost(BallState) est encore appelée) ---
     public void RegisterLost(BallState ball)
     {
         if (ball == null) return;
-
-        string key = ball.type.ToString();
-        if (!pertesParType.ContainsKey(key))
-            pertesParType[key] = 0;
-        pertesParType[key] += 1;
-
-        totalPertes++;
-        pointsPerdus += ball.points;
+        RegisterLost(ball.TypeName);
     }
 
     // ------------------------------
