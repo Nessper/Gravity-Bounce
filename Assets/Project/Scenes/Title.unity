@@ -962,6 +962,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TitleController
   canvasGroup: {fileID: 1192594695}
+  playButton: {fileID: 688525903}
+  quitButton: {fileID: 264546102}
   fadeInTime: 1
   fadeOutTime: 1
   nextScene: Main
