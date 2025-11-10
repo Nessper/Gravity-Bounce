@@ -51,4 +51,25 @@ public class PhaseBannerUI : MonoBehaviour
         overlay.SetActive(false);
         routine = null;
     }
+
+    // --- AJOUT MINIMAL : affichage manuel, sans toucher au wiring du spawner ---
+    public void ShowPhaseText(string text, float duration)
+    {
+        if (overlay == null || label == null)
+        {
+            Debug.LogWarning("[PhaseBannerUI] Overlay ou label manquant.");
+            return;
+        }
+        if (routine != null) StopCoroutine(routine);
+        routine = StartCoroutine(ShowCustom(text, duration));
+    }
+
+    private IEnumerator ShowCustom(string text, float duration)
+    {
+        label.text = (text ?? string.Empty).ToUpperInvariant();
+        overlay.SetActive(true);
+        yield return new WaitForSecondsRealtime(Mathf.Max(0f, duration));
+        overlay.SetActive(false);
+        routine = null;
+    }
 }

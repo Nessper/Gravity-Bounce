@@ -14,16 +14,22 @@ public class BinTrigger : MonoBehaviour
     [SerializeField] private bool autoFlushOnThreshold = true;
 
     private readonly HashSet<BallState> present = new HashSet<BallState>();
+    private bool autoFlushEnabled = true;
 
-    // ---- Public API ----
     public int Count => present.Count;
 
+    public void SetAutoFlushEnabled(bool enabled)
+    {
+        autoFlushEnabled = enabled;
+    }
+
     /// <summary>
-    /// Utilisé par le collector pour prendre les billes et vider le bin.
+    /// Utilisé par le collector pour prendre le lot et vider le bin.
     /// </summary>
     public List<BallState> TakeSnapshotAndClear()
     {
         var snapshot = new List<BallState>(present.Count);
+
         foreach (var st in present)
         {
             if (st == null || st.collected) continue;
@@ -43,7 +49,6 @@ public class BinTrigger : MonoBehaviour
         return snapshot;
     }
 
-    // ---- Triggers ----
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Ball")) return;
@@ -56,17 +61,12 @@ public class BinTrigger : MonoBehaviour
             state.inBin = true;
             state.currentSide = side;
 
-            if (autoFlushOnThreshold && present.Count >= flushThreshold && collector != null)
+            if (autoFlushEnabled && autoFlushOnThreshold && collector != null && present.Count >= flushThreshold)
             {
-                if (autoFlushOnThreshold && present.Count >= flushThreshold && collector != null)
-                {
-                    // Ne déclenche que si pas déjà en flush
-                    if ((side == Side.Left && !collector.IsLeftFlushing())
-                     || (side == Side.Right && !collector.IsRightFlushing()))
-                        collector.CollectFromBin(side);
-                }
+                bool sideBusy = (side == Side.Left) ? collector.IsLeftFlushing() : collector.IsRightFlushing();
+                if (!sideBusy)
+                    collector.CollectFromBin(side);
             }
-            
         }
     }
 

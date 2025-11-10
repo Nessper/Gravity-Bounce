@@ -1,44 +1,43 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-using System;
 
 public class ScoreManager : MonoBehaviour
 {
+    // ------------------------------
+    //   PLANNED TARGET
+    // ------------------------------
     [Header("Planned Target")]
-    [SerializeField, Tooltip("Nombre total de billes prévues dans le niveau (fixé par LevelManager)")]
-    private int totalBillesPrevues;
+    [SerializeField] private int totalBillesPrevues;
     public int TotalBillesPrevues => totalBillesPrevues;
 
-    // --- RUNTIME STATS (non sérialisés) ---
+    // ------------------------------
+    //   RUNTIME
+    // ------------------------------
     private int totalBilles;
     private int totalPertes;
     private int currentScore;
     private int realSpawned;
-    private int pointsPerdus;
 
     public int TotalBilles => totalBilles;
     public int TotalPertes => totalPertes;
     public int CurrentScore => currentScore;
     public int GetRealSpawned() => realSpawned;
 
-    // --- DÉTAILS INTERNES ---
+    // Détails agrégés
     private readonly Dictionary<string, int> totauxParType = new();
     private readonly Dictionary<string, int> pertesParType = new();
     private readonly List<BinSnapshot> historique = new();
 
-    [System.Serializable]
-    public class IntEvent : UnityEvent<int> { }
+    [Serializable] public class IntEvent : UnityEvent<int> { }
+    [HideInInspector] public IntEvent onScoreChanged = new();
 
-    [HideInInspector]
-    public IntEvent onScoreChanged = new();
-
-    // --- NOUVEAU : ÉVÉNEMENT DE PERTE DE BILLE ---
-    // Exemple : OnBallLost?.Invoke("White");
+    // Perte de bille
     public event Action<string> OnBallLost;
 
     // ------------------------------
-    // INIT / RESET
+    //   INIT / RESET
     // ------------------------------
     public void SetPlannedBalls(int count)
     {
@@ -50,7 +49,6 @@ public class ScoreManager : MonoBehaviour
         currentScore = start;
         totalBilles = 0;
         totalPertes = 0;
-        pointsPerdus = 0;
         realSpawned = 0;
 
         totauxParType.Clear();
@@ -61,17 +59,14 @@ public class ScoreManager : MonoBehaviour
     }
 
     // ------------------------------
-    // SCORE & EVENTS
+    //   SCORE & EVENTS
     // ------------------------------
     public void RegisterRealSpawn() => realSpawned++;
 
-    public void AddPoints(int amount, string reason = null)
+    public void AddPoints(int amount, string _ = null)
     {
         currentScore += amount;
         onScoreChanged?.Invoke(currentScore);
-
-        if (!string.IsNullOrEmpty(reason))
-            Debug.Log($"[ScoreManager] +{amount} ({reason}) -> Total = {currentScore}");
     }
 
     public void GetSnapshot(BinSnapshot snapshot)
@@ -85,43 +80,30 @@ public class ScoreManager : MonoBehaviour
         {
             foreach (var kv in snapshot.parType)
             {
-                if (!totauxParType.ContainsKey(kv.Key))
-                    totauxParType[kv.Key] = 0;
+                if (!totauxParType.ContainsKey(kv.Key)) totauxParType[kv.Key] = 0;
                 totauxParType[kv.Key] += kv.Value;
             }
         }
 
-        AddPoints(snapshot.totalPointsDuLot, "Flush Base");
+        AddPoints(snapshot.totalPointsDuLot);
     }
 
     // ------------------------------
-    // PERTE DE BILLE (depuis VoidTrigger)
+    //   PERTE DE BILLE (VoidTrigger)
     // ------------------------------
     public void RegisterLost(string ballType)
     {
         if (string.IsNullOrEmpty(ballType)) ballType = "Unknown";
 
-        if (!pertesParType.ContainsKey(ballType))
-            pertesParType[ballType] = 0;
+        if (!pertesParType.ContainsKey(ballType)) pertesParType[ballType] = 0;
         pertesParType[ballType]++;
 
         totalPertes++;
-
-        // On notifie les autres systèmes (ComboEngine, etc.)
         OnBallLost?.Invoke(ballType);
-
-        Debug.Log($"[ScoreManager] Bille perdue : {ballType} (total pertes = {totalPertes})");
-    }
-
-    // --- Surcharge rétrocompatible (si RegisterLost(BallState) est encore appelée) ---
-    public void RegisterLost(BallState ball)
-    {
-        if (ball == null) return;
-        RegisterLost(ball.TypeName);
     }
 
     // ------------------------------
-    // END LEVEL STATS
+    //   END LEVEL STATS
     // ------------------------------
     public EndLevelStats BuildEndLevelStats(int timeElapsedSec)
     {
@@ -133,11 +115,5 @@ public class ScoreManager : MonoBehaviour
             RawScore = currentScore,
             FinalScore = currentScore
         };
-    }
-
-    public bool IsCountConsistent()
-    {
-        // Optionnel : comparer realSpawned vs collected+lost avec tolérance
-        return true;
     }
 }

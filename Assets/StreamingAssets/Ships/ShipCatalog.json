@@ -1,0 +1,6 @@
+{
+  "schema": "ShipCatalog.v1",
+  "ships": [
+    { "id": "CORE_SCOUT", "displayName": "Core Scout", "lives": 3, "shieldSecondsPerLevel": 60, "closeBinHoldGrace": 0.12, "paddleWidthMult": 1.0, "binAutoFlushOnEvac": true }
+  ]
+}

@@ -31,8 +31,8 @@ public class ComboEngine : MonoBehaviour
     private const int MONSTER_FLUSH_COUNT = 8;
 
     private const float SUPER_FLUSH_BONUS = 0.10f;
-    private const float ULTRA_FLUSH_BONUS = 0.25f;
-    private const float MONSTER_FLUSH_BONUS = 0.40f;
+    private const float ULTRA_FLUSH_BONUS = 0.20f;
+    private const float MONSTER_FLUSH_BONUS = 0.30f;
 
     // === CHAINS PAR NOMBRE DE BILLES CUMULÉES ===
     // Cumuls depuis le dernier reset (perte de cette couleur / flush avec noir)
@@ -241,7 +241,7 @@ public class ComboEngine : MonoBehaviour
 
             scoreManager.AddPoints(bonus, label);
             batch.Add((id, bonus));
-            OnComboIdTriggered?.Invoke(label, bonus);
+            OnComboIdTriggered?.Invoke(id, bonus);
             Debug.Log($"[Combo] {label} ({cumBalls}/{stepBalls * m} {color} balls) +{bonus}");
         }
 

@@ -2,33 +2,18 @@ using UnityEngine;
 
 public class VoidTrigger : MonoBehaviour
 {
-    [SerializeField] private ScoreManager scoreManager; // référence au ScoreManager
+    [SerializeField] private ScoreManager scoreManager;
 
     private void OnTriggerEnter(Collider other)
     {
-        // On ne traite que les objets taggés "Ball"
         if (!other.CompareTag("Ball")) return;
 
         var state = other.GetComponent<BallState>();
-        if (state == null) return;
+        if (state == null || state.collected) return;
 
-        // Si elle a déjà été collectée ou flushée, on ignore
-        if (state.collected) return;
-
-        // Marquer la bille comme "hors jeu"
         state.collected = true;
+        scoreManager?.RegisterLost(state.TypeName);
 
-        //  Nouveau : enregistrer la perte dans le ScoreManager
-        if (scoreManager != null)
-        {
-            scoreManager.RegisterLost(state);
-        }
-        else
-        {
-            Debug.LogWarning("[VoidTrigger] Aucun ScoreManager assigné !");
-        }
-
-        // Détruire la bille (ou la renvoyer au pool plus tard)
         Destroy(other.gameObject);
     }
 }

@@ -14,8 +14,8 @@ public class TestAction
     // Si true, au lieu d'un flush on simule une perte
     public bool registerLoss;
 
-    // NEW: côté du flush (sélectionnable dans l'Inspector)
-    public BinSide binSide = BinSide.Left; // Left / Right
+    // Côté du flush (pour le snapshot simulé)
+    public BinSide binSide = BinSide.Left;
 
     // Attente avant l'étape suivante (secondes)
     public float delayAfter = 0.5f;
@@ -42,8 +42,6 @@ public class ComboSessionTester : MonoBehaviour
     public bool logEachStep = true;
     public bool resetScoreAtStart = true;
 
-
-
     // Recap combos
     private readonly Dictionary<string, int> comboCounts = new Dictionary<string, int>();
     private int totalCombos;
@@ -52,7 +50,7 @@ public class ComboSessionTester : MonoBehaviour
     private void Awake()
     {
         if (scoreManager == null) scoreManager = Object.FindFirstObjectByType<ScoreManager>();
-        // comboEngine: de preference assigne via l'Inspector à la même instance que BinCollector
+        // comboEngine: de préférence assigné via l’Inspector à la même instance que BinCollector
     }
 
     private void OnDisable()
@@ -74,7 +72,7 @@ public class ComboSessionTester : MonoBehaviour
         totalBonusPoints += points;
 
         if (logEachStep)
-            Debug.Log("[ComboSessionTester] Combo: " + comboId + " (+" + points + ")");
+            Debug.Log($"[ComboSessionTester] Combo: {comboId} (+{points})");
     }
 
     [ContextMenu("Run Test Session")]
@@ -96,9 +94,9 @@ public class ComboSessionTester : MonoBehaviour
     public void PrintSummary()
     {
         Debug.Log("----- Combo Summary -----");
-        Debug.Log("Total combos: " + totalCombos + ", Total bonus points: " + totalBonusPoints);
+        Debug.Log($"Total combos: {totalCombos}, Total bonus points: {totalBonusPoints}");
         foreach (var kv in comboCounts)
-            Debug.Log(kv.Key + ": " + kv.Value);
+            Debug.Log($"{kv.Key}: {kv.Value}");
         Debug.Log("-------------------------");
     }
 
@@ -117,21 +115,21 @@ public class ComboSessionTester : MonoBehaviour
         totalCombos = 0;
         totalBonusPoints = 0;
 
-        Debug.Log("[ComboSessionTester] Starting session with " + actions.Count + " steps.");
+        Debug.Log($"[ComboSessionTester] Starting session with {actions.Count} steps.");
 
         comboEngine.OnComboIdTriggered -= HandleComboTriggered;
         comboEngine.OnComboIdTriggered += HandleComboTriggered;
 
         if (logEachStep)
-            Debug.Log("[ComboSessionTester] Subscribed inline to ComboEngine #" + comboEngine.GetInstanceID() + " (" + comboEngine.name + ")");
+            Debug.Log($"[ComboSessionTester] Subscribed to ComboEngine #{comboEngine.GetInstanceID()} ({comboEngine.name})");
 
         foreach (var act in actions)
         {
             if (act.registerLoss)
             {
-                var fake = new BallState { type = BallType.White, points = ptsWhite };
-                scoreManager.RegisterLost(fake);
-                if (logEachStep) Debug.Log("[ComboSessionTester] Loss: " + act.label);
+                // Perte simulée : on choisit un type par défaut (White) pour les stats
+                scoreManager.RegisterLost("White");
+                if (logEachStep) Debug.Log($"[ComboSessionTester] Loss: {act.label}");
             }
             else
             {
@@ -139,10 +137,10 @@ public class ComboSessionTester : MonoBehaviour
 
                 if (logEachStep)
                 {
-                    Debug.Log("[ComboSessionTester] Flush: " + act.label +
-                              " Side=" + snap.binSource +
-                              " W=" + act.white + " B=" + act.blue + " R=" + act.red + " K=" + act.black +
-                              " base=" + snap.totalPointsDuLot);
+                    Debug.Log($"[ComboSessionTester] Flush: {act.label} " +
+                              $"Side={snap.binSide} " +
+                              $"W={act.white} B={act.blue} R={act.red} K={act.black} " +
+                              $"base={snap.totalPointsDuLot}");
                 }
 
                 // Score de base (comme BinCollector)
@@ -165,7 +163,6 @@ public class ComboSessionTester : MonoBehaviour
         var s = new BinSnapshot
         {
             binSide = act.binSide,
-     
             timestamp = Time.time,
             parType = new Dictionary<string, int>(),
             pointsParType = new Dictionary<string, int>(),
@@ -194,8 +191,6 @@ public class ComboSessionTester : MonoBehaviour
             s.parType["Black"] = act.black;
             s.pointsParType["Black"] = act.black * ptsBlack; // négatif
         }
-
-        typeof(BinSnapshot).GetField("binSource")?.SetValue(s, act.binSide.ToString());
 
         return s;
     }

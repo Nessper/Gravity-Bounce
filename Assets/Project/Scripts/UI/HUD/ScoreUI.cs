@@ -1,30 +1,13 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class ScoreUI : MonoBehaviour
 {
-    [Header("Références UI")]
-    [SerializeField] private TextMeshProUGUI label;   // texte du score
-    [SerializeField] private Slider progressBar;      // ta barre PB_Balles
-    [SerializeField] private ScoreManager scoreManager;
+    [SerializeField] private TMP_Text scoreText;
 
-    // appelée par ScoreManager via le listener
-    public void UpdateLabel(int newScore)
+    public void UpdateScoreText(int value)
     {
-        if (label != null)
-            label.text = newScore.ToString();
-
-        UpdateProgress();
-    }
-
-    private void UpdateProgress()
-    {
-        if (progressBar == null || scoreManager == null)
-            return;
-
-        var planned = Mathf.Max(1, scoreManager.TotalBillesPrevues);
-        float ratio = Mathf.Clamp01((float)scoreManager.TotalBilles / planned);
-        progressBar.value = ratio;
+        if (scoreText != null)
+            scoreText.text = value.ToString();
     }
 }

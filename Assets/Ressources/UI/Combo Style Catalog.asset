@@ -29,3 +29,27 @@ MonoBehaviour:
     displayKey: combo.fast_flush
     format: '{label} +{points}'
     color: {r: 0, g: 0.85, b: 0.7, a: 0}
+  - id: WhiteFlushChain
+    displayKey: combo.white_chain
+    format: '{label} x{mult} +{points}'
+    color: {r: 0.9490197, g: 0.9490197, b: 0.9490197, a: 1}
+  - id: BlueFlushChain
+    displayKey: combo.blue_chain
+    format: '{label} x{mult} +{points}'
+    color: {r: 0.20000002, g: 0.6, b: 1, a: 1}
+  - id: RedFlushChain
+    displayKey: combo.red_chain
+    format: '{label} x{mult} +{points}'
+    color: {r: 1, g: 0, b: 0.3019608, a: 1}
+  - id: SuperFlush
+    displayKey: combo.super_flush
+    format: '{label} +{points}'
+    color: {r: 1, g: 0.8509804, b: 0.4, a: 1}
+  - id: UltraFlush
+    displayKey: combo.ultra_flush
+    format: '{label} +{points}'
+    color: {r: 0.61960787, g: 0.49803922, b: 1, a: 1}
+  - id: MonsterFlush
+    displayKey: combo.monster_flush
+    format: '{label} +{points}'
+    color: {r: 1, g: 0.23921569, b: 0.23921569, a: 1}

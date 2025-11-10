@@ -32,6 +32,14 @@ public class PhaseData
     public PhaseMixEntry[] Mix;
 }
 
+// --- Evacuation (fin de niveau, hors spawner) ---
+[System.Serializable]
+public class EvacuationData
+{
+    public string Name;        // ex: "Evacuation"
+    public float DurationSec;  // ex: 10
+}
+
 // --- Main Objective ---
 [System.Serializable]
 public class MainObjectiveData
@@ -65,4 +73,7 @@ public class LevelData
     public ScoreGoalsData[] ScoreGoals;
     public string Theme;
     public PhaseData[] Phases;
+
+    // Phase d'évacuation (optionnelle, hors spawner)
+    public EvacuationData Evacuation;
 }

@@ -10,9 +10,9 @@
   "LevelDurationSec": 60,
   "Lives": 3,
   "ScoreGoals": [
-      { "Type": "Bronze", "Points": 1200 },
-      { "Type": "Silver", "Points": 2300 },
-      { "Type": "Gold", "Points": 4200 }
+    { "Type": "Bronze", "Points": 1200 },
+    { "Type": "Silver", "Points": 2300 },
+    { "Type": "Gold", "Points": 4200 }
   ],
   "Tip": "Try putting 5 marbles of the same color in a container.",
 
@@ -29,42 +29,46 @@
 
   "Phases": [
     {
-        "Name": "Intro",
-        "DurationSec": 20,
-        "Intervalle": 1.0,
-        "AngleMin": 0,
-        "AngleMax": 0,
-        "Mix": [
-            { "Type": "White", "Poids": 0.90 },
-            { "Type": "Blue", "Poids": 0.10 }
-        ]
+      "Name": "Intro",
+      "DurationSec": 20,
+      "Intervalle": 1.0,
+      "AngleMin": 0,
+      "AngleMax": 0,
+      "Mix": [
+        { "Type": "White", "Poids": 0.90 },
+        { "Type": "Blue", "Poids": 0.10 }
+      ]
     },
     {
-        "Name": "Tension",
-        "DurationSec": 30,
-        "Intervalle": 1.0,
-        "AngleMin": 0,
-        "AngleMax": 0,
-        "Mix": [
-            { "Type": "White", "Poids": 0.85 },
-            { "Type": "Blue", "Poids": 0.08 },
-            { "Type": "Black", "Poids": 0.07 }
-        ]
+      "Name": "Tension",
+      "DurationSec": 30,
+      "Intervalle": 1.0,
+      "AngleMin": 0,
+      "AngleMax": 0,
+      "Mix": [
+        { "Type": "White", "Poids": 0.85 },
+        { "Type": "Blue", "Poids": 0.08 },
+        { "Type": "Black", "Poids": 0.07 }
+      ]
     },
     {
-        "Name": "Final Rush",
-        "DurationSec": 10,
-        "Intervalle": 0.8,
-        "AngleMin": 0,
-        "AngleMax": 0,
-        "Mix": [
-            { "Type": "White", "Poids": 0.80 },
-            { "Type": "Blue", "Poids": 0.05 },
-            { "Type": "Black", "Poids": 0.15 }
-        ]
+      "Name": "Final Rush",
+      "DurationSec": 10,
+      "Intervalle": 0.8,
+      "AngleMin": 0,
+      "AngleMax": 0,
+      "Mix": [
+        { "Type": "White", "Poids": 0.80 },
+        { "Type": "Blue", "Poids": 0.05 },
+        { "Type": "Black", "Poids": 0.15 }
+      ]
     }
-],
+  ],
+  "Evacuation": { 
+      "Name": "Evacuation", 
+      "DurationSec": 10 
+  },
 
-  
+
   "Theme": "City"
 }

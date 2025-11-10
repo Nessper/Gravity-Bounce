@@ -1,5 +1,4 @@
 using System.Collections;
-using TMPro;
 using UnityEngine;
 
 public class LevelManager : MonoBehaviour
@@ -13,10 +12,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private LevelTimer levelTimer;
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private BallSpawner ballSpawner;
-    [SerializeField] private BallTracker ballTracker;
     [SerializeField] private BinCollector collector;
-
-    // Orchestrateur de fin (nouveau)
     [SerializeField] private EndSequenceController endSequence;
 
     // ------------------------------
@@ -24,11 +20,13 @@ public class LevelManager : MonoBehaviour
     // ------------------------------
     [Header("UI / Overlays")]
     [SerializeField] private IntroLevelUI levelIntroUI;
-    [SerializeField] private CountdownUI countdownUI;
+    [SerializeField] private CountdownUI countdownUI;    // intro + évacuation
     [SerializeField] private PauseController pauseController;
     [SerializeField] private LevelIdUI levelIdUI;
+    [SerializeField] private ScoreUI scoreUI;
     [SerializeField] private LivesUI livesUI;
     [SerializeField] private ProgressBarUI progressBarUI;
+    [SerializeField] private PhaseBannerUI phaseBannerUI;
 
     [Header("UI - Fin de niveau")]
     [SerializeField] private EndLevelUI endLevelUI;
@@ -43,9 +41,7 @@ public class LevelManager : MonoBehaviour
     private string levelID;
     private float levelDurationSec;
 
-    // État du niveau
     private bool endSequenceRunning;
-    private bool timerElapsed;
     private int currentLives;
 
     private void OnEnable()
@@ -62,32 +58,33 @@ public class LevelManager : MonoBehaviour
 
     private void Start()
     {
-        // --- CHARGEMENT DES DONNÉES ---
         LoadLevelConfig();
 
+        // --- LIAISON SCORE UI --> ScoreManager ---
+        if (scoreManager != null && scoreUI != null)
+            scoreManager.onScoreChanged.AddListener(scoreUI.UpdateScoreText);
+
         // --- INITIALISATION AVANT LE COUNTDOWN ---
-        // 1) Score à 0
+        // 1) Score à 0 (l'UI est déjà abonnée, donc elle affiche 0 tout de suite)
         scoreManager?.ResetScore(0);
 
         // 2) Vies depuis JSON
         currentLives = data != null ? Mathf.Max(0, data.Lives) : 0;
-        if (livesUI != null) livesUI.SetLives(currentLives);
+        livesUI?.SetLives(currentLives);
 
-        // 3) Timer affiché mais figé
+        // Timer prêt mais figé
         if (levelTimer != null && data != null)
         {
             levelTimer.enabled = false;
             levelTimer.StartTimer(levelDurationSec);
         }
 
-        // 4) Préparer spawner + planned pour la ProgressBar (avant le countdown)
+        // Spawner & progress bar
         if (ballSpawner != null && data != null)
         {
-            ballSpawner.ConfigureFromLevel(data); // prépare seulement
+            ballSpawner.ConfigureFromLevel(data);
             scoreManager?.SetPlannedBalls(ballSpawner.PlannedSpawnCount);
         }
-
-        // 5) ProgressBar = 0/planned + repère objectif (utilise MainObjective.ThresholdPct)
         if (progressBarUI != null && scoreManager != null && data != null)
         {
             int threshold = (data.MainObjective != null) ? data.MainObjective.ThresholdPct : 0;
@@ -95,23 +92,36 @@ public class LevelManager : MonoBehaviour
             progressBarUI.Refresh();
         }
 
-        // 6) Verrou gameplay jusqu’au GO
+        // Verrou gameplay jusqu’au GO
         player?.SetActiveControl(false);
         closeBinController?.SetActiveControl(false);
         pauseController?.EnablePause(false);
 
-        // 7) Configurer l'orchestrateur de fin
+        // Configure orchestrateur (évacuation 10 s)
+        float evacDuration = Mathf.Max(0.1f, data.Evacuation.DurationSec);
+        string evacName = data.Evacuation.Name; // peut être null/empty
+
         endSequence?.Configure(
-            ballTracker,
             collector,
             player,
             closeBinController,
-            pauseController
-            // , grace, poll si tu veux surcharger
+            pauseController,
+            evacDuration: evacDuration,
+            tickInterval: 1f,
+            onEvacStartCb: () =>
+            {
+                // Affiche la bannière seulement si un nom est fourni dans le JSON
+                if (!string.IsNullOrWhiteSpace(evacName))
+                    phaseBannerUI?.ShowPhaseText(evacName, evacDuration);
+
+                // Compte à rebours calé sur la durée JSON
+                if (countdownUI != null)
+                    StartCoroutine(countdownUI.PlayCountdownSeconds(evacDuration));
+            },
+            onEvacTickCb: null
         );
 
-
-        // --- INTRO + COUNTDOWN ---
+        // Intro + countdown départ
         if (levelIntroUI != null && data != null)
         {
             levelIntroUI.Show(
@@ -119,7 +129,6 @@ public class LevelManager : MonoBehaviour
                 onPlay: () =>
                 {
                     levelIntroUI.Hide();
-
                     if (countdownUI != null)
                     {
                         StartCoroutine(countdownUI.PlayCountdown(() =>
@@ -168,54 +177,34 @@ public class LevelManager : MonoBehaviour
         levelID = data.LevelID;
         levelDurationSec = data.LevelDurationSec;
 
-        if (levelIdUI != null)
-            levelIdUI.SetLevelId(levelID);
+        levelIdUI?.SetLevelId(levelID);
     }
 
-    // ------------------------------
-    //   DÉMARRAGE DU NIVEAU (après countdown)
-    // ------------------------------
     public void StartLevel()
     {
         Time.timeScale = 1f;
         endSequenceRunning = false;
-        timerElapsed = false;
 
-        // Reset de l'orchestrateur de fin
         endSequence?.ResetState();
-
         endLevelUI?.Hide();
 
-        // Démarre réellement le timer maintenant
-        if (levelTimer != null)
-            levelTimer.enabled = true;
-
-        // Lance la génération des billes
+        if (levelTimer != null) levelTimer.enabled = true;
         ballSpawner?.StartSpawning();
     }
 
-    // ------------------------------
-    //   GESTION DE LA FIN DE NIVEAU
-    // ------------------------------
     private void HandleTimerEnd()
     {
         if (endSequenceRunning) return;
 
-        timerElapsed = true;
         ballSpawner?.StopSpawning();
         endSequenceRunning = true;
 
-        // Délègue toute la séquence de fin à l'orchestrateur
-        endSequence?.BeginEndSequence(() =>
+        endSequence?.BeginEvacuationPhase(() =>
         {
-            // Retour ici quand tout est lock et stable (grace + drain + flush final faits)
             EvaluateLevelResult();
         });
     }
 
-    // ------------------------------
-    //   ÉVALUATION
-    // ------------------------------
     private void EvaluateLevelResult()
     {
         if (scoreManager == null || data == null)
@@ -236,7 +225,6 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        // Calcul objectif principal (seuil en nombre de billes)
         int thresholdPct = (data.MainObjective != null) ? data.MainObjective.ThresholdPct : 0;
         int required = Mathf.CeilToInt((thresholdPct / 100f) * spawnedForEval);
         bool success = collected >= required;
@@ -248,7 +236,6 @@ public class LevelManager : MonoBehaviour
         if (spawnedReal > 0 && Mathf.Abs(spawnedReal - handled) > 3)
             Debug.LogWarning($"[ScoreCheck] Ecart: Real={spawnedReal}, Handled={handled} (Collected={collected}, Lost={lost}), Plan={spawnedPlan}");
 
-        // Construire le résultat d'objectif principal et afficher l'UI
         var mainObj = new MainObjectiveResult
         {
             Text = (data.MainObjective != null) ? data.MainObjective.Text : string.Empty,
@@ -262,19 +249,16 @@ public class LevelManager : MonoBehaviour
         endLevelUI.Show(stats, data, mainObj);
     }
 
-    // ------------------------------
-    //   VIES
-    // ------------------------------
     public void LoseLife(int amount = 1)
     {
         currentLives = Mathf.Max(0, currentLives - Mathf.Max(1, amount));
-        if (livesUI != null) livesUI.SetLives(currentLives);
+        livesUI?.SetLives(currentLives);
     }
 
     public void AddLife(int amount = 1)
     {
         currentLives += Mathf.Max(1, amount);
-        if (livesUI != null) livesUI.SetLives(currentLives);
+        livesUI?.SetLives(currentLives);
     }
 
     public string GetLevelID() => data != null ? data.LevelID : levelID;
