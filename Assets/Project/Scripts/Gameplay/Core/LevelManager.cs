@@ -204,11 +204,62 @@ public class LevelManager : MonoBehaviour
         ballSpawner?.StopSpawning();
         endSequenceRunning = true;
 
+        // Lance l'evacuation, puis finalize proprement (flush forcé + sweep + stats + evaluation)
         endSequence?.BeginEvacuationPhase(() =>
         {
-            ballSpawner?.LogStats(); // après évac (tout flush)
-            EvaluateLevelResult();
+            StartCoroutine(EndOfLevelFinalizeRoutine());
         });
+    }
+
+    private IEnumerator EndOfLevelFinalizeRoutine()
+    {
+        // 1) Flush final forcé (prend tout ce qu'il y a dans les bins, sans seuil ni délai)
+        collector?.CollectAll(force: true, skipDelay: true);
+
+        // 2) Balayage final: tout ce qui reste actif et non-collected est considéré perdu
+        yield return StartCoroutine(FinalSweepMarkLostAndRecycle(ballSpawner, scoreManager));
+
+        // 3) Stats spawner (après sweep)
+        ballSpawner?.LogStats();
+
+        // 4) Evaluation et UI de fin
+        EvaluateLevelResult();
+    }
+
+    private IEnumerator FinalSweepMarkLostAndRecycle(BallSpawner spawner, ScoreManager score)
+    {
+        // Laisse 1–2 frames au flush forcé pour vider les sets / events
+        yield return null;
+        yield return null;
+
+#if UNITY_6000_0_OR_NEWER
+        var balls = UnityEngine.Object.FindObjectsByType<BallState>(FindObjectsSortMode.None);
+#else
+    var balls = UnityEngine.Object.FindObjectsOfType<BallState>();
+#endif
+
+
+        foreach (var st in balls)
+        {
+            if (st == null) continue;
+            var go = st.gameObject;
+
+            if (!go.activeInHierarchy) continue;
+
+            // Si déjà collected par un flush, recycle en collected (pas de double-compte)
+            if (st.collected)
+            {
+                spawner?.Recycle(go, collected: true);
+                continue;
+            }
+
+            // Si encore marqué "inBin", on considère que le flush forcé les a pris (par sécurité, on ignore)
+            if (st.inBin) continue;
+
+            // Tout le reste = perdu
+            score?.RegisterLost(st.TypeName);
+            spawner?.Recycle(go, collected: false);
+        }
     }
 
     private void EvaluateLevelResult()

@@ -72,6 +72,11 @@ public class ComboStyleProvider : MonoBehaviour
             case "combo.ultra_flush": return "Ultra Flush";
             case "combo.monster_flush": return "Monster Flush";
 
+            // === FINAUX (invisibles en partie, visibles à la fin) ===
+            case "combo.perfect_run": return "Perfect Run";
+            case "combo.combos_collector": return "Combos Collector";
+
+
         }
         // Sinon on renvoie la clé telle quelle (comportement actuel)
         return key;

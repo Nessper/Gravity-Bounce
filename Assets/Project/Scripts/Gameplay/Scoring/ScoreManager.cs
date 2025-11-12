@@ -36,6 +36,16 @@ public class ScoreManager : MonoBehaviour
     // Perte de bille
     public event Action<string> OnBallLost;
 
+    public IReadOnlyDictionary<string, int> GetTotalsByTypeSnapshot()
+    => new Dictionary<string, int>(totauxParType);
+
+    public IReadOnlyDictionary<string, int> GetLossesByTypeSnapshot()
+        => new Dictionary<string, int>(pertesParType);
+
+    public List<BinSnapshot> GetHistoriqueSnapshot()
+        => new List<BinSnapshot>(historique);
+
+
     // ------------------------------
     //   INIT / RESET
     // ------------------------------
