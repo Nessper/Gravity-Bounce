@@ -25,12 +25,13 @@ public class PhaseMixEntry
 public class PhaseData
 {
     public string Name;
-    public float DurationSec;
+    public float Weight;      // nouvelle source de vérité pour répartir le temps total
     public float Intervalle;
     public float AngleMin;
     public float AngleMax;
     public PhaseMixEntry[] Mix;
 }
+
 
 // --- Evacuation (fin de niveau, hors spawner) ---
 [System.Serializable]

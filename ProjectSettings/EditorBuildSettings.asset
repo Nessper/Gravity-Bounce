@@ -12,6 +12,9 @@ EditorBuildSettings:
     path: Assets/Project/Scenes/Title.unity
     guid: 004a47615ec29d44ba0b1e1e4f0d05ed
   - enabled: 1
+    path: Assets/Project/Scenes/ShipSelect.unity
+    guid: 904222662a956d44bac42c6c884b4531
+  - enabled: 1
     path: Assets/Project/Scenes/Main.unity
     guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:

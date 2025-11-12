@@ -82,7 +82,6 @@ public class ComboEngine : MonoBehaviour
             case "Red": ResetRed(); break;
             default: ResetWhite(); ResetBlue(); ResetRed(); break; // Black/Unknown -> reset global
         }
-        Debug.Log($"[Combo] Reset chain on loss for {color}");
     }
 
     /// <summary>Appelé une fois par flush avec un snapshot complet.</summary>
@@ -188,7 +187,6 @@ public class ComboEngine : MonoBehaviour
             // flush noir -> reset total des chains
             whiteChainBalls = blueChainBalls = redChainBalls = 0;
             whiteChainAwardedMult = blueChainAwardedMult = redChainAwardedMult = 0;
-            Debug.Log("[Combo] Chains reset (black in flush)");
         }
         else
         {
@@ -242,7 +240,6 @@ public class ComboEngine : MonoBehaviour
             scoreManager.AddPoints(bonus, label);
             batch.Add((id, bonus));
             OnComboIdTriggered?.Invoke(id, bonus);
-            Debug.Log($"[Combo] {label} ({cumBalls}/{stepBalls * m} {color} balls) +{bonus}");
         }
 
         awardedMult = currentMult;

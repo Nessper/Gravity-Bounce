@@ -4,20 +4,17 @@ using UnityEngine;
 
 public class BinCollector : MonoBehaviour
 {
-    [Header("References")]
-    [SerializeField] private Transform displayContainer;
+    [Header("Références")]
     [SerializeField] private ScoreManager scoreManager;
+    [SerializeField] private ComboEngine comboEngine;
     [SerializeField] private BinTrigger leftBin;
     [SerializeField] private BinTrigger rightBin;
-    [SerializeField] private ComboEngine comboEngine;
+    [SerializeField] private BallSpawner spawner;   // requis pour le recycle
 
-    [Header("Spawn / Teleport")]
-    [SerializeField] private Transform spawnPoint;
-    [SerializeField] private Vector2 xzJitter = new Vector2(0.25f, 0.15f);
-    [SerializeField] private float verticalOffset = 0f;
-    [SerializeField] private float delayBeforeTeleport = 1.2f; // utilisé pour les flushs "normaux" en partie
+    [Header("Options de flush")]
+    [SerializeField] private float delayBeforeFlush = 1.2f; // délai en run normal (pas en fin de niveau)
 
-    // Etat de flush par côté
+    // État de flush par côté (évite les débuts en double)
     private bool flushingLeft;
     private bool flushingRight;
 
@@ -25,9 +22,7 @@ public class BinCollector : MonoBehaviour
     public bool IsLeftFlushing() => flushingLeft;
     public bool IsRightFlushing() => flushingRight;
 
-    /// <summary>
-    /// Active/désactive l'auto-flush sur les deux bacs (utilisé par la fin de niveau).
-    /// </summary>
+    /// <summary>Active/désactive l'auto-flush sur les deux bacs (utilisé par la fin de niveau).</summary>
     public void SetAutoFlushEnabled(bool enabled)
     {
         if (leftBin != null) leftBin.SetAutoFlushEnabled(enabled);
@@ -45,7 +40,6 @@ public class BinCollector : MonoBehaviour
 
     public void CollectAll(bool force = false, bool skipDelay = false)
     {
-        // Démarre gauche et droite (en parallèle si les deux ont du contenu)
         CollectLeft(force, skipDelay);
         CollectRight(force, skipDelay);
     }
@@ -72,20 +66,45 @@ public class BinCollector : MonoBehaviour
         try
         {
             if (!skipDelay)
-                yield return new WaitForSecondsRealtime(delayBeforeTeleport);
+                yield return new WaitForSecondsRealtime(delayBeforeFlush);
 
             var trigger = GetTrigger(side);
             if (trigger == null) yield break;
 
-            // En mode normal, on revalide le seuil; en force (fin de niveau), on prend tout de suite
+            // En mode normal, on valide le seuil; en force (fin de niveau), on prend tout.
             if (!force && trigger.Count < trigger.flushThreshold)
                 yield break;
 
+            // Snapshot (et purge) du contenu du bac
             List<BallState> lot = trigger.TakeSnapshotAndClear();
             if (lot == null || lot.Count == 0)
                 yield break;
 
-            yield return FlushLotAndScore(lot, side);
+            // 1) Construire le snapshot logique (score & combos)
+            var snapshot = BuildSnapshot(lot, side);
+            scoreManager?.GetSnapshot(snapshot);
+            comboEngine?.OnFlush(snapshot);
+
+            // 2) Recyclage: on désactive toutes les billes du lot (même si déjà "collected")
+            if (spawner == null)
+            {
+                Debug.LogError("[BinCollector] Spawner non assigné : impossible de recycler. (Fallback: Destroy)");
+                foreach (var st in lot)
+                {
+                    if (st == null) continue;
+                    st.collected = true;
+                    Destroy(st.gameObject); // fallback dev pour ne pas polluer la scène
+                }
+                yield break;
+            }
+
+            foreach (var st in lot)
+            {
+                if (st == null) continue;
+                st.collected = true;                 // anti double-compte ailleurs
+                st.transform.SetParent(null, true);  // par sécurité
+                spawner.Recycle(st.gameObject, collected: true);
+            }
         }
         finally
         {
@@ -93,67 +112,9 @@ public class BinCollector : MonoBehaviour
         }
     }
 
-    private IEnumerator FlushLotAndScore(List<BallState> lot, Side side)
-    {
-        var snapshot = BuildSnapshot(lot, side);
-
-        // Téléport/collecte visuelle
-        foreach (var st in lot)
-        {
-            if (st == null || st.collected) continue;
-            DropIntoContainer(st);
-        }
-
-        // Scoring + combos
-        scoreManager?.GetSnapshot(snapshot);
-        comboEngine?.OnFlush(snapshot);
-
-        yield break;
-    }
-
-    private void DropIntoContainer(BallState st)
-    {
-        st.collected = true;
-
-        var go = st.gameObject;
-        var rb = go.GetComponent<Rigidbody>();
-        var col = go.GetComponent<Collider>();
-
-        Vector3 basePos = spawnPoint != null
-            ? spawnPoint.position
-            : (displayContainer != null ? displayContainer.position : transform.position);
-
-        Vector3 spawnPos = new Vector3(
-            basePos.x + Random.Range(-xzJitter.x, xzJitter.x),
-            basePos.y + verticalOffset,
-            basePos.z + Random.Range(-xzJitter.y, xzJitter.y)
-        );
-
-        go.transform.SetParent(null, true);
-        go.transform.localScale = st.Scale;
-
-        if (rb)
-        {
-            bool hadCollider = col && col.enabled;
-            if (hadCollider) col.enabled = false;
-
-            rb.isKinematic = true;
-            rb.interpolation = RigidbodyInterpolation.None;
-            rb.position = spawnPos;
-
-            if (hadCollider) col.enabled = true;
-
-            rb.isKinematic = false;
-            rb.interpolation = RigidbodyInterpolation.Interpolate;
-            rb.constraints = RigidbodyConstraints.None;
-            rb.WakeUp();
-        }
-        else
-        {
-            go.transform.position = spawnPos;
-        }
-    }
-
+    // ------------------------------
+    // Utilitaires internes
+    // ------------------------------
     private BinSnapshot BuildSnapshot(List<BallState> lot, Side side)
     {
         var snapshot = new BinSnapshot
@@ -163,8 +124,9 @@ public class BinCollector : MonoBehaviour
         };
 
         int total = 0;
-        foreach (var st in lot)
+        for (int i = 0; i < lot.Count; i++)
         {
+            var st = lot[i];
             if (st == null) continue;
 
             total += st.points;

@@ -28,26 +28,29 @@ public class BinTrigger : MonoBehaviour
     /// </summary>
     public List<BallState> TakeSnapshotAndClear()
     {
+        // Prenons TOUT ce qui est présent, même si déjà `collected`
         var snapshot = new List<BallState>(present.Count);
 
+        // Copie robuste + purge
         foreach (var st in present)
         {
-            if (st == null || st.collected) continue;
+            if (st == null) continue;
             snapshot.Add(st);
-        }
 
-        foreach (var st in snapshot)
-        {
-            present.Remove(st);
-            if (st != null && st.currentSide == side)
+            // Reset des flags de présence côté bin
+            if (st.currentSide == side)
             {
                 st.inBin = false;
                 st.currentSide = Side.None;
             }
         }
 
+        // On vide complètement le set — important car OnTriggerExit ne sera pas appelé
+        present.Clear();
+
         return snapshot;
     }
+
 
     private void OnTriggerEnter(Collider other)
     {

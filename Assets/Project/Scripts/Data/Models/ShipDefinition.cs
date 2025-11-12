@@ -6,12 +6,15 @@ public class ShipDefinition
 {
     public string id;
     public string displayName;
+    public string description;    
     public int lives;
     public float shieldSecondsPerLevel;
     public float closeBinHoldGrace;
     public float paddleWidthMult;
     public bool binAutoFlushOnEvac;
+    public string imageFile;       
 }
+
 
 [Serializable]
 public class ShipCatalog

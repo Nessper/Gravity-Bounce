@@ -3,6 +3,8 @@ using System.Collections;
 
 public class TitleMusicPlayer : MonoBehaviour
 {
+    public static TitleMusicPlayer Instance { get; private set; }
+
     [SerializeField] private AudioClip music;
     [SerializeField] private float fadeInTime = 1.5f;
     [SerializeField] private float fadeOutTime = 1.5f;
@@ -13,8 +15,17 @@ public class TitleMusicPlayer : MonoBehaviour
 
     private void Awake()
     {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
         source = GetComponent<AudioSource>();
-        if (music)
+        if (music != null)
         {
             source.clip = music;
             source.volume = 0f;
@@ -24,23 +35,24 @@ public class TitleMusicPlayer : MonoBehaviour
         }
     }
 
-    private IEnumerator FadeIn()
+    public void SnapToTargetVolume()
     {
-        float t = 0f;
-        while (t < fadeInTime)
+        if (currentFade != null)
         {
-            t += Time.deltaTime;
-            source.volume = Mathf.Lerp(0f, targetVolume, t / fadeInTime);
-            yield return null;
+            StopCoroutine(currentFade);
+            currentFade = null;
         }
-        source.volume = targetVolume;
-        currentFade = null;
+        if (source != null)
+            source.volume = targetVolume;
     }
 
     public IEnumerator FadeOut()
     {
         if (currentFade != null)
+        {
             StopCoroutine(currentFade);
+            currentFade = null;
+        }
 
         float startVol = source.volume;
         float t = 0f;
@@ -53,6 +65,20 @@ public class TitleMusicPlayer : MonoBehaviour
         }
 
         source.Stop();
+    }
+
+    private IEnumerator FadeIn()
+    {
+        float t = 0f;
+
+        while (t < fadeInTime)
+        {
+            t += Time.deltaTime;
+            source.volume = Mathf.Lerp(0f, targetVolume, t / fadeInTime);
+            yield return null;
+        }
+
+        source.volume = targetVolume;
         currentFade = null;
     }
 }

@@ -6,6 +6,7 @@ public class RunConfig : MonoBehaviour
 
     // Valeur par défaut si le joueur n’a pas encore choisi
     public string SelectedShipId = "CORE_SCOUT";
+    public bool SkipTitleIntroOnce = false;
 
     private void Awake()
     {

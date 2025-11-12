@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class BallSpawner : MonoBehaviour
 {
+    [Header("Refs")]
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private GameObject ballPrefab;
 
@@ -16,235 +17,387 @@ public class BallSpawner : MonoBehaviour
     [SerializeField] private bool spawnAtT0 = false;
 
     public int PlannedSpawnCount { get; private set; }
+    public int CurrentPhaseIndex { get; private set; } = 0;
 
+    public event Action<int, string> OnPhaseChanged; // (index, name)
+    public event Action<int> OnPlannedReady;         // total planned
+    public event Action<int> OnActivated;            // real activated so far
+
+    private LevelData data;
+    private readonly Dictionary<BallType, int> pointsByType = new();
+
+    private struct PhasePlan
+    {
+        public int Index;
+        public string Name;
+        public float DurationSec;
+        public float Interval;
+        public int Quota;
+    }
+    private readonly List<PhasePlan> plans = new();
+
+    private struct MixEntry { public BallType t; public float w; }
+    private readonly List<List<MixEntry>> mixes = new();
+    private readonly List<float> mixTotals = new();
+
+    private readonly List<Queue<BallType>> typeQueues = new();
+
+    // Pool
+    private readonly Stack<GameObject> pool = new();
+    private Coroutine prewarmCoro;
     private Coroutine loop;
     private bool running;
 
-    private LevelData data;
-    private readonly Dictionary<BallType, int> pointsByType = new Dictionary<BallType, int>();
+    // Telemetry
+    private int plannedTotal;
+    private int prewarmedCount;
+    private int activatedCount;
+    private int recycledCollected;
+    private int recycledLost;
 
-    // 3 phases fixes
-    private readonly float[] phaseDur = new float[3];
-    private readonly float[] phaseIv = new float[3];
-    private readonly float[] phaseEnd = new float[3]; // cumul des durées
-    private float levelDur;
-
-    // Mix pondéré par phase
-    private struct W { public BallType t; public float w; }
-    private readonly List<W>[] mixes = { new List<W>(), new List<W>(), new List<W>() };
-    private readonly float[] mixTotals = new float[3];
-
-    // Événement UI de phase
-    public event Action<int, string> OnPhaseChanged; // index 0..2, nom
-    private readonly string[] phaseNames = new string[3];
-    public int CurrentPhaseIndex { get; private set; } = 0;
-    public string GetPhaseName(int index) => (index >= 0 && index < 3) ? phaseNames[index] : "";
-
-    // ------------------------------
-    //   CONFIGURATION
-    // ------------------------------
-    public void ConfigureFromLevel(LevelData levelData)
+    // ------------------ CONFIG ------------------
+    public void ConfigureFromLevel(LevelData levelData, float totalRunSec)
     {
         data = levelData;
 
-        // Points par type (fallback: White=100)
+        // points par type
         pointsByType.Clear();
-        if (data != null && data.Balls != null)
+        if (data?.Balls != null)
         {
             foreach (var b in data.Balls)
             {
                 if (string.IsNullOrWhiteSpace(b.Type)) continue;
-                if (!Enum.TryParse<BallType>(b.Type, true, out var t)) continue;
+                if (!Enum.TryParse(b.Type, true, out BallType t)) continue;
                 pointsByType[t] = b.Points;
             }
         }
         if (pointsByType.Count == 0) pointsByType[BallType.White] = 100;
 
-        // Récupère 3 phases : durées, intervalles, mixes
-        for (int i = 0; i < 3; i++)
+        BuildPlansFromWeights(totalRunSec);
+        BuildMixes();
+        BuildTypeQueues(); // fixe quotas + files de types par phase
+
+        PlannedSpawnCount = plannedTotal;
+        prewarmedCount = 0;
+        activatedCount = 0;
+        recycledCollected = 0;
+        recycledLost = 0;
+        pool.Clear();
+        CurrentPhaseIndex = plans.Count > 0 ? 0 : -1;
+
+        OnPlannedReady?.Invoke(PlannedSpawnCount);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log($"[Spawner/Plan] plannedTotal={plannedTotal} (spawnAtT0={(spawnAtT0 ? 1 : 0)})");
+        for (int i = 0; i < plans.Count; i++)
         {
-            PhaseData ph = (data != null && data.Phases != null && i < data.Phases.Length) ? data.Phases[i] : null;
-
-            phaseDur[i] = (ph != null && ph.DurationSec > 0f) ? ph.DurationSec : 0f;
-
-            float iv = intervalDefault;
-            if (ph != null && ph.Intervalle > 0f) iv = ph.Intervalle;
-            else if (data != null && data.Spawn != null && data.Spawn.Intervalle > 0f) iv = data.Spawn.Intervalle;
-            phaseIv[i] = Mathf.Max(0.0001f, iv);
-
-            BuildMix(i, ph);
-
-            phaseNames[i] = (ph != null && !string.IsNullOrWhiteSpace(ph.Name)) ? ph.Name : $"Phase {i + 1}";
+            var p = plans[i];
+            Debug.Log($"[Spawner/Plan] Phase {p.Index} \"{p.Name}\": quota={p.Quota}, dur={p.DurationSec:F2}s, iv={p.Interval:F3}s");
         }
-
-        // Cumul & durée totale
-        phaseEnd[0] = phaseDur[0];
-        phaseEnd[1] = phaseEnd[0] + phaseDur[1];
-        phaseEnd[2] = phaseEnd[1] + phaseDur[2];
-        levelDur = phaseEnd[2] > 0f ? phaseEnd[2] : (data != null ? Mathf.Max(0f, data.LevelDurationSec) : 0f);
-
-        // Planned via util pur
-        PlannedSpawnCount = PlanEstimator.Estimate(phaseDur, phaseIv, spawnAtT0);
-
-        // Phase initiale exposée
-        CurrentPhaseIndex = PhaseIndexAtTime(0f);
+#endif
     }
 
-    // ------------------------------
-    //   CYCLE DE VIE
-    // ------------------------------
+    private void BuildPlansFromWeights(float totalRunSec)
+    {
+        plans.Clear();
+        if (data?.Phases == null || totalRunSec <= 0f) return;
+
+        float sumW = 0f;
+        foreach (var ph in data.Phases) sumW += Mathf.Max(0f, ph.Weight);
+        if (sumW <= 0f) return;
+
+        float acc = 0f;
+        for (int i = 0; i < data.Phases.Length; i++)
+        {
+            var ph = data.Phases[i];
+
+            float dur = (ph.Weight / sumW) * totalRunSec;
+            if (i == data.Phases.Length - 1) dur = Mathf.Max(0f, totalRunSec - acc);
+
+            float iv = ph.Intervalle > 0f ? ph.Intervalle :
+                       (data.Spawn != null && data.Spawn.Intervalle > 0f ? data.Spawn.Intervalle : intervalDefault);
+
+            plans.Add(new PhasePlan
+            {
+                Index = i,
+                Name = string.IsNullOrWhiteSpace(ph.Name) ? $"Phase {i + 1}" : ph.Name,
+                DurationSec = Mathf.Max(0f, dur),
+                Interval = Mathf.Max(0.0001f, iv),
+                Quota = 0 // défini ensuite
+            });
+
+            acc += dur;
+        }
+    }
+
+    private void BuildMixes()
+    {
+        mixes.Clear();
+        mixTotals.Clear();
+        if (data?.Phases == null) return;
+
+        foreach (var ph in data.Phases)
+        {
+            var list = new List<MixEntry>();
+            float total = 0f;
+
+            if (ph?.Mix != null && ph.Mix.Length > 0)
+            {
+                foreach (var m in ph.Mix)
+                {
+                    if (string.IsNullOrWhiteSpace(m.Type)) continue;
+                    if (!Enum.TryParse(m.Type, true, out BallType t)) continue;
+                    float w = Mathf.Max(0f, m.Poids);
+                    if (w <= 0f) continue;
+                    list.Add(new MixEntry { t = t, w = w });
+                    total += w;
+                }
+            }
+            if (list.Count == 0)
+            {
+                foreach (var kv in pointsByType) { list.Add(new MixEntry { t = kv.Key, w = 1f }); total += 1f; }
+            }
+
+            mixes.Add(list);
+            mixTotals.Add(total);
+        }
+    }
+
+    private void BuildTypeQueues()
+    {
+        typeQueues.Clear();
+        plannedTotal = 0;
+
+        for (int i = 0; i < plans.Count; i++)
+        {
+            var p = plans[i];
+            int quota = Mathf.Max(0, Mathf.FloorToInt(p.DurationSec / p.Interval));
+            plans[i] = new PhasePlan { Index = p.Index, Name = p.Name, DurationSec = p.DurationSec, Interval = p.Interval, Quota = quota };
+            plannedTotal += quota;
+        }
+        if (spawnAtT0) plannedTotal += 1;
+
+        for (int i = 0; i < plans.Count; i++)
+        {
+            int count = plans[i].Quota;
+            var mix = mixes[i];
+            float totalW = mixTotals[i];
+
+            var queue = new Queue<BallType>(count);
+            if (count <= 0 || totalW <= 0f || mix.Count == 0)
+            {
+                for (int k = 0; k < count; k++) queue.Enqueue(DefaultType());
+                typeQueues.Add(queue);
+                continue;
+            }
+
+            int n = mix.Count;
+            int[] alloc = new int[n];
+            float[] residuals = new float[n];
+            int sum = 0;
+
+            for (int k = 0; k < n; k++)
+            {
+                float target = (mix[k].w / totalW) * count;
+                int baseInt = Mathf.FloorToInt(target);
+                alloc[k] = baseInt;
+                residuals[k] = target - baseInt;
+                sum += baseInt;
+            }
+
+            int remain = count - sum;
+            if (remain > 0)
+            {
+                var idx = new List<int>(n);
+                for (int k = 0; k < n; k++) idx.Add(k);
+                idx.Sort((a, b) => residuals[b].CompareTo(residuals[a]));
+                for (int r = 0; r < remain; r++) alloc[idx[r % n]]++;
+            }
+
+            int[] left = (int[])alloc.Clone();
+            int leftTotal = count;
+            int cursor = 0;
+            while (leftTotal > 0)
+            {
+                int tries = 0;
+                while (tries < n && left[cursor] == 0) { cursor = (cursor + 1) % n; tries++; }
+                if (tries >= n) break;
+
+                queue.Enqueue(mix[cursor].t);
+                left[cursor]--;
+                leftTotal--;
+                cursor = (cursor + 1) % n;
+            }
+            while (queue.Count < count) queue.Enqueue(DefaultType());
+            typeQueues.Add(queue);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            string breakdown = "";
+            for (int k = 0; k < n; k++) breakdown += $"{mix[k].t}:{alloc[k]} ";
+            Debug.Log($"[Spawner/Types] Phase {plans[i].Index} \"{plans[i].Name}\" -> {count} | {breakdown}");
+#endif
+        }
+    }
+
+    private BallType DefaultType()
+    {
+        if (pointsByType.ContainsKey(BallType.White)) return BallType.White;
+        foreach (var kv in pointsByType) return kv.Key;
+        return BallType.White;
+    }
+
+    // ------------------ PREWARM ------------------
+    public void StartPrewarm(int budgetPerFrame = 256)
+    {
+        if (prewarmCoro != null) StopCoroutine(prewarmCoro);
+        prewarmCoro = StartCoroutine(PrewarmCoroutine(budgetPerFrame));
+    }
+
+    private IEnumerator PrewarmCoroutine(int budgetPerFrame)
+    {
+        if (ballPrefab == null || PlannedSpawnCount <= 0) { prewarmCoro = null; yield break; }
+
+        int toCreate = PlannedSpawnCount;
+        var rt = new WaitForEndOfFrame();
+
+        while (toCreate > 0)
+        {
+            int batch = Mathf.Min(budgetPerFrame, toCreate);
+            for (int i = 0; i < batch; i++)
+            {
+                var go = Instantiate(ballPrefab);
+                go.SetActive(false);
+                pool.Push(go);
+                prewarmedCount++;
+            }
+            toCreate -= batch;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[Prewarm] {prewarmedCount}/{PlannedSpawnCount}");
+#endif
+
+            yield return rt;
+        }
+
+        prewarmCoro = null;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log("[Prewarm] Completed.");
+#endif
+    }
+
+    // ------------------ RUNTIME ------------------
     public void StartSpawning()
     {
-        if (ballPrefab == null)
-        {
-            Debug.LogWarning("[BallSpawner] Aucun prefab assigné.");
-            return;
-        }
-        if (loop == null)
-        {
-            running = true;
-            loop = StartCoroutine(SpawnLoopThreePhases());
-        }
+        if (ballPrefab == null) { Debug.LogWarning("[BallSpawner] Aucun prefab assigné."); return; }
+        if (plans.Count == 0) { Debug.LogWarning("[BallSpawner] Aucun plan de phase."); return; }
+        if (loop != null) return;
+
+        running = true;
+        loop = StartCoroutine(SpawnLoop());
     }
 
     public void StopSpawning()
     {
         running = false;
         if (loop != null) { StopCoroutine(loop); loop = null; }
+        // log final déplacé dans LogStats() (appelé par LevelManager après l’évac)
     }
 
-    // ------------------------------
-    //   BOUCLE DE SPAWN (3 phases)
-    // ------------------------------
-    private IEnumerator SpawnLoopThreePhases()
+    private IEnumerator SpawnLoop()
     {
-        float t = 0f;
-        float tick = 0f;
+        CurrentPhaseIndex = 0;
+        OnPhaseChanged?.Invoke(CurrentPhaseIndex, plans[CurrentPhaseIndex].Name);
 
-        int lastPhase = PhaseIndexAtTime(0f);
-        CurrentPhaseIndex = lastPhase;
-        OnPhaseChanged?.Invoke(CurrentPhaseIndex, phaseNames[CurrentPhaseIndex]);
+        if (spawnAtT0 && running) ActivateOne(CurrentPhaseIndex);
 
-        if (spawnAtT0 && running)
-            SpawnOne(CurrentPhaseIndex);
-
-        while (running && (levelDur <= 0f || t < levelDur))
+        foreach (var p in plans)
         {
-            float dt = Time.deltaTime;
-            t += dt;
-            if (levelDur > 0f && t >= levelDur) break;
+            if (!running) break;
 
-            tick += dt;
+            CurrentPhaseIndex = p.Index;
+            OnPhaseChanged?.Invoke(CurrentPhaseIndex, p.Name);
 
-            int p = PhaseIndexAtTime(t);
-            if (p != lastPhase)
+            float tick = 0f, elapsed = 0f;
+            while (running && elapsed < p.DurationSec)
             {
-                tick = 0f;                 // réaligne le tempo sur la nouvelle phase
-                lastPhase = p;
-                CurrentPhaseIndex = p;
-                OnPhaseChanged?.Invoke(p, phaseNames[p]);
-            }
+                float dt = Time.deltaTime;
+                elapsed += dt;
+                tick += dt;
 
-            if (tick >= phaseIv[p])
-            {
-                SpawnOne(p);
-                tick = 0f;
-            }
+                if (tick >= p.Interval)
+                {
+                    ActivateOne(CurrentPhaseIndex);
+                    tick = 0f;
+                }
 
-            yield return null;
+                yield return null;
+            }
         }
 
         loop = null;
     }
 
-    // ------------------------------
-    //   SPAWN & PICK
-    // ------------------------------
-    private void SpawnOne(int phaseIdx)
+    private void ActivateOne(int phaseIdx)
     {
+        GameObject go = (pool.Count > 0) ? pool.Pop() : Instantiate(ballPrefab);
+
         float x = UnityEngine.Random.Range(-xRange, xRange);
-        var go = Instantiate(ballPrefab, new Vector3(x, ySpawn, zSpawn), Quaternion.identity);
+        go.transform.position = new Vector3(x, ySpawn, zSpawn);
 
+        if (go.TryGetComponent(out Collider col)) col.enabled = true;
+        if (go.TryGetComponent(out Rigidbody rb)) rb.isKinematic = false;
+
+        BallType type = NextTypeForPhase(phaseIdx);
+        int pts = pointsByType.TryGetValue(type, out var p) ? p : 0;
+
+        if (go.TryGetComponent(out BallState st))
+        {
+            st.inBin = false;
+            st.collected = false;
+            st.currentSide = Side.None;
+
+            st.Initialize(type, pts);
+        }
+
+        go.SetActive(true);
+
+        activatedCount++;
+        OnActivated?.Invoke(activatedCount);
         scoreManager?.RegisterRealSpawn();
-
-        var st = go.GetComponent<BallState>();
-        if (st != null)
-        {
-            var c = Pick(phaseIdx);
-            go.transform.localScale = st.Scale;
-            st.Initialize(c.type, c.points);
-        }
     }
 
-    private (BallType type, int points) Pick(int phaseIdx)
+    private BallType NextTypeForPhase(int phaseIdx)
     {
-        var list = mixes[phaseIdx];
-        float total = mixTotals[phaseIdx];
-
-        if (list.Count == 0 || total <= 0f)
-        {
-            foreach (var kv in pointsByType) return (kv.Key, kv.Value);
-            return (BallType.White, 100);
-        }
-
-        float r = UnityEngine.Random.value * total;
-        float acc = 0f;
-        for (int i = 0; i < list.Count; i++)
-        {
-            acc += list[i].w;
-            if (r <= acc)
-            {
-                int pts = pointsByType.TryGetValue(list[i].t, out var p) ? p : 0;
-                return (list[i].t, pts);
-            }
-        }
-        foreach (var kv in pointsByType) return (kv.Key, kv.Value);
-        return (BallType.White, 100);
+        if (phaseIdx < 0 || phaseIdx >= typeQueues.Count) return DefaultType();
+        var q = typeQueues[phaseIdx];
+        return (q != null && q.Count > 0) ? q.Dequeue() : DefaultType();
     }
 
-    private void BuildMix(int idx, PhaseData ph)
+    // ------------------ RECYCLE ------------------
+    public void Recycle(GameObject go, bool collected = false)
     {
-        var list = mixes[idx];
-        list.Clear();
-        mixTotals[idx] = 0f;
+        if (go == null) return;
 
-        if (ph == null || ph.Mix == null || ph.Mix.Length == 0)
+        if (go.TryGetComponent(out Rigidbody rb))
         {
-            foreach (var kv in pointsByType)
-            {
-                list.Add(new W { t = kv.Key, w = 1f });
-                mixTotals[idx] += 1f;
-            }
-            return;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
         }
+        if (go.TryGetComponent(out Collider col))
+            col.enabled = false;
 
-        foreach (var m in ph.Mix)
-        {
-            if (string.IsNullOrWhiteSpace(m.Type)) continue;
-            if (!Enum.TryParse<BallType>(m.Type, true, out var t)) continue;
-            float w = Mathf.Max(0f, m.Poids);
-            if (w <= 0f) continue;
-            list.Add(new W { t = t, w = w });
-            mixTotals[idx] += w;
-        }
+        go.SetActive(false);
+        pool.Push(go);
 
-        if (list.Count == 0)
-        {
-            foreach (var kv in pointsByType)
-            {
-                list.Add(new W { t = kv.Key, w = 1f });
-                mixTotals[idx] += 1f;
-            }
-        }
+        if (collected) recycledCollected++; else recycledLost++;
     }
 
-    // ------------------------------
-    //   UTILS DE PHASE
-    // ------------------------------
-    private int PhaseIndexAtTime(float t)
+    // ------------------ STATS --------------------
+    public void LogStats()
     {
-        if (t < phaseEnd[0]) return 0;
-        if (t < phaseEnd[1]) return 1;
-        return 2;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log($"[SpawnStats] Planned={plannedTotal} | Prewarmed={prewarmedCount} | Activated={activatedCount} | Recycled=Collected:{recycledCollected} Lost:{recycledLost}");
+#endif
     }
 }

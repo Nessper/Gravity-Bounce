@@ -3,9 +3,6 @@ using UnityEngine;
 
 public class LevelManager : MonoBehaviour
 {
-    // ------------------------------
-    //   RÉFÉRENCES GAMEPLAY
-    // ------------------------------
     [Header("Gameplay")]
     [SerializeField] private PlayerController player;
     [SerializeField] private CloseBinController closeBinController;
@@ -15,12 +12,9 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private BinCollector collector;
     [SerializeField] private EndSequenceController endSequence;
 
-    // ------------------------------
-    //   RÉFÉRENCES UI / OVERLAYS
-    // ------------------------------
     [Header("UI / Overlays")]
     [SerializeField] private IntroLevelUI levelIntroUI;
-    [SerializeField] private CountdownUI countdownUI;    // intro + évacuation
+    [SerializeField] private CountdownUI countdownUI;
     [SerializeField] private PauseController pauseController;
     [SerializeField] private LevelIdUI levelIdUI;
     [SerializeField] private ScoreUI scoreUI;
@@ -31,18 +25,14 @@ public class LevelManager : MonoBehaviour
     [Header("UI - Fin de niveau")]
     [SerializeField] private EndLevelUI endLevelUI;
 
-    // ------------------------------
-    //   CONFIGURATION DU NIVEAU
-    // ------------------------------
     [Header("Configuration")]
     [SerializeField] private TextAsset levelJson;
 
     private LevelData data;
     private string levelID;
-    private float levelDurationSec;
-
-    private bool endSequenceRunning;
+    private float runDurationSec;
     private int currentLives;
+    private bool endSequenceRunning;
 
     private void OnEnable()
     {
@@ -60,46 +50,54 @@ public class LevelManager : MonoBehaviour
     {
         LoadLevelConfig();
 
-        // --- LIAISON SCORE UI --> ScoreManager ---
         if (scoreManager != null && scoreUI != null)
             scoreManager.onScoreChanged.AddListener(scoreUI.UpdateScoreText);
-
-        // --- INITIALISATION AVANT LE COUNTDOWN ---
-        // 1) Score à 0 (l'UI est déjà abonnée, donc elle affiche 0 tout de suite)
         scoreManager?.ResetScore(0);
 
-        // 2) Vies depuis JSON
-        currentLives = data != null ? Mathf.Max(0, data.Lives) : 0;
-        livesUI?.SetLives(currentLives);
+        ResolveShipStats(out currentLives, out runDurationSec);
 
-        // Timer prêt mais figé
-        if (levelTimer != null && data != null)
+        var quick = Object.FindFirstObjectByType<MainQuickStart>();
+        if (quick != null && quick.enabled && quick.gameObject.activeInHierarchy)
+        {
+            if (quick.forcedLives > 0) currentLives = quick.forcedLives;
+            if (quick.forcedTimerSec > 0f) runDurationSec = quick.forcedTimerSec;
+            Debug.Log($"[LevelManager] QuickStart active � Lives={currentLives}, Timer={runDurationSec}s");
+        }
+
+        livesUI?.SetLives(currentLives);
+        if (levelTimer != null)
         {
             levelTimer.enabled = false;
-            levelTimer.StartTimer(levelDurationSec);
+            levelTimer.StartTimer(runDurationSec);
         }
 
-        // Spawner & progress bar
         if (ballSpawner != null && data != null)
         {
-            ballSpawner.ConfigureFromLevel(data);
-            scoreManager?.SetPlannedBalls(ballSpawner.PlannedSpawnCount);
-        }
-        if (progressBarUI != null && scoreManager != null && data != null)
-        {
-            int threshold = (data.MainObjective != null) ? data.MainObjective.ThresholdPct : 0;
-            progressBarUI.Configure(scoreManager.TotalBillesPrevues, threshold);
-            progressBarUI.Refresh();
+            ballSpawner.OnPlannedReady += total =>
+            {
+                scoreManager?.SetPlannedBalls(total);
+                if (progressBarUI != null && data != null)
+                {
+                    int threshold = data.MainObjective != null ? data.MainObjective.ThresholdPct : 0;
+                    progressBarUI.Configure(total, threshold);
+                    progressBarUI.Refresh();
+                }
+            };
+            ballSpawner.OnActivated += _ =>
+            {
+                progressBarUI?.Refresh();
+            };
+
+            ballSpawner.ConfigureFromLevel(data, runDurationSec);
+            ballSpawner.StartPrewarm(256);
         }
 
-        // Verrou gameplay jusqu’au GO
         player?.SetActiveControl(false);
         closeBinController?.SetActiveControl(false);
         pauseController?.EnablePause(false);
 
-        // Configure orchestrateur (évacuation 10 s)
-        float evacDuration = Mathf.Max(0.1f, data.Evacuation.DurationSec);
-        string evacName = data.Evacuation.Name; // peut être null/empty
+        float evacDuration = (data != null) ? Mathf.Max(0.1f, data.Evacuation.DurationSec) : 10f;
+        string evacName = (data != null) ? data.Evacuation.Name : null;
 
         endSequence?.Configure(
             collector,
@@ -110,18 +108,14 @@ public class LevelManager : MonoBehaviour
             tickInterval: 1f,
             onEvacStartCb: () =>
             {
-                // Affiche la bannière seulement si un nom est fourni dans le JSON
                 if (!string.IsNullOrWhiteSpace(evacName))
                     phaseBannerUI?.ShowPhaseText(evacName, evacDuration);
-
-                // Compte à rebours calé sur la durée JSON
                 if (countdownUI != null)
                     StartCoroutine(countdownUI.PlayCountdownSeconds(evacDuration));
             },
             onEvacTickCb: null
         );
 
-        // Intro + countdown départ
         if (levelIntroUI != null && data != null)
         {
             levelIntroUI.Show(
@@ -147,7 +141,7 @@ public class LevelManager : MonoBehaviour
                         StartLevel();
                     }
                 },
-                onBack: () => { Debug.Log("[LevelManager] Retour menu (non implémenté)."); }
+                onBack: () => { Debug.Log("[LevelManager] Retour menu non impl�ment�."); }
             );
         }
         else
@@ -161,23 +155,34 @@ public class LevelManager : MonoBehaviour
 
     private void LoadLevelConfig()
     {
-        if (levelJson == null)
-        {
-            Debug.LogError("[LevelManager] Aucun JSON assigné !");
-            return;
-        }
+        if (levelJson == null) { Debug.LogError("[LevelManager] Aucun JSON assign� !"); return; }
 
         data = JsonUtility.FromJson<LevelData>(levelJson.text);
-        if (data == null)
+        if (data == null) { Debug.LogError("[LevelManager] Erreur de parsing JSON."); return; }
+
+        levelID = data.LevelID;
+        levelIdUI?.SetLevelId(levelID);
+    }
+
+    private void ResolveShipStats(out int lives, out float durationSec)
+    {
+        lives = 0; durationSec = 0f;
+
+        var run = RunConfig.Instance;
+        var catalog = ShipCatalogService.Catalog;
+
+        if (run == null || catalog == null || catalog.ships == null || catalog.ships.Count == 0)
         {
-            Debug.LogError("[LevelManager] Erreur de parsing JSON.");
+            Debug.LogWarning("[LevelManager] ShipCatalog manquant, valeurs par d�faut (0).");
             return;
         }
 
-        levelID = data.LevelID;
-        levelDurationSec = data.LevelDurationSec;
+        var shipId = string.IsNullOrEmpty(run.SelectedShipId) ? "CORE_SCOUT" : run.SelectedShipId;
+        var ship = catalog.ships.Find(s => s.id == shipId);
+        if (ship == null) { Debug.LogWarning("[LevelManager] Vaisseau introuvable : " + shipId); return; }
 
-        levelIdUI?.SetLevelId(levelID);
+        lives = Mathf.Max(0, ship.lives);
+        durationSec = Mathf.Max(0.1f, ship.shieldSecondsPerLevel);
     }
 
     public void StartLevel()
@@ -201,6 +206,7 @@ public class LevelManager : MonoBehaviour
 
         endSequence?.BeginEvacuationPhase(() =>
         {
+            ballSpawner?.LogStats(); // apr�s �vac (tout flush)
             EvaluateLevelResult();
         });
     }
@@ -209,7 +215,7 @@ public class LevelManager : MonoBehaviour
     {
         if (scoreManager == null || data == null)
         {
-            Debug.LogWarning("[LevelManager] ScoreManager ou data manquants.");
+            Debug.LogWarning("[LevelManager] ScoreManager ou donn�es manquantes.");
             return;
         }
 
@@ -221,11 +227,11 @@ public class LevelManager : MonoBehaviour
         int spawnedForEval = spawnedReal > 0 ? spawnedReal : spawnedPlan;
         if (spawnedForEval <= 0)
         {
-            Debug.LogWarning("[LevelManager] Aucune bille (réel ni prévu), évaluation ignorée.");
+            Debug.LogWarning("[LevelManager] Aucune bille, �valuation ignor�e.");
             return;
         }
 
-        int thresholdPct = (data.MainObjective != null) ? data.MainObjective.ThresholdPct : 0;
+        int thresholdPct = data.MainObjective != null ? data.MainObjective.ThresholdPct : 0;
         int required = Mathf.CeilToInt((thresholdPct / 100f) * spawnedForEval);
         bool success = collected >= required;
 
@@ -234,11 +240,11 @@ public class LevelManager : MonoBehaviour
 
         int handled = collected + lost;
         if (spawnedReal > 0 && Mathf.Abs(spawnedReal - handled) > 3)
-            Debug.LogWarning($"[ScoreCheck] Ecart: Real={spawnedReal}, Handled={handled} (Collected={collected}, Lost={lost}), Plan={spawnedPlan}");
+            Debug.LogWarning($"[ScoreCheck] Ecart: Real={spawnedReal}, Handled={handled}, Plan={spawnedPlan}");
 
         var mainObj = new MainObjectiveResult
         {
-            Text = (data.MainObjective != null) ? data.MainObjective.Text : string.Empty,
+            Text = data.MainObjective?.Text ?? string.Empty,
             ThresholdPct = thresholdPct,
             Required = required,
             Collected = collected,
