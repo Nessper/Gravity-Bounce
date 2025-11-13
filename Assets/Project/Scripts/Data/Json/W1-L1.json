@@ -3,8 +3,8 @@
   "World": "City",
   "Title": "First Contact",
   "MainObjective": { 
-    "Text": "Collect at least half of the marbles.", 
-    "ThresholdPct": 50, 
+    "Text": "Collect 50 marbles.", 
+    "ThresholdCount": 2, 
     "Bonus": 300 
   },
   "ScoreGoals": [

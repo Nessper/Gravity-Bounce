@@ -1,54 +1,135 @@
-// EndLevelUI.cs (updated to display MainObjective line)
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Events;
 using TMPro;
 
 public class EndLevelUI : MonoBehaviour
 {
+    [Header("Refs")]
+    [SerializeField] private LevelManager levelManagerRef;
+    [SerializeField] private bool autoBindLevelManager = true;
+
     [Header("Panels")]
-    [SerializeField] private GameObject endLevelOverlay;   // root container
-    [SerializeField] private Transform panelContainer;     // Panel_Container
+    [SerializeField] private GameObject endLevelOverlay;
+    [SerializeField] private Transform panelContainer;
 
     [Header("Title / stats (Stats_Panel)")]
-    [SerializeField] private TMP_Text timeInt;             // Timer_Time
-    [SerializeField] private TMP_Text collectedInt;        // CollectedBalls_Int
-    [SerializeField] private TMP_Text lostInt;             // LostBalls_Int
-    [SerializeField] private TMP_Text scoreInt;            // Score_Int (raw score)
+    [SerializeField] private TMP_Text collectedInt;
+    [SerializeField] private TMP_Text lostInt;
+    [SerializeField] private TMP_Text scoreInt;
 
     [Header("Goals")]
-    [SerializeField] private RectTransform goalsContent;   // Vertical Layout parent
-    [SerializeField] private GameObject goalLinePrefab;    // prefab Goal_Panel (with Goal_Txt, Goal_Int)
+    [SerializeField] private RectTransform goalsContent;
+    [SerializeField] private GameObject goalLinePrefab;
 
     [Header("Combos")]
-    [SerializeField] private RectTransform combosContent;  // Vertical Layout parent
-    [SerializeField] private GameObject comboLinePrefab;   // prefab Combo_Panel
+    [SerializeField] private RectTransform combosContent;
+    [SerializeField] private GameObject comboLinePrefab;
 
     [Header("Final score + bar (optional)")]
-    [SerializeField] private TMP_Text scoreFinalInt;       // ScoreFinal_Int
-    [SerializeField] private Image progressFill;           // ProgressBarFull_Img (Filled)
+    [SerializeField] private TMP_Text scoreFinalInt;
+    [SerializeField] private Image progressFill;
     [SerializeField] private RectTransform tickBronze, tickSilver, tickGold;
     [SerializeField] private int bronze = 600, silver = 1200, gold = 3000;
 
+    [Header("Sequence")]
+    [SerializeField] private float lineDelay = 0.25f;
+    [SerializeField] private float failDelaySec = 1f;
+
+    [Header("Events")]
+    public UnityEvent OnSequenceFailed;
+    public UnityEvent OnVictory;
+
+    // Gris neutre pour l’échec
     private static readonly Color GrayText = new Color(0.6f, 0.6f, 0.6f, 1f);
 
-    // --- Public API ---
-    // New signature including main objective result
+    private void Awake()
+    {
+        if (autoBindLevelManager && levelManagerRef == null)
+            levelManagerRef = FindFirstObjectByType<LevelManager>();
+
+        if (levelManagerRef != null)
+            levelManagerRef.OnEndComputed.AddListener(HandleEndComputed);
+    }
+
+    private void OnDestroy()
+    {
+        if (levelManagerRef != null)
+            levelManagerRef.OnEndComputed.RemoveListener(HandleEndComputed);
+    }
+
+    private void HandleEndComputed(EndLevelStats stats, LevelData levelData, MainObjectiveResult mainObj)
+    {
+        ShowSequenced(stats, levelData, mainObj);
+    }
+
     public void Show(EndLevelStats stats, LevelData levelData, MainObjectiveResult mainObj)
+    {
+        StopAllCoroutines();
+        StartCoroutine(RevealRoutine(stats, levelData, mainObj));
+    }
+
+    public void ShowSequenced(EndLevelStats stats, LevelData levelData, MainObjectiveResult mainObj)
+    {
+        StopAllCoroutines();
+        StartCoroutine(RevealRoutine(stats, levelData, mainObj));
+    }
+
+    public void Hide()
+    {
+        StopAllCoroutines();
+        if (endLevelOverlay) endLevelOverlay.SetActive(false);
+    }
+
+    private IEnumerator RevealRoutine(EndLevelStats stats, LevelData levelData, MainObjectiveResult mainObj)
     {
         if (endLevelOverlay) endLevelOverlay.SetActive(true);
 
-        // Base stats
-        if (timeInt) timeInt.text = $"{stats.TimeElapsedSec}s";
-        if (collectedInt) collectedInt.text = stats.BallsCollected.ToString();
-        if (lostInt) lostInt.text = stats.BallsLost.ToString();
-        if (scoreInt) scoreInt.text = stats.RawScore.ToString("N0");
-
-        // Goals (clear then add the main objective line)
         if (goalsContent) ClearChildren(goalsContent);
-        AddMainObjectiveLine(mainObj);
+        if (combosContent) ClearChildren(combosContent);
 
-        // Optionally place ticks if you use score thresholds
+        // Ligne 1 : billes collectées
+        if (collectedInt)
+        {
+            collectedInt.text = stats.BallsCollected.ToString();
+            collectedInt.gameObject.SetActive(true);
+        }
+        yield return new WaitForSeconds(lineDelay);
+
+        // Ligne 2 : billes perdues
+        if (lostInt)
+        {
+            lostInt.text = stats.BallsLost.ToString();
+            lostInt.gameObject.SetActive(true);
+        }
+        yield return new WaitForSeconds(lineDelay);
+
+        // Ligne 3 : score brut
+        if (scoreInt)
+        {
+            scoreInt.text = stats.RawScore.ToString("N0");
+            scoreInt.gameObject.SetActive(true);
+        }
+        yield return new WaitForSeconds(lineDelay);
+
+        // Ligne 4 : objectif principal
+        AddMainObjectiveLine(mainObj);
+        yield return new WaitForSeconds(lineDelay);
+
+        // Si l'objectif n'est pas atteint : on stoppe ici
+        if (!mainObj.Achieved)
+        {
+            yield return new WaitForSeconds(failDelaySec);
+            Debug.Log("FAILED");
+            OnSequenceFailed?.Invoke();
+            yield break;
+        }
+
+        // À partir d’ici : VICTOIRE
+
+        // Ticks de score (bronze / silver / gold)
         if (levelData != null && levelData.ScoreGoals != null && levelData.ScoreGoals.Length > 0)
         {
             foreach (var g in levelData.ScoreGoals)
@@ -59,21 +140,26 @@ public class EndLevelUI : MonoBehaviour
             }
         }
 
-        // Final score (optional)
-        if (scoreFinalInt) scoreFinalInt.text = stats.FinalScore.ToString("N0");
+        // Score final
+        if (scoreFinalInt)
+        {
+            scoreFinalInt.text = stats.FinalScore.ToString("N0");
+            scoreFinalInt.gameObject.SetActive(true);
+        }
+        yield return new WaitForSeconds(lineDelay);
+
+        // Barre de progression finale
         if (progressFill && gold > 0)
         {
             float v = Mathf.Clamp01((float)stats.FinalScore / gold);
             progressFill.fillAmount = v;
+            progressFill.gameObject.SetActive(true);
         }
+
+        // Ici : la séquence de victoire est terminée -> on notifie
+        OnVictory?.Invoke();
     }
 
-    public void Hide()
-    {
-        if (endLevelOverlay) endLevelOverlay.SetActive(false);
-    }
-
-    // --- Helpers ---
     private void AddMainObjectiveLine(MainObjectiveResult mainObj)
     {
         if (!goalsContent || !goalLinePrefab) return;
@@ -82,7 +168,6 @@ public class EndLevelUI : MonoBehaviour
         TMP_Text txt = null;
         TMP_Text val = null;
 
-        // Try to find by expected child names; fallback to first TMP_Texts
         var txtT = go.transform.Find("Goal_Txt");
         var valT = go.transform.Find("Goal_Int");
         if (txtT) txt = txtT.GetComponent<TMP_Text>();
@@ -92,14 +177,20 @@ public class EndLevelUI : MonoBehaviour
             var tmps = go.GetComponentsInChildren<TMP_Text>(true);
             if (tmps.Length >= 2)
             {
-                // Heuristic: first = label, last = value
                 txt = tmps[0];
                 val = tmps[tmps.Length - 1];
             }
         }
 
         if (txt) txt.text = mainObj.Text;
-        if (val) val.text = mainObj.BonusApplied.ToString();
+
+        if (val)
+        {
+            if (mainObj.BonusApplied > 0)
+                val.text = $"{mainObj.Collected}/{mainObj.Required}  (+{mainObj.BonusApplied})";
+            else
+                val.text = $"{mainObj.Collected}/{mainObj.Required}";
+        }
 
         var color = mainObj.Achieved ? Color.white : GrayText;
         if (txt) txt.color = color;
@@ -120,16 +211,24 @@ public class EndLevelUI : MonoBehaviour
         var a = tick.anchorMin; var b = tick.anchorMax; a.x = b.x = x;
         tick.anchorMin = a; tick.anchorMax = b; tick.anchoredPosition = Vector2.zero;
     }
+
+    public void HideStatsPanel()
+    {
+        if (panelContainer != null)
+            panelContainer.gameObject.SetActive(false);
+    }
+
 }
 
-// Expected DTO provided by LevelManager when calling Show(...)
+
+
 [System.Serializable]
 public struct MainObjectiveResult
 {
     public string Text;
-    public int ThresholdPct;   // 0–100
-    public int Required;       // ceil(pct * spawnedForEval)
-    public int Collected;      // collected count
-    public bool Achieved;      // Collected >= Required
-    public int BonusApplied;   // Achieved ? Bonus : 0
+    public int ThresholdPct;
+    public int Required;
+    public int Collected;
+    public bool Achieved;
+    public int BonusApplied;
 }

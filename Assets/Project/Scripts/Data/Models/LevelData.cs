@@ -46,7 +46,7 @@ public class EvacuationData
 public class MainObjectiveData
 {
     public string Text;
-    public int ThresholdPct; // 0–100 (e.g., 50 for 50%)
+    public int ThresholdCount; // 0–100 (e.g., 50 for 50%)
     public int Bonus;
 }
 

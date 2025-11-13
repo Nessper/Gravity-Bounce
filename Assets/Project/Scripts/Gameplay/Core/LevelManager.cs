@@ -1,172 +1,206 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 
+/// <summary>
+/// Orchestrateur du niveau :
+/// - charge la config JSON
+/// - initialise score, vies, timer, spawner
+/// - pilote le flow : intro -> compte à rebours -> gameplay -> évacuation -> fin de niveau
+/// - calcule le résultat (objectif principal) et émet OnEndComputed pour l'UI de fin.
+/// 
+/// IMPORTANT :
+/// - Il ne gère plus lui-même la perte de vie sur échec (GameFlowController + RunSessionState s'en chargent).
+/// - Il ne parle plus directement à EndLevelUI, il se contente d'émettre OnEndComputed.
+/// </summary>
 public class LevelManager : MonoBehaviour
 {
+    // ----------------------------------------------------------
+    // RÉFÉRENCES GAMEPLAY
+    // ----------------------------------------------------------
+
     [Header("Gameplay")]
-    [SerializeField] private PlayerController player;
-    [SerializeField] private CloseBinController closeBinController;
-    [SerializeField] private LevelTimer levelTimer;
-    [SerializeField] private ScoreManager scoreManager;
-    [SerializeField] private BallSpawner ballSpawner;
-    [SerializeField] private BinCollector collector;
-    [SerializeField] private EndSequenceController endSequence;
+    [SerializeField] private PlayerController player;               // Contrôle du paddle
+    [SerializeField] private CloseBinController closeBinController; // Contrôle de fermeture des bacs
+    [SerializeField] private LevelTimer levelTimer;                 // Timer principal du niveau
+    [SerializeField] private ScoreManager scoreManager;             // Gestion du score et des stats
+    [SerializeField] private BallSpawner ballSpawner;               // Spawner de billes (3 phases + évacuation)
+    [SerializeField] private BinCollector collector;                // Gestion des flushs (collecte des billes)
+    [SerializeField] private EndSequenceController endSequence;     // Phase d’évacuation et fin de niveau
+
+    // ----------------------------------------------------------
+    // RÉFÉRENCES UI
+    // ----------------------------------------------------------
 
     [Header("UI / Overlays")]
-    [SerializeField] private IntroLevelUI levelIntroUI;
-    [SerializeField] private CountdownUI countdownUI;
-    [SerializeField] private PauseController pauseController;
-    [SerializeField] private LevelIdUI levelIdUI;
-    [SerializeField] private ScoreUI scoreUI;
-    [SerializeField] private LivesUI livesUI;
-    [SerializeField] private ProgressBarUI progressBarUI;
-    [SerializeField] private PhaseBannerUI phaseBannerUI;
+    [SerializeField] private IntroLevelUI levelIntroUI;             // Écran d’intro du niveau (titre, texte)
+    [SerializeField] private CountdownUI countdownUI;               // Compte à rebours "3-2-1" + compte à rebours évacuation
+    [SerializeField] private PauseController pauseController;       // Système de pause
+    [SerializeField] private LevelIdUI levelIdUI;                   // Affichage ID du niveau (W1-L1, etc.)
+    [SerializeField] private ScoreUI scoreUI;                       // Affichage du score en HUD
+    [SerializeField] private LivesUI livesUI;                       // Affichage des vies restantes
+    [SerializeField] private ProgressBarUI progressBarUI;           // Barre de progression des billes
+    [SerializeField] private PhaseBannerUI phaseBannerUI;           // Bannière de phase (Intro, Tension, Evacuation, etc.)
 
     [Header("UI - Fin de niveau")]
-    [SerializeField] private EndLevelUI endLevelUI;
+    [SerializeField] private EndLevelUI endLevelUI;                 // UI de fin de niveau (stats, objectifs, combos...)
 
-    [Header("Configuration")]
-    [SerializeField] private TextAsset levelJson;
+    // ----------------------------------------------------------
+    // CONFIGURATION & ÉTAT
+    // ----------------------------------------------------------
 
-    private LevelData data;
-    private string levelID;
-    private float runDurationSec;
-    private int currentLives;
-    private bool endSequenceRunning;
+    [Header("Config / State")]
+    [SerializeField] private TextAsset levelJson;                   // Fichier JSON du niveau (LevelData)
+    [SerializeField] private RunSessionState runSession;            // État de la session (vies, etc.)
+
+    private LevelData data;                                         // Données du niveau parsées depuis le JSON
+    private string levelID;                                         // ID du niveau (copie de data.LevelID)
+    private float runDurationSec;                                   // Durée du niveau (dépend du vaisseau)
+    private bool endSequenceRunning;                                // Pour éviter plusieurs fins de niveau
+
+    /// <summary>
+    /// Event émis quand le niveau est terminé et que les stats sont prêtes.
+    /// EndLevelUI s'abonne à cet event pour afficher la séquence de fin.
+    /// </summary>
+    public UnityEvent<EndLevelStats, LevelData, MainObjectiveResult> OnEndComputed
+        = new UnityEvent<EndLevelStats, LevelData, MainObjectiveResult>();
+
+    // =====================================================================
+    // CYCLE UNITY
+    // =====================================================================
 
     private void OnEnable()
     {
+        // On écoute la fin du timer pour déclencher la phase d’évacuation
         if (levelTimer != null)
             levelTimer.OnTimerEnd += HandleTimerEnd;
+
+        // On écoute les changements de vies pour mettre à jour la UI (RunSessionState -> HUD)
+        if (runSession != null)
+            runSession.OnLivesChanged.AddListener(HandleLivesChanged);
     }
 
     private void OnDisable()
     {
         if (levelTimer != null)
             levelTimer.OnTimerEnd -= HandleTimerEnd;
+
+        if (runSession != null)
+            runSession.OnLivesChanged.RemoveListener(HandleLivesChanged);
     }
 
     private void Start()
     {
+        // 1) Charger la config du niveau depuis le JSON
         LoadLevelConfig();
 
-        if (scoreManager != null && scoreUI != null)
-            scoreManager.onScoreChanged.AddListener(scoreUI.UpdateScoreText);
-        scoreManager?.ResetScore(0);
+        // 2) Configurer le score et les vies à partir du vaisseau sélectionné
+        SetupScoreAndLives();
 
-        ResolveShipStats(out currentLives, out runDurationSec);
+        // 3) Configurer le timer (durée du niveau)
+        SetupTimer();
 
-        var quick = Object.FindFirstObjectByType<MainQuickStart>();
-        if (quick != null && quick.enabled && quick.gameObject.activeInHierarchy)
-        {
-            if (quick.forcedLives > 0) currentLives = quick.forcedLives;
-            if (quick.forcedTimerSec > 0f) runDurationSec = quick.forcedTimerSec;
-            Debug.Log($"[LevelManager] QuickStart active — Lives={currentLives}, Timer={runDurationSec}s");
-        }
+        // 4) Configurer le spawner + la barre de progression
+        SetupSpawnerAndProgress();
 
-        livesUI?.SetLives(currentLives);
-        if (levelTimer != null)
-        {
-            levelTimer.enabled = false;
-            levelTimer.StartTimer(runDurationSec);
-        }
+        // 5) Configurer la séquence d’évacuation (après la fin du timer)
+        SetupEvacuationSequence();
 
-        if (ballSpawner != null && data != null)
-        {
-            ballSpawner.OnPlannedReady += total =>
-            {
-                scoreManager?.SetPlannedBalls(total);
-                if (progressBarUI != null && data != null)
-                {
-                    int threshold = data.MainObjective != null ? data.MainObjective.ThresholdPct : 0;
-                    progressBarUI.Configure(total, threshold);
-                    progressBarUI.Refresh();
-                }
-            };
-            ballSpawner.OnActivated += _ =>
-            {
-                progressBarUI?.Refresh();
-            };
-
-            ballSpawner.ConfigureFromLevel(data, runDurationSec);
-            ballSpawner.StartPrewarm(256);
-        }
-
-        player?.SetActiveControl(false);
-        closeBinController?.SetActiveControl(false);
-        pauseController?.EnablePause(false);
-
-        float evacDuration = (data != null) ? Mathf.Max(0.1f, data.Evacuation.DurationSec) : 10f;
-        string evacName = (data != null) ? data.Evacuation.Name : null;
-
-        endSequence?.Configure(
-            collector,
-            player,
-            closeBinController,
-            pauseController,
-            evacDuration: evacDuration,
-            tickInterval: 1f,
-            onEvacStartCb: () =>
-            {
-                if (!string.IsNullOrWhiteSpace(evacName))
-                    phaseBannerUI?.ShowPhaseText(evacName, evacDuration);
-                if (countdownUI != null)
-                    StartCoroutine(countdownUI.PlayCountdownSeconds(evacDuration));
-            },
-            onEvacTickCb: null
-        );
-
-        if (levelIntroUI != null && data != null)
-        {
-            levelIntroUI.Show(
-                data,
-                onPlay: () =>
-                {
-                    levelIntroUI.Hide();
-                    if (countdownUI != null)
-                    {
-                        StartCoroutine(countdownUI.PlayCountdown(() =>
-                        {
-                            player?.SetActiveControl(true);
-                            closeBinController?.SetActiveControl(true);
-                            pauseController?.EnablePause(true);
-                            StartLevel();
-                        }));
-                    }
-                    else
-                    {
-                        player?.SetActiveControl(true);
-                        closeBinController?.SetActiveControl(true);
-                        pauseController?.EnablePause(true);
-                        StartLevel();
-                    }
-                },
-                onBack: () => { Debug.Log("[LevelManager] Retour menu non implémenté."); }
-            );
-        }
-        else
-        {
-            player?.SetActiveControl(true);
-            closeBinController?.SetActiveControl(true);
-            pauseController?.EnablePause(true);
-            StartLevel();
-        }
+        // 6) Afficher l’intro de niveau ou démarrer direct s’il n’y en a pas
+        SetupIntroOrAutoStart();
     }
 
+    // =====================================================================
+    // SETUP
+    // =====================================================================
+
+    /// <summary>
+    /// Charge le JSON du niveau et renseigne LevelData + LevelID + LevelIdUI.
+    /// </summary>
     private void LoadLevelConfig()
     {
-        if (levelJson == null) { Debug.LogError("[LevelManager] Aucun JSON assigné !"); return; }
+        if (levelJson == null)
+        {
+            Debug.LogError("[LevelManager] Aucun JSON assigné !");
+            return;
+        }
 
         data = JsonUtility.FromJson<LevelData>(levelJson.text);
-        if (data == null) { Debug.LogError("[LevelManager] Erreur de parsing JSON."); return; }
+        if (data == null)
+        {
+            Debug.LogError("[LevelManager] Erreur de parsing JSON.");
+            return;
+        }
 
         levelID = data.LevelID;
         levelIdUI?.SetLevelId(levelID);
     }
 
+    /// <summary>
+    /// Initialise score + vies à partir du vaisseau,
+    /// applique éventuellement un override MainQuickStart (outil debug),
+    /// puis remplit le RunSessionState et la UI des vies.
+    /// </summary>
+    private void SetupScoreAndLives()
+    {
+        if (scoreManager != null && scoreUI != null)
+            scoreManager.onScoreChanged.AddListener(scoreUI.UpdateScoreText);
+
+        scoreManager?.ResetScore(0);
+
+        if (runSession == null)
+        {
+            Debug.LogError("[LevelManager] RunSessionState non assigné.");
+
+            // On récupère quand même la durée du niveau pour le timer
+            int dummyLives;
+            ResolveShipStats(out dummyLives, out runDurationSec);
+            return;
+        }
+
+        // CAS 1 : on a demandé de garder les vies pour ce restart (Retry après DEFEAT)
+        if (runSession.ConsumeKeepFlag())
+        {
+            // On ne recalcule pas les vies à partir du vaisseau :
+            // on garde runSession.Lives tel quel, mais on renvoie un Init pour rafraîchir la UI.
+            int current = Mathf.Max(0, runSession.Lives);
+            runSession.InitLives(current);
+            livesUI?.SetLives(runSession.Lives);
+
+            // Par contre, on doit quand même récupérer la durée du niveau depuis le vaisseau
+            int tmpLives;
+            ResolveShipStats(out tmpLives, out runDurationSec);
+            return;
+        }
+
+        // CAS 2 : comportement normal (première entrée dans le niveau ou Retry "reset" après GAME OVER)
+        int initialLives;
+        ResolveShipStats(out initialLives, out runDurationSec);
+
+        var quick = Object.FindFirstObjectByType<MainQuickStart>();
+        if (quick != null && quick.enabled && quick.gameObject.activeInHierarchy)
+        {
+            if (quick.forcedLives > 0)
+                initialLives = quick.forcedLives;
+            if (quick.forcedTimerSec > 0f)
+                runDurationSec = quick.forcedTimerSec;
+
+            Debug.Log($"[LevelManager] QuickStart active — Lives={initialLives}, Timer={runDurationSec}s");
+        }
+
+        runSession.InitLives(initialLives);
+        livesUI?.SetLives(runSession.Lives);
+    }
+
+
+    /// <summary>
+    /// Lit le vaisseau sélectionné dans RunConfig / ShipCatalog,
+    /// renvoie le nombre de vies et la durée de bouclier pour ce niveau.
+    /// </summary>
     private void ResolveShipStats(out int lives, out float durationSec)
     {
-        lives = 0; durationSec = 0f;
+        lives = 0;
+        durationSec = 0f;
 
         var run = RunConfig.Instance;
         var catalog = ShipCatalogService.Catalog;
@@ -179,12 +213,166 @@ public class LevelManager : MonoBehaviour
 
         var shipId = string.IsNullOrEmpty(run.SelectedShipId) ? "CORE_SCOUT" : run.SelectedShipId;
         var ship = catalog.ships.Find(s => s.id == shipId);
-        if (ship == null) { Debug.LogWarning("[LevelManager] Vaisseau introuvable : " + shipId); return; }
+        if (ship == null)
+        {
+            Debug.LogWarning("[LevelManager] Vaisseau introuvable : " + shipId);
+            return;
+        }
 
         lives = Mathf.Max(0, ship.lives);
         durationSec = Mathf.Max(0.1f, ship.shieldSecondsPerLevel);
     }
 
+    /// <summary>
+    /// Configure le timer du niveau (sans l’activer).
+    /// Il sera activé au moment où on démarre réellement le niveau (StartLevel).
+    /// </summary>
+    private void SetupTimer()
+    {
+        if (levelTimer == null)
+            return;
+
+        levelTimer.enabled = false;
+        levelTimer.StartTimer(runDurationSec);
+    }
+
+    /// <summary>
+    /// Configure le spawner à partir du LevelData et branche la ProgressBar
+    /// via les callbacks OnPlannedReady (total prévu) et OnActivated (bille activée).
+    /// </summary>
+    private void SetupSpawnerAndProgress()
+    {
+        if (ballSpawner == null || data == null)
+            return;
+
+        ballSpawner.OnPlannedReady += total =>
+        {
+            // Informe le ScoreManager du nombre de billes prévues
+            scoreManager?.SetPlannedBalls(total);
+
+            // Configure la barre de progression avec total + objectif principal
+            if (progressBarUI != null && data != null)
+            {
+                int threshold = data.MainObjective != null ? data.MainObjective.ThresholdCount : 0;
+                progressBarUI.Configure(total, threshold);
+                progressBarUI.Refresh();
+            }
+        };
+
+        ballSpawner.OnActivated += _ =>
+        {
+            // À chaque bille activée, on rafraîchit la barre
+            progressBarUI?.Refresh();
+        };
+
+        // Applique la config du JSON (phases, mix, angles...) et pré-alloue des billes
+        ballSpawner.ConfigureFromLevel(data, runDurationSec);
+        ballSpawner.StartPrewarm(256);
+    }
+
+    /// <summary>
+    /// Prépare la phase d’évacuation après la fin du timer :
+    /// - coupe les contrôles au début
+    /// - configure EndSequenceController avec durée d'évacuation, callbacks, etc.
+    /// </summary>
+    private void SetupEvacuationSequence()
+    {
+        // On s’assure que le joueur ne peut pas jouer avant le vrai départ
+        player?.SetActiveControl(false);
+        closeBinController?.SetActiveControl(false);
+        pauseController?.EnablePause(false);
+
+        float evacDuration = (data != null)
+            ? Mathf.Max(0.1f, data.Evacuation.DurationSec)
+            : 10f;
+
+        string evacName = (data != null) ? data.Evacuation.Name : null;
+
+        endSequence?.Configure(
+            collector,
+            player,
+            closeBinController,
+            pauseController,
+            evacDuration: evacDuration,
+            tickInterval: 1f,
+            onEvacStartCb: () =>
+            {
+                // Affiche le nom de la phase d'évacuation + lance un countdown visuel si dispo
+                if (!string.IsNullOrWhiteSpace(evacName))
+                    phaseBannerUI?.ShowPhaseText(evacName, evacDuration);
+
+                if (countdownUI != null)
+                    StartCoroutine(countdownUI.PlayCountdownSeconds(evacDuration));
+            },
+            onEvacTickCb: null
+        );
+    }
+
+    /// <summary>
+    /// Gère le flux d’intro : affiche IntroLevelUI si dispo, et
+    /// appelle StartLevel après le compte à rebours.
+    /// Si pas d’intro, on lance directement StartLevel.
+    /// </summary>
+    private void SetupIntroOrAutoStart()
+    {
+        if (levelIntroUI != null && data != null)
+        {
+            levelIntroUI.Show(
+                data,
+                onPlay: () =>
+                {
+                    levelIntroUI.Hide();
+
+                    if (countdownUI != null)
+                    {
+                        // Affiche "3-2-1" puis active les contrôles et démarre le niveau
+                        StartCoroutine(countdownUI.PlayCountdown(() =>
+                        {
+                            EnableGameplayControls();
+                            StartLevel();
+                        }));
+                    }
+                    else
+                    {
+                        EnableGameplayControls();
+                        StartLevel();
+                    }
+                },
+                onBack: () =>
+                {
+                    Debug.Log("[LevelManager] Retour menu non implémenté.");
+                }
+            );
+        }
+        else
+        {
+            // Pas d’intro -> on démarre immédiatement
+            EnableGameplayControls();
+            StartLevel();
+        }
+    }
+
+    /// <summary>
+    /// Active les contrôles joueur et la pause.
+    /// </summary>
+    private void EnableGameplayControls()
+    {
+        player?.SetActiveControl(true);
+        closeBinController?.SetActiveControl(true);
+        pauseController?.EnablePause(true);
+    }
+
+    // =====================================================================
+    // BOUCLE DE JEU
+    // =====================================================================
+
+    /// <summary>
+    /// Point d’entrée réel du niveau :
+    /// - remet la timeScale
+    /// - reset la séquence de fin
+    /// - active le timer
+    /// - lance le spawner
+    /// </summary>
     public void StartLevel()
     {
         Time.timeScale = 1f;
@@ -193,75 +381,98 @@ public class LevelManager : MonoBehaviour
         endSequence?.ResetState();
         endLevelUI?.Hide();
 
-        if (levelTimer != null) levelTimer.enabled = true;
+        if (levelTimer != null)
+            levelTimer.enabled = true;
+
         ballSpawner?.StartSpawning();
     }
 
+    /// <summary>
+    /// Appelé quand le timer du niveau arrive à 0 :
+    /// stoppe le spawner et lance la phase d’évacuation contrôlée par EndSequenceController.
+    /// </summary>
     private void HandleTimerEnd()
     {
-        if (endSequenceRunning) return;
+        if (endSequenceRunning)
+            return;
 
         ballSpawner?.StopSpawning();
         endSequenceRunning = true;
 
-        // Lance l'evacuation, puis finalize proprement (flush forcé + sweep + stats + evaluation)
         endSequence?.BeginEvacuationPhase(() =>
         {
             StartCoroutine(EndOfLevelFinalizeRoutine());
         });
     }
 
+    /// <summary>
+    /// Routine de fin :
+    /// 1) flush forcé des bacs
+    /// 2) balayage final pour marquer les billes restantes comme perdues
+    /// 3) log des stats du spawner
+    /// 4) évaluation du résultat (objectif atteint ou non) + event OnEndComputed
+    /// </summary>
     private IEnumerator EndOfLevelFinalizeRoutine()
     {
-        // 1) Flush final forcé (prend tout ce qu'il y a dans les bins, sans seuil ni délai)
         collector?.CollectAll(force: true, skipDelay: true);
 
-        // 2) Balayage final: tout ce qui reste actif et non-collected est considéré perdu
         yield return StartCoroutine(FinalSweepMarkLostAndRecycle(ballSpawner, scoreManager));
 
-        // 3) Stats spawner (après sweep)
         ballSpawner?.LogStats();
 
-        // 4) Evaluation et UI de fin
         EvaluateLevelResult();
     }
 
+    /// <summary>
+    /// Balayage final après la phase d’évacuation :
+    /// tout ce qui reste actif et non collected est compté comme perdu et recyclé.
+    /// </summary>
     private IEnumerator FinalSweepMarkLostAndRecycle(BallSpawner spawner, ScoreManager score)
     {
-        // Laisse 1–2 frames au flush forcé pour vider les sets / events
+        // Laisse 2 frames pour laisser le flush forcé terminer ses events
         yield return null;
         yield return null;
 
 #if UNITY_6000_0_OR_NEWER
         var balls = UnityEngine.Object.FindObjectsByType<BallState>(FindObjectsSortMode.None);
 #else
-    var balls = UnityEngine.Object.FindObjectsOfType<BallState>();
+        var balls = UnityEngine.Object.FindObjectsOfType<BallState>();
 #endif
-
 
         foreach (var st in balls)
         {
-            if (st == null) continue;
+            if (st == null)
+                continue;
+
             var go = st.gameObject;
+            if (!go.activeInHierarchy)
+                continue;
 
-            if (!go.activeInHierarchy) continue;
-
-            // Si déjà collected par un flush, recycle en collected (pas de double-compte)
             if (st.collected)
             {
+                // Billes déjà collectées : on les recycle comme collected
                 spawner?.Recycle(go, collected: true);
                 continue;
             }
 
-            // Si encore marqué "inBin", on considère que le flush forcé les a pris (par sécurité, on ignore)
-            if (st.inBin) continue;
+            if (st.inBin)
+                continue; // Sécurité contre les cas limites
 
-            // Tout le reste = perdu
+            // Tout le reste est considéré comme perdu
             score?.RegisterLost(st.TypeName);
             spawner?.Recycle(go, collected: false);
         }
     }
 
+    // =====================================================================
+    // ÉVALUATION FINALE & EVENT
+    // =====================================================================
+
+    /// <summary>
+    /// Calcule si l’objectif principal est atteint ou non, construit
+    /// les EndLevelStats et MainObjectiveResult, puis émet OnEndComputed.
+    /// L’UI de fin (EndLevelUI) réagit à cet event.
+    /// </summary>
     private void EvaluateLevelResult()
     {
         if (scoreManager == null || data == null)
@@ -273,7 +484,6 @@ public class LevelManager : MonoBehaviour
         int spawnedPlan = scoreManager.TotalBillesPrevues;
         int spawnedReal = scoreManager.GetRealSpawned();
         int collected = scoreManager.TotalBilles;
-        int lost = scoreManager.TotalPertes;
 
         int spawnedForEval = spawnedReal > 0 ? spawnedReal : spawnedPlan;
         if (spawnedForEval <= 0)
@@ -282,41 +492,45 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        int thresholdPct = data.MainObjective != null ? data.MainObjective.ThresholdPct : 0;
-        int required = Mathf.CeilToInt((thresholdPct / 100f) * spawnedForEval);
+        // Objectif fixé par le JSON (ThresholdCount)
+        int required = Mathf.Max(0, data.MainObjective?.ThresholdCount ?? 0);
         bool success = collected >= required;
 
-        var elapsed = Mathf.RoundToInt(levelTimer != null ? levelTimer.GetElapsedTime() : 0f);
+        int elapsed = Mathf.RoundToInt(levelTimer != null ? levelTimer.GetElapsedTime() : 0f);
         var stats = scoreManager.BuildEndLevelStats(elapsed);
-
-        int handled = collected + lost;
-        if (spawnedReal > 0 && Mathf.Abs(spawnedReal - handled) > 3)
-            Debug.LogWarning($"[ScoreCheck] Ecart: Real={spawnedReal}, Handled={handled}, Plan={spawnedPlan}");
 
         var mainObj = new MainObjectiveResult
         {
             Text = data.MainObjective?.Text ?? string.Empty,
-            ThresholdPct = thresholdPct,
+            ThresholdPct = 0, // on ne travaille plus en pourcentage ici
             Required = required,
             Collected = collected,
             Achieved = success,
             BonusApplied = (success && data.MainObjective != null) ? data.MainObjective.Bonus : 0
         };
 
-        endLevelUI.Show(stats, data, mainObj);
+        // On ne parle plus directement à EndLevelUI : on émet l’event.
+        OnEndComputed.Invoke(stats, data, mainObj);
     }
 
-    public void LoseLife(int amount = 1)
+    // =====================================================================
+    // CALLBACKS & UTILITAIRES
+    // =====================================================================
+
+    /// <summary>
+    /// Réagit aux changements de vies dans RunSessionState.
+    /// Met à jour la HUD de vies.
+    /// </summary>
+    private void HandleLivesChanged(int lives)
     {
-        currentLives = Mathf.Max(0, currentLives - Mathf.Max(1, amount));
-        livesUI?.SetLives(currentLives);
+        livesUI?.SetLives(lives);
     }
 
-    public void AddLife(int amount = 1)
+    /// <summary>
+    /// Renvoie l’ID du niveau courant (utilisé ailleurs si besoin).
+    /// </summary>
+    public string GetLevelID()
     {
-        currentLives += Mathf.Max(1, amount);
-        livesUI?.SetLives(currentLives);
+        return data != null ? data.LevelID : levelID;
     }
-
-    public string GetLevelID() => data != null ? data.LevelID : levelID;
 }

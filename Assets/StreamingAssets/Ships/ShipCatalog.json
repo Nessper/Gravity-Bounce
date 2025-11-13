@@ -17,7 +17,7 @@
       "displayName": "Aether Runner",
       "description": "Fast and responsive, designed to navigate between gravitational storms. Less stable but bolder.",
       "lives": 2,
-      "shieldSecondsPerLevel": 70,
+      "shieldSecondsPerLevel": 20,
       "closeBinHoldGrace": 0.10,
       "paddleWidthMult": 1.0,
       "binAutoFlushOnEvac": true,
