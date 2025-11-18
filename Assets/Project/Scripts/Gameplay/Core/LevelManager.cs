@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -58,6 +59,16 @@ public class LevelManager : MonoBehaviour
     private float runDurationSec;                                   // Durée du niveau (dépend du vaisseau)
     private bool endSequenceRunning;                                // Pour éviter plusieurs fins de niveau
 
+    // --- Objectifs secondaires ---
+    // Manager logique des objectifs secondaires pour ce niveau.
+    // Ne modifie pas le gameplay en temps réel, ne sert qu'à suivre la progression
+    // et à produire des résultats en fin de niveau.
+    private SecondaryObjectivesManager secondaryObjectivesManager =
+        new SecondaryObjectivesManager();
+
+    // Résultats calculés en fin de niveau, utilisables par l'UI de fin.
+    private List<SecondaryObjectiveResult> secondaryObjectiveResults;
+
     /// <summary>
     /// Event émis quand le niveau est terminé et que les stats sont prêtes.
     /// EndLevelUI s'abonne à cet event pour afficher la séquence de fin.
@@ -78,7 +89,12 @@ public class LevelManager : MonoBehaviour
         // On écoute les changements de vies pour mettre à jour la UI (RunSessionState -> HUD)
         if (runSession != null)
             runSession.OnLivesChanged.AddListener(HandleLivesChanged);
+
+        // On écoute les flushs enregistrés par le ScoreManager
+        if (scoreManager != null)
+            scoreManager.OnFlushSnapshotRegistered += HandleFlushSnapshotRegistered;
     }
+
 
     private void OnDisable()
     {
@@ -87,26 +103,33 @@ public class LevelManager : MonoBehaviour
 
         if (runSession != null)
             runSession.OnLivesChanged.RemoveListener(HandleLivesChanged);
+
+        if (scoreManager != null)
+            scoreManager.OnFlushSnapshotRegistered -= HandleFlushSnapshotRegistered;
     }
+
 
     private void Start()
     {
         // 1) Charger la config du niveau depuis le JSON
         LoadLevelConfig();
 
-        // 2) Configurer le score et les vies à partir du vaisseau sélectionné
+        // 2) Configurer les objectifs secondaires (à partir de LevelData.SecondaryObjectives)
+        SetupSecondaryObjectives();
+
+        // 3) Configurer le score et les vies à partir du vaisseau sélectionné
         SetupScoreAndLives();
 
-        // 3) Configurer le timer (durée du niveau)
+        // 4) Configurer le timer (durée du niveau)
         SetupTimer();
 
-        // 4) Configurer le spawner + la barre de progression
+        // 5) Configurer le spawner + la barre de progression
         SetupSpawnerAndProgress();
 
-        // 5) Configurer la séquence d’évacuation (après la fin du timer)
+        // 6) Configurer la séquence d’évacuation (après la fin du timer)
         SetupEvacuationSequence();
 
-        // 6) Afficher l’intro de niveau ou démarrer direct s’il n’y en a pas
+        // 7) Afficher l’intro de niveau ou démarrer direct s’il n’y en a pas
         SetupIntroOrAutoStart();
     }
 
@@ -134,6 +157,20 @@ public class LevelManager : MonoBehaviour
 
         levelID = data.LevelID;
         levelIdUI?.SetLevelId(levelID);
+    }
+
+    /// <summary>
+    /// Initialise le manager d'objectifs secondaires à partir du LevelData.
+    /// Ne fait rien si aucun objectif secondaire n'est défini.
+    /// </summary>
+    private void SetupSecondaryObjectives()
+    {
+        secondaryObjectiveResults = null;
+
+        if (data == null || data.SecondaryObjectives == null || data.SecondaryObjectives.Length == 0)
+            return;
+
+        secondaryObjectivesManager.Setup(data.SecondaryObjectives);
     }
 
     /// <summary>
@@ -191,7 +228,6 @@ public class LevelManager : MonoBehaviour
         runSession.InitLives(initialLives);
         livesUI?.SetLives(runSession.Lives);
     }
-
 
     /// <summary>
     /// Lit le vaisseau sélectionné dans RunConfig / ShipCatalog,
@@ -256,6 +292,11 @@ public class LevelManager : MonoBehaviour
                 int threshold = data.MainObjective != null ? data.MainObjective.ThresholdCount : 0;
                 progressBarUI.Configure(total, threshold);
                 progressBarUI.Refresh();
+
+                if (scoreManager != null)
+                {
+                    scoreManager.SetObjectiveThreshold(threshold);
+                }
             }
         };
 
@@ -410,7 +451,7 @@ public class LevelManager : MonoBehaviour
     /// 1) flush forcé des bacs
     /// 2) balayage final pour marquer les billes restantes comme perdues
     /// 3) log des stats du spawner
-    /// 4) évaluation du résultat (objectif atteint ou non) + event OnEndComputed
+    /// 4) évaluation du résultat (objectif principal) + event OnEndComputed
     /// </summary>
     private IEnumerator EndOfLevelFinalizeRoutine()
     {
@@ -472,6 +513,8 @@ public class LevelManager : MonoBehaviour
     /// Calcule si l’objectif principal est atteint ou non, construit
     /// les EndLevelStats et MainObjectiveResult, puis émet OnEndComputed.
     /// L’UI de fin (EndLevelUI) réagit à cet event.
+    /// Les objectifs secondaires sont évalués ici, mais leur affichage
+    /// sera géré plus tard dans l'UI de fin.
     /// </summary>
     private void EvaluateLevelResult()
     {
@@ -509,7 +552,74 @@ public class LevelManager : MonoBehaviour
             BonusApplied = (success && data.MainObjective != null) ? data.MainObjective.Bonus : 0
         };
 
-        // On ne parle plus directement à EndLevelUI : on émet l’event.
+        // Évaluation des objectifs secondaires (si définis)
+        if (data.SecondaryObjectives != null && data.SecondaryObjectives.Length > 0)
+        {
+            secondaryObjectiveResults = secondaryObjectivesManager.BuildResults();
+
+            // Optionnel : on peut loguer pour debug.
+            int totalReward = secondaryObjectivesManager.GetTotalRewardScore();
+            if (totalReward > 0)
+            {
+                Debug.Log("[LevelManager] Secondary objectives reward total = " + totalReward);
+            }
+
+            // IMPORTANT : on ne touche pas encore au score final ici.
+            // L'utilisation de AwardedScore sera gérée plus tard dans la cérémonie.
+        }
+        else
+        {
+            secondaryObjectiveResults = null;
+        }
+
+        // ===================================================================================
+        // COMBOS FINAUX (PerfectRun, CombosCollector, etc.)
+        // ===================================================================================
+
+        // On s'assure que la liste des combos finaux est bien initialisée / vidée.
+        if (stats.Combos == null)
+            stats.Combos = new List<EndLevelStats.ComboCalc>();
+        else
+            stats.Combos.Clear();
+
+        // Contexte pour l'évaluation des combos finaux.
+        // On utilise les stats déjà calculées : temps écoulé et total de billes.
+        var finalCtx = new FinalComboContext
+        {
+            timeElapsedSec = stats.TimeElapsedSec,
+            totalBilles = stats.BallsCollected + stats.BallsLost
+        };
+
+        // Evaluation des combos finaux à partir du ScoreManager.
+        var finalCombos = FinalComboEvaluator.Evaluate(scoreManager, finalCtx);
+
+        if (finalCombos != null && finalCombos.Count > 0)
+        {
+            for (int i = 0; i < finalCombos.Count; i++)
+            {
+                var fc = finalCombos[i];
+
+                // On prépare une ligne de combo pour EndLevelStats,
+                // en utilisant pour l'instant un multiplicateur fixe (1f).
+                var comboLine = new EndLevelStats.ComboCalc
+                {
+                    // On stocke l'identifiant technique du combo (ex: "PerfectRun", "WhiteMaster").
+                    // La traduction en texte lisible est faite côté EndLevelUI via FinalComboStyleProvider.
+                    Label = fc.id,
+                    Base = fc.points,
+                    Mult = 1f,
+                    Total = fc.points
+                };
+
+                stats.Combos.Add(comboLine);
+
+            }
+        }
+
+        // ===================================================================================
+        // EVENT DE FIN
+        // ===================================================================================
+
         OnEndComputed.Invoke(stats, data, mainObj);
     }
 
@@ -533,4 +643,55 @@ public class LevelManager : MonoBehaviour
     {
         return data != null ? data.LevelID : levelID;
     }
+
+    /// <summary>
+    /// Renvoie la liste des résultats d'objectifs secondaires calculés en fin de niveau.
+    /// Peut être null si aucun objectif secondaire n'est défini.
+    /// </summary>
+    public List<SecondaryObjectiveResult> GetSecondaryObjectiveResults()
+    {
+        return secondaryObjectiveResults;
+    }
+
+    /// <summary>
+    /// Callback lorsqu'un flush est enregistre par le ScoreManager.
+    /// Utilise le snapshot pour mettre a jour les objectifs secondaires
+    /// de type "BallCount".
+    /// </summary>
+    private void HandleFlushSnapshotRegistered(BinSnapshot snapshot)
+    {
+        // Si aucun objectif secondaire n'est defini, on ne fait rien.
+        if (data == null || data.SecondaryObjectives == null || data.SecondaryObjectives.Length == 0)
+            return;
+
+        if (snapshot == null || snapshot.parType == null)
+            return;
+
+        // Pour chaque type de bille collecte dans ce flush
+        foreach (var kv in snapshot.parType)
+        {
+            string ballType = kv.Key;
+            int count = kv.Value;
+
+            // Objectifs "BallCount" : on compte chaque bille individuellement.
+            for (int i = 0; i < count; i++)
+            {
+                secondaryObjectivesManager.OnBallCollected(ballType);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Notification externe lorsqu'un combo est déclenché.
+    /// Utilisé par ComboEngine pour informer les objectifs secondaires de type ComboCount.
+    /// </summary>
+    public void NotifyComboTriggered(string comboId)
+    {
+        // Si aucun objectif secondaire n'est défini, on ne fait rien.
+        if (data == null || data.SecondaryObjectives == null || data.SecondaryObjectives.Length == 0)
+            return;
+
+        secondaryObjectivesManager.OnComboTriggered(comboId);
+    }
 }
+

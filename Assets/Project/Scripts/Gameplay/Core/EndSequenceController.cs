@@ -105,42 +105,8 @@ public class EndSequenceController : MonoBehaviour
         player?.SetActiveControl(false);
         closeBinController?.SetActiveControl(false);
 
-
-        // Evaluation des combos finaux (pas d’UI ici)
-        var finals = EvaluateFinalCombos();
-
-
-
         // 7) Callback de fin
         done?.Invoke();
         co = null;
     }
-
-    private System.Collections.Generic.List<FinalComboResult> EvaluateFinalCombos()
-    {
-        if (scoreManager == null)
-            return null;
-
-        // Construire le contexte pour les combos de fin
-        var ctx = new FinalComboContext
-        {
-            timeElapsedSec = Mathf.RoundToInt(Time.timeSinceLevelLoad), // ou ton timer de LevelManager si tu veux plus précis
-            totalBilles = scoreManager.TotalBilles
-        };
-
-        // Évaluer les combos finaux
-        var results = FinalComboEvaluator.Evaluate(scoreManager, ctx);
-
-        // Appliquer les points au score global
-        if (results != null)
-        {
-            foreach (var r in results)
-                scoreManager.AddPoints(r.points, r.id);
-        }
-
-        return results;
-    }
-
-
-
 }

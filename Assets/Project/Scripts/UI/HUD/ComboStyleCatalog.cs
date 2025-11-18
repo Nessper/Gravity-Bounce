@@ -10,7 +10,10 @@ public class ComboStyle
     public Color color = Color.white;
 }
 
-[CreateAssetMenu(menuName = "GravityBounce/Combo Style Catalog")]
+[CreateAssetMenu(
+    fileName = "ComboStyleCatalog",
+    menuName = "VoidScrappers/Combos/ComboStyleCatalog")]
+
 public class ComboStyleCatalog : ScriptableObject
 {
     public List<ComboStyle> entries = new List<ComboStyle>();

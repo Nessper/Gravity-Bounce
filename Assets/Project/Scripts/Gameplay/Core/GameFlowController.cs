@@ -11,14 +11,16 @@ public class GameFlowController : MonoBehaviour
     [Header("Scenes")]
     [SerializeField] private string titleSceneName = "Title";
 
-    public UnityEvent OnDefeat;   // toujours dispo si tu veux brancher d'autres trucs
-    public UnityEvent OnGameOver;
+    // Events publics pour brancher d'autres systèmes (sons globaux, analytics, etc.)
+    public UnityEvent OnDefeat;   // déclenché en cas de défaite (mais pas de Game Over total)
+    public UnityEvent OnGameOver; // déclenché quand le joueur n'a plus de vies
 
     private void OnEnable()
     {
         if (endLevelUI != null)
         {
-            // OnSequenceFailed est branché dans l’Inspector
+            // OnVictory est branché ici par code pour nettoyer l'UI en cas de victoire.
+            // OnSequenceFailed, lui, est branché directement dans l'Inspector sur HandleUiSequenceFailed.
             endLevelUI.OnVictory.AddListener(HandleVictory);
         }
     }
@@ -31,7 +33,11 @@ public class GameFlowController : MonoBehaviour
         }
     }
 
-
+    // =================================================================
+    // GESTION DE LA DEFAITE (séquence de fin de niveau ratée)
+    // Appelée par EndLevelUI quand la séquence est terminée
+    // et que l'objectif principal n'est pas atteint.
+    // =================================================================
     public void HandleUiSequenceFailed()
     {
         if (runSession == null)
@@ -40,15 +46,16 @@ public class GameFlowController : MonoBehaviour
             return;
         }
 
+        // On masque le panneau de stats (inutile en cas de défaite)
         if (endLevelUI != null)
             endLevelUI.HideStatsPanel();
 
-
-        // On enlève une vie
+        // On enlève une vie à la run actuelle
         runSession.RemoveLife(1);
 
         if (runSession.Lives <= 0)
         {
+            // Plus de vies : vraie fin de run -> GAME OVER
             Debug.Log("GAME OVER");
 
             OnGameOver?.Invoke();
@@ -58,6 +65,7 @@ public class GameFlowController : MonoBehaviour
         }
         else
         {
+            // Il reste des vies : défaite simple -> écran DEFEAT avec Retry
             Debug.Log("DEFEAT — RETRY");
 
             OnDefeat?.Invoke();
@@ -65,14 +73,15 @@ public class GameFlowController : MonoBehaviour
             if (defeatGameOverUI != null)
                 defeatGameOverUI.ShowDefeat();
         }
-        if (endLevelUI != null)
-    endLevelUI.HideStatsPanel();
-
     }
 
+    // =================================================================
+    // GESTION DE LA VICTOIRE
+    // Appelée quand EndLevelUI a fini sa séquence de victoire.
+    // =================================================================
     public void HandleVictory()
     {
-        // Par sécurité : on s'assure que l'overlay est complètement éteint
+        // Par sécurité : on s'assure que l'overlay DEFEAT/GAME OVER est éteint
         if (defeatGameOverUI != null)
             defeatGameOverUI.HideAll();
     }
@@ -81,7 +90,7 @@ public class GameFlowController : MonoBehaviour
     // BOUTONS (branchés sur DefeatGameOverUI.OnRetryRequested / OnMenuRequested)
     // =================================================================
 
-    // Retry depuis DEFEAT : on garde les vies actuelles
+    // Retry depuis DEFEAT : on garde les vies actuelles de la run
     public void RetryLevelKeepLives()
     {
         if (runSession != null)
@@ -90,7 +99,7 @@ public class GameFlowController : MonoBehaviour
         ReloadCurrentLevel();
     }
 
-    // Retry depuis GAME OVER : reset des vies selon le vaisseau
+    // Retry depuis GAME OVER : reset des vies selon la définition du vaisseau
     public void RetryLevelResetLives()
     {
         if (runSession != null)
@@ -99,7 +108,7 @@ public class GameFlowController : MonoBehaviour
         ReloadCurrentLevel();
     }
 
-    // Menu : retour au Title
+    // Menu : retour à la scène de Title
     public void ReturnToTitle()
     {
         if (string.IsNullOrEmpty(titleSceneName))

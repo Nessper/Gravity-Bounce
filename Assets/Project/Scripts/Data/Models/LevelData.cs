@@ -46,16 +46,38 @@ public class EvacuationData
 public class MainObjectiveData
 {
     public string Text;
-    public int ThresholdCount; // 0–100 (e.g., 50 for 50%)
-    public int Bonus;
+    public int ThresholdCount; // valeur cible principale (interprétation selon ta logique actuelle)
+    public int Bonus;          // bonus de score accordé si l'objectif principal est atteint
 }
 
 // --- Score goals (Bronze / Silver / Gold) ---
 [System.Serializable]
 public class ScoreGoalsData
 {
-    public string Type;
-    public int Points;
+    public string Type;   // "Bronze", "Silver", "Gold"
+    public int Points;    // seuil de score pour chaque médaille
+}
+
+// --- Secondary Objectives ---
+// Définition d'un objectif secondaire tel qu'il est décrit dans le JSON.
+// Exemple:
+// {
+//   "Id": "W1L1_SO_BALLS_4",
+//   "Type": "BallCount",
+//   "TargetId": "Any",
+//   "Threshold": 4,
+//   "RewardScore": 200,
+//   "UiText": "Collect 4 marbles."
+// }
+[System.Serializable]
+public class SecondaryObjectiveData
+{
+    public string Id;         // Identifiant interne (facultatif mais utile pour debug / logs)
+    public string Type;       // "BallCount", "ComboCount", etc. (interprété côté logique)
+    public string TargetId;   // "Any", "White", "Black", "WhiteStreak", "SuperFlush", etc.
+    public int Threshold;     // Valeur à atteindre (ex : 4 billes, 1 combo)
+    public int RewardScore;   // Score attribué si l'objectif est réussi, 0 si raté
+    public string UiText;     // Texte affiché dans l'UI de fin de niveau
 }
 
 // --- Root LevelData ---
@@ -70,11 +92,15 @@ public class LevelData
     public int Lives;
     public string Tip;
     public SpawnData Spawn;
-    public BallData[] Balls;             // matches "Billes" -> renamed to "Balls" for JSON
+    public BallData[] Balls;             // matches "Balls" dans le JSON
     public ScoreGoalsData[] ScoreGoals;
     public string Theme;
     public PhaseData[] Phases;
 
     // Phase d'évacuation (optionnelle, hors spawner)
     public EvacuationData Evacuation;
+
+    // Liste des objectifs secondaires pour ce niveau.
+    // Peut être nulle ou vide si aucun objectif secondaire.
+    public SecondaryObjectiveData[] SecondaryObjectives;
 }

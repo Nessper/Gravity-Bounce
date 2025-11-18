@@ -5,6 +5,8 @@ using System.Collections.Generic;
 public class ComboEngine : MonoBehaviour
 {
     [SerializeField] private ScoreManager scoreManager;
+    [SerializeField, Tooltip("LevelManager (pour notifier les objectifs secondaires ComboCount).")]
+    private LevelManager levelManager;
 
     // === EVENTS (HUD / toasts) ===
     public event Action<(string id, int points)[], string> OnComboBatchIdsTriggered;
@@ -112,7 +114,7 @@ public class ComboEngine : MonoBehaviour
             int bonus = FAST_FLUSH_BONUS_POINTS; // +100 fixe
             scoreManager.AddPoints(bonus, "Fast Flush");
             batchIds.Add(("FastFlush", bonus));
-            OnComboIdTriggered?.Invoke("FastFlush", bonus);
+           NotifyCombo("FastFlush", bonus);
         }
 
         // ===== COMBOS INTRA-FLUSH COULEURS =====
@@ -123,7 +125,7 @@ public class ComboEngine : MonoBehaviour
             {
                 scoreManager.AddPoints(bonus, "White Streak");
                 batchIds.Add(("WhiteStreak", bonus));
-                OnComboIdTriggered?.Invoke("WhiteStreak", bonus);
+                NotifyCombo("WhiteStreak", bonus);
             }
         }
 
@@ -134,7 +136,7 @@ public class ComboEngine : MonoBehaviour
             {
                 scoreManager.AddPoints(bonus, "Blue Rush");
                 batchIds.Add(("BlueRush", bonus));
-                OnComboIdTriggered?.Invoke("BlueRush", bonus);
+                NotifyCombo("BlueRush", bonus);
             }
         }
 
@@ -145,7 +147,7 @@ public class ComboEngine : MonoBehaviour
             {
                 scoreManager.AddPoints(bonus, "Red Storm");
                 batchIds.Add(("RedStorm", bonus));
-                OnComboIdTriggered?.Invoke("RedStorm", bonus);
+                NotifyCombo("RedStorm", bonus);
             }
         }
 
@@ -157,7 +159,7 @@ public class ComboEngine : MonoBehaviour
             {
                 scoreManager.AddPoints(bonus, "Monster Flush");
                 batchIds.Add(("MonsterFlush", bonus));
-                OnComboIdTriggered?.Invoke("MonsterFlush", bonus);
+                NotifyCombo("MonsterFlush", bonus);
             }
         }
         else if (snapshot.nombreDeBilles == ULTRA_FLUSH_COUNT)
@@ -167,7 +169,7 @@ public class ComboEngine : MonoBehaviour
             {
                 scoreManager.AddPoints(bonus, "Ultra Flush");
                 batchIds.Add(("UltraFlush", bonus));
-                OnComboIdTriggered?.Invoke("UltraFlush", bonus);
+                NotifyCombo("UltraFlush", bonus);
             }
         }
         else if (snapshot.nombreDeBilles == SUPER_FLUSH_COUNT)
@@ -177,7 +179,7 @@ public class ComboEngine : MonoBehaviour
             {
                 scoreManager.AddPoints(bonus, "Super Flush");
                 batchIds.Add(("SuperFlush", bonus));
-                OnComboIdTriggered?.Invoke("SuperFlush", bonus);
+                NotifyCombo("SuperFlush", bonus);
             }
         }
 
@@ -239,7 +241,7 @@ public class ComboEngine : MonoBehaviour
 
             scoreManager.AddPoints(bonus, label);
             batch.Add((id, bonus));
-            OnComboIdTriggered?.Invoke(id, bonus);
+            NotifyCombo(id, bonus);
         }
 
         awardedMult = currentMult;
@@ -258,4 +260,18 @@ public class ComboEngine : MonoBehaviour
         if (r > 0) p += r;
         return p;
     }
+
+    /// <summary>
+    /// Notifie les listeners d'un combo individuel (HUD, objectifs secondaires).
+    /// </summary>
+    private void NotifyCombo(string id, int bonus)
+    {
+        // HUD / toasts
+        OnComboIdTriggered?.Invoke(id, bonus);
+
+        // Objectifs secondaires ComboCount
+        if (levelManager != null)
+            levelManager.NotifyComboTriggered(id);
+    }
+
 }
