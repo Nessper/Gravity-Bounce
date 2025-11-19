@@ -95,11 +95,23 @@ public class EndLevelUI : MonoBehaviour
     private bool silverPassed = false;
     private bool goldPassed = false;
 
+    [Header("Best score")]
+    [SerializeField] private TMP_Text bestScoreValue;
+    // bestScoreValue : simple TMP_Text affichant le "Meilleur score" pour ce niveau.
+    // Le label "Best" / "Record" sera géré dans l'UI, ici on ne s'occupe que de la valeur.
+
+    // Score final calculé à la fin de la séquence (après stats + objectifs + combos).
+    private int finalScore = 0;
+
+    // Best score actuel pour ce niveau, fourni par un système externe (GameFlowController / SaveManager).
+    private int initialBestScore = 0;
     [Header("Sequence")]
     [SerializeField] private float lineDelay = 0.7f;
     [SerializeField] private float failDelaySec = 1f;
     // lineDelay : délai entre l'apparition de chaque bloc (stats, objectifs, etc.).
     // failDelaySec : délai après la révélation de l'objectif principal en cas d'échec avant d'envoyer OnSequenceFailed.
+
+    
 
     [Header("Events")]
     public UnityEvent OnSequenceFailed;
@@ -112,6 +124,9 @@ public class EndLevelUI : MonoBehaviour
 
     // Résultats d'objectifs secondaires récupérés auprès du LevelManager en fin de niveau.
     private List<SecondaryObjectiveResult> secondaryResults;
+
+   
+
 
     // =====================================================================
     // CYCLE UNITY
@@ -220,6 +235,8 @@ public class EndLevelUI : MonoBehaviour
         {
             finalScoreBarAnimated.SetInstant01(0f);
         }
+
+        finalScore = 0;
 
         // ------------------------------------------------------------------
         // Récupération des seuils de médailles depuis le LevelData
@@ -348,12 +365,17 @@ public class EndLevelUI : MonoBehaviour
         yield return new WaitForSecondsRealtime(lineDelay);
 
         // Cas échec : on s'arrête ici, après un court délai.
+        // On fige quand même un "score de niveau" pour la défaite (ici : le score brut).
         if (!mainObj.Achieved)
         {
+            // runningScore vaut déjà stats.RawScore à ce stade.
+            finalScore = runningScore;
+
             yield return new WaitForSecondsRealtime(failDelaySec);
             OnSequenceFailed?.Invoke();
             yield break;
         }
+
 
         // ===================================================================================
         // 4) OBJECTIFS SECONDAIRES (si présents, un par un avec délai)
@@ -496,6 +518,9 @@ public class EndLevelUI : MonoBehaviour
         HandleScoreMilestones(previousScore, runningScore);
         RefreshFinalScoreUI(runningScore, true);
         yield return StartCoroutine(WaitForFinalScoreAnimations());
+
+        // Score final (brut + objectifs + combos) utilisé pour la progression.
+        finalScore = runningScore;
 
         // ===================================================================================
         // 7) FIN DE SÉQUENCE : VICTOIRE
@@ -778,6 +803,29 @@ public class EndLevelUI : MonoBehaviour
         Debug.LogWarning($"[EndLevelUI] Milestone {type} timed out before bar reached targetRatio={targetRatio:0.00}");
     }
 
+    /// <summary>
+    /// Initialise l'affichage du "Meilleur score" pour ce niveau.
+    /// À appeler depuis GameFlowController quand la scène est prête.
+    /// </summary>
+    public void SetupBestScore(int bestScore)
+    {
+        initialBestScore = bestScore < 0 ? 0 : bestScore;
+
+        if (bestScoreValue != null)
+        {
+            bestScoreValue.gameObject.SetActive(true);
+            bestScoreValue.text = initialBestScore.ToString("N0");
+        }
+    }
+
+    /// <summary>
+    /// Retourne le score final calculé à la fin de la séquence de victoire.
+    /// Si la séquence est interrompue (défaite), la valeur restera 0.
+    /// </summary>
+    public int GetFinalScore()
+    {
+        return finalScore;
+    }
 
 
 }

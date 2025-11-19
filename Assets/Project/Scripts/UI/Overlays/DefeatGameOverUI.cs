@@ -1,72 +1,117 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UI;
 
+/// <summary>
+/// Overlay affiché en cas de défaite.
+/// - Mode DEFEAT : le joueur a encore des vies (Retry = garder les vies)
+/// - Mode GAME OVER : plus de vies (Retry = reset complet)
+/// Ce script gère :
+/// - L'affichage d'un seul panel avec deux modes
+/// - L'activation des blocs (score niveau / score run)
+/// - Les actions des boutons gérées EN CODE (pas via Inspector)
+/// </summary>
 public class DefeatGameOverUI : MonoBehaviour
 {
-    [Header("Panels")]
-    [SerializeField] private GameObject defeatPanel;
-    [SerializeField] private GameObject gameOverPanel;
-    // defeatPanel : panneau affiché en cas de défaite simple (le joueur a encore des vies).
-    // gameOverPanel : panneau affiché en cas de Game Over (plus de vies restantes).
+    [Header("Root Panel")]
+    [SerializeField] private GameObject rootPanel;
 
-    [Header("Actions")]
-    public UnityEvent OnRetryRequested;
-    public UnityEvent OnMenuRequested;
-    // OnRetryRequested : invoqué lorsque le joueur clique sur "Retry".
-    // OnMenuRequested : invoqué lorsque le joueur clique sur "Menu".
+    [Header("Titles")]
+    [SerializeField] private GameObject defeatTitle;
+    [SerializeField] private GameObject gameOverTitle;
+
+    [Header("Score Blocks")]
+    [SerializeField] private GameObject levelScoreBlock; // Score du niveau
+    [SerializeField] private GameObject runScoreBlock;   // Score de campagne (uniquement GameOver)
+
+    [Header("Buttons")]
+    [SerializeField] private Button retryButton;
+    [SerializeField] private Button menuButton;
+
+    // Events émis vers GameFlowController
+    public UnityEvent OnRetryDefeat;     // Retry -> garder les vies
+    public UnityEvent OnRetryGameOver;   // Retry -> reset complet
+    public UnityEvent OnMenu;
+
+    private bool isGameOver = false;
 
     private void Awake()
     {
-        // On s'assure au démarrage que les panneaux internes sont éteints.
-        // L'overlay (ce GameObject) peut être actif ou non selon la scène,
-        // mais par défaut on n'affiche ni Defeat ni Game Over.
-        if (defeatPanel != null) defeatPanel.SetActive(false);
-        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        // Au démarrage : panel caché et tout off
+        if (rootPanel != null) rootPanel.SetActive(false);
+        if (defeatTitle != null) defeatTitle.SetActive(false);
+        if (gameOverTitle != null) gameOverTitle.SetActive(false);
+        if (levelScoreBlock != null) levelScoreBlock.SetActive(false);
+        if (runScoreBlock != null) runScoreBlock.SetActive(false);
+
+        gameObject.SetActive(false);
+
+        // Boutons gérés en code
+        if (retryButton != null)
+            retryButton.onClick.AddListener(HandleRetryClicked);
+
+        if (menuButton != null)
+            menuButton.onClick.AddListener(() => OnMenu?.Invoke());
     }
 
-    // Affiche l'état "Defeat" (le joueur a raté le niveau mais il lui reste des vies).
+    // =====================================================================
+    // PUBLIC API : GameFlowController appelle ces méthodes
+    // =====================================================================
+
     public void ShowDefeat()
     {
-        // Active la racine de l'overlay...
-        gameObject.SetActive(true);
+        isGameOver = false;
 
-        // ...et n'affiche que le panneau Defeat.
-        if (gameOverPanel != null) gameOverPanel.SetActive(false);
-        if (defeatPanel != null) defeatPanel.SetActive(true);
+        gameObject.SetActive(true);
+        rootPanel.SetActive(true);
+
+        defeatTitle.SetActive(true);
+        gameOverTitle.SetActive(false);
+
+        levelScoreBlock.SetActive(true);
+        runScoreBlock.SetActive(false);
     }
 
-    // Affiche l'état "Game Over" (plus aucune vie dans la run).
     public void ShowGameOver()
     {
-        // Active la racine de l'overlay...
-        gameObject.SetActive(true);
+        isGameOver = true;
 
-        // ...et n'affiche que le panneau Game Over.
-        if (defeatPanel != null) defeatPanel.SetActive(false);
-        if (gameOverPanel != null) gameOverPanel.SetActive(true);
+        gameObject.SetActive(true);
+        rootPanel.SetActive(true);
+
+        defeatTitle.SetActive(false);
+        gameOverTitle.SetActive(true);
+
+        levelScoreBlock.SetActive(true);
+        runScoreBlock.SetActive(true);
     }
 
-    // Masque complètement l'overlay Defeat/Game Over.
     public void HideAll()
     {
-        if (defeatPanel != null) defeatPanel.SetActive(false);
-        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        defeatTitle.SetActive(false);
+        gameOverTitle.SetActive(false);
+        levelScoreBlock.SetActive(false);
+        runScoreBlock.SetActive(false);
+        rootPanel.SetActive(false);
 
-        // Coupe complètement l'overlay pour ne pas bloquer les clics ni l'interaction.
         gameObject.SetActive(false);
     }
 
-    // Méthodes branchées sur les boutons Retry/Menu (OnClick dans l'Inspector).
+    // =====================================================================
+    // BOUTONS (gérés 100% en C#)
+    // =====================================================================
 
-    // Le joueur demande un Retry : on remonte l'intention via l'event.
-    public void OnClickRetry()
+    private void HandleRetryClicked()
     {
-        OnRetryRequested?.Invoke();
-    }
-
-    // Le joueur demande le retour au menu (Title).
-    public void OnClickMenu()
-    {
-        OnMenuRequested?.Invoke();
+        if (isGameOver)
+        {
+            // Reset complet (nouvelles vies depuis ShipDefinition)
+            OnRetryGameOver?.Invoke();
+        }
+        else
+        {
+            // Garde les vies actuelles
+            OnRetryDefeat?.Invoke();
+        }
     }
 }

@@ -174,15 +174,21 @@ public class LevelManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Initialise score + vies à partir du vaisseau,
-    /// applique éventuellement un override MainQuickStart (outil debug),
-    /// puis remplit le RunSessionState et la UI des vies.
+    /// Initialise le score et la durée du niveau.
+    /// Les vies sont désormais initialisées par RunSessionBootstrapper
+    /// (RunStateData.remainingLivesInRun -> RunSessionState).
+    /// Ici, on se contente de :
+    /// - brancher ScoreManager sur la UI,
+    /// - remettre le score à zéro,
+    /// - déterminer la durée du niveau à partir du vaisseau (et éventuellement MainQuickStart).
     /// </summary>
     private void SetupScoreAndLives()
     {
+        // Branche le ScoreManager sur la UI de score
         if (scoreManager != null && scoreUI != null)
             scoreManager.onScoreChanged.AddListener(scoreUI.UpdateScoreText);
 
+        // Score remis à zéro pour ce niveau
         scoreManager?.ResetScore(0);
 
         if (runSession == null)
@@ -195,39 +201,24 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        // CAS 1 : on a demandé de garder les vies pour ce restart (Retry après DEFEAT)
-        if (runSession.ConsumeKeepFlag())
-        {
-            // On ne recalcule pas les vies à partir du vaisseau :
-            // on garde runSession.Lives tel quel, mais on renvoie un Init pour rafraîchir la UI.
-            int current = Mathf.Max(0, runSession.Lives);
-            runSession.InitLives(current);
-            livesUI?.SetLives(runSession.Lives);
+        // On détermine la durée du niveau à partir du vaisseau sélectionné
+        int unusedLives;
+        ResolveShipStats(out unusedLives, out runDurationSec);
 
-            // Par contre, on doit quand même récupérer la durée du niveau depuis le vaisseau
-            int tmpLives;
-            ResolveShipStats(out tmpLives, out runDurationSec);
-            return;
-        }
-
-        // CAS 2 : comportement normal (première entrée dans le niveau ou Retry "reset" après GAME OVER)
-        int initialLives;
-        ResolveShipStats(out initialLives, out runDurationSec);
-
+        // MainQuickStart (outil debug) peut overrider la durée
         var quick = Object.FindFirstObjectByType<MainQuickStart>();
         if (quick != null && quick.enabled && quick.gameObject.activeInHierarchy)
         {
-            if (quick.forcedLives > 0)
-                initialLives = quick.forcedLives;
             if (quick.forcedTimerSec > 0f)
                 runDurationSec = quick.forcedTimerSec;
 
-            Debug.Log($"[LevelManager] QuickStart active — Lives={initialLives}, Timer={runDurationSec}s");
+            Debug.Log($"[LevelManager] QuickStart active — Timer={runDurationSec}s");
         }
 
-        runSession.InitLives(initialLives);
-        livesUI?.SetLives(runSession.Lives);
+        // Les vies seront gérées par RunSessionBootstrapper et propagées à la HUD
+        // via runSession.OnLivesChanged -> HandleLivesChanged -> livesUI.SetLives(...)
     }
+
 
     /// <summary>
     /// Lit le vaisseau sélectionné dans RunConfig / ShipCatalog,
@@ -426,6 +417,7 @@ public class LevelManager : MonoBehaviour
             levelTimer.enabled = true;
 
         ballSpawner?.StartSpawning();
+        MarkLevelStartedInSave();
     }
 
     /// <summary>
@@ -620,6 +612,7 @@ public class LevelManager : MonoBehaviour
         // EVENT DE FIN
         // ===================================================================================
 
+
         OnEndComputed.Invoke(stats, data, mainObj);
     }
 
@@ -693,5 +686,28 @@ public class LevelManager : MonoBehaviour
 
         secondaryObjectivesManager.OnComboTriggered(comboId);
     }
+
+    /// <summary>
+    /// Marque dans la sauvegarde qu'un level est réellement en cours.
+    /// Cela arme la pénalité d'abandon : si le jeu se ferme sans fin officielle
+    /// (victoire/défaite), une vie sera retirée au prochain boot.
+    /// </summary>
+    private void MarkLevelStartedInSave()
+    {
+        if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
+            return;
+
+        var run = SaveManager.Instance.Current.runState;
+        if (run == null)
+            return;
+
+        // On considère qu'il y a une run en cours si on est dans un niveau jouable.
+        run.hasOngoingRun = true;
+        run.levelInProgress = true;
+        run.abortPenaltyArmed = true;
+
+        SaveManager.Instance.Save();
+    }
+
 }
 
