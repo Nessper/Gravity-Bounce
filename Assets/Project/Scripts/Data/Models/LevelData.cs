@@ -58,17 +58,6 @@ public class ScoreGoalsData
     public int Points;    // seuil de score pour chaque médaille
 }
 
-// --- Secondary Objectives ---
-// Définition d'un objectif secondaire tel qu'il est décrit dans le JSON.
-// Exemple:
-// {
-//   "Id": "W1L1_SO_BALLS_4",
-//   "Type": "BallCount",
-//   "TargetId": "Any",
-//   "Threshold": 4,
-//   "RewardScore": 200,
-//   "UiText": "Collect 4 marbles."
-// }
 [System.Serializable]
 public class SecondaryObjectiveData
 {

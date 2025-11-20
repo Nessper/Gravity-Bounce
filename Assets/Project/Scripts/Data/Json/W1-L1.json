@@ -1,9 +1,9 @@
 ﻿{
   "LevelID": "W1-L1",
-  "World": "City",
-  "Title": "First Contact",
+  "World": "ASTEROIDS FIELD XF-2B",
+  "Title": "FIRST CONTACT",
   "MainObjective": { 
-    "Text": "Collect 50 marbles.", 
+    "Text": "Collect at least 50 nodes.", 
     "ThresholdCount": 2, 
     "Bonus": 300 
   },
@@ -20,7 +20,7 @@
       "TargetId": "Any",
       "Threshold": 4,
       "RewardScore": 200,
-      "UiText": "Collect 4 marbles."
+      "UiText": "Retrieve at least 4 whites nodes."
     },
     {
       "Id": "W1L1_SO_WS_1",
@@ -32,7 +32,7 @@
     }
   ],
 
-  "Tip": "Try putting 5 marbles of the same color in a container.",
+  "Tip": "Press SHIFT to acive lateral bins.",
 
   "Spawn": {
     "Intervalle": 1.0
@@ -46,11 +46,11 @@
   ],
 
   "Phases": [
-    { "Name": "Intro",       "Weight": 2, "Intervalle": 1.0, "AngleMin": 0, "AngleMax": 0,
+    { "Name": "PHASE 1",       "Weight": 2, "Intervalle": 1.0, "AngleMin": 0, "AngleMax": 0,
       "Mix": [ {"Type":"White","Poids":0.90}, {"Type":"Blue","Poids":0.10} ] },
-    { "Name": "Tension",     "Weight": 3, "Intervalle": 1.0, "AngleMin": 0, "AngleMax": 0,
+    { "Name": "PHASE 2",     "Weight": 3, "Intervalle": 1.0, "AngleMin": 0, "AngleMax": 0,
       "Mix": [ {"Type":"White","Poids":0.85}, {"Type":"Blue","Poids":0.08}, {"Type":"Black","Poids":0.07} ] },
-    { "Name": "Final Rush",  "Weight": 1, "Intervalle": 0.8, "AngleMin": 0, "AngleMax": 0,
+    { "Name": "PHASE 3",  "Weight": 1, "Intervalle": 0.8, "AngleMin": 0, "AngleMax": 0,
       "Mix": [ {"Type":"White","Poids":0.80}, {"Type":"Blue","Poids":0.05}, {"Type":"Black","Poids":0.15} ] }
   ],
 

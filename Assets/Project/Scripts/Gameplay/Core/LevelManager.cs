@@ -53,7 +53,8 @@ public class LevelManager : MonoBehaviour
     [Header("Config / State")]
     [SerializeField] private TextAsset levelJson;                   // Fichier JSON du niveau (LevelData)
     [SerializeField] private RunSessionState runSession;            // État de la session (vies, etc.)
-
+    
+    private PhasePlanInfo[] phasePlanInfos;                         // Plan de phases exposé par le BallSpawner (durée, quota, interval, nom).
     private LevelData data;                                         // Données du niveau parsées depuis le JSON
     private string levelID;                                         // ID du niveau (copie de data.LevelID)
     private float runDurationSec;                                   // Durée du niveau (dépend du vaisseau)
@@ -300,6 +301,9 @@ public class LevelManager : MonoBehaviour
         // Applique la config du JSON (phases, mix, angles...) et pré-alloue des billes
         ballSpawner.ConfigureFromLevel(data, runDurationSec);
         ballSpawner.StartPrewarm(256);
+
+        // Récupère le plan de phases calculé par le spawner (pour l'UI d'intro).
+        phasePlanInfos = ballSpawner.GetPhasePlans();
     }
 
     /// <summary>
@@ -351,13 +355,14 @@ public class LevelManager : MonoBehaviour
         {
             levelIntroUI.Show(
                 data,
+                phasePlanInfos, // nouveau param : plan de phases calculé par le spawner
                 onPlay: () =>
                 {
                     levelIntroUI.Hide();
 
                     if (countdownUI != null)
                     {
-                        // Affiche "3-2-1" puis active les contrôles et démarre le niveau
+                        // Compte à rebours "3-2-1" puis démarrage du niveau
                         StartCoroutine(countdownUI.PlayCountdown(() =>
                         {
                             EnableGameplayControls();
@@ -378,10 +383,11 @@ public class LevelManager : MonoBehaviour
         }
         else
         {
-            // Pas d’intro -> on démarre immédiatement
+            // Pas d’intro -> démarrage direct
             EnableGameplayControls();
             StartLevel();
         }
+
     }
 
     /// <summary>
