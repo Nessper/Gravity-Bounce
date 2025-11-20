@@ -47,18 +47,29 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private EndLevelUI endLevelUI;                 // UI de fin de niveau (stats, objectifs, combos...)
 
     // ----------------------------------------------------------
+    // ENVIRONNEMENT / VAISSEAU DE FOND
+    // ----------------------------------------------------------
+
+    [Header("Environment / Ship Background")]
+    [SerializeField] private ShipBackgroundLoader shipBackgroundLoader; // Charge et affiche le vaisseau de fond (décor sous le plateau)
+
+    // ----------------------------------------------------------
     // CONFIGURATION & ÉTAT
     // ----------------------------------------------------------
 
     [Header("Config / State")]
     [SerializeField] private TextAsset levelJson;                   // Fichier JSON du niveau (LevelData)
     [SerializeField] private RunSessionState runSession;            // État de la session (vies, etc.)
-    
+
     private PhasePlanInfo[] phasePlanInfos;                         // Plan de phases exposé par le BallSpawner (durée, quota, interval, nom).
     private LevelData data;                                         // Données du niveau parsées depuis le JSON
     private string levelID;                                         // ID du niveau (copie de data.LevelID)
     private float runDurationSec;                                   // Durée du niveau (dépend du vaisseau)
     private bool endSequenceRunning;                                // Pour éviter plusieurs fins de niveau
+
+    // Nom de fichier de l'image du vaisseau sélectionné (pour le décor de fond).
+    // Récupéré dans ResolveShipStats à partir du ShipDefinition.
+    private string currentShipImageFile;
 
     // --- Objectifs secondaires ---
     // Manager logique des objectifs secondaires pour ce niveau.
@@ -118,7 +129,7 @@ public class LevelManager : MonoBehaviour
         // 2) Configurer les objectifs secondaires (à partir de LevelData.SecondaryObjectives)
         SetupSecondaryObjectives();
 
-        // 3) Configurer le score et les vies à partir du vaisseau sélectionné
+        // 3) Configurer le score et la durée (vies déjà gérées par RunSessionBootstrapper)
         SetupScoreAndLives();
 
         // 4) Configurer le timer (durée du niveau)
@@ -181,7 +192,8 @@ public class LevelManager : MonoBehaviour
     /// Ici, on se contente de :
     /// - brancher ScoreManager sur la UI,
     /// - remettre le score à zéro,
-    /// - déterminer la durée du niveau à partir du vaisseau (et éventuellement MainQuickStart).
+    /// - déterminer la durée du niveau à partir du vaisseau (et éventuellement MainQuickStart),
+    /// - récupérer le fichier image du vaisseau pour le décor de fond.
     /// </summary>
     private void SetupScoreAndLives()
     {
@@ -206,6 +218,12 @@ public class LevelManager : MonoBehaviour
         int unusedLives;
         ResolveShipStats(out unusedLives, out runDurationSec);
 
+        // Charge le vaisseau de fond si possible (image liée au vaisseau sélectionné)
+        if (shipBackgroundLoader != null && !string.IsNullOrEmpty(currentShipImageFile))
+        {
+            shipBackgroundLoader.Init(currentShipImageFile);
+        }
+
         // MainQuickStart (outil debug) peut overrider la durée
         var quick = Object.FindFirstObjectByType<MainQuickStart>();
         if (quick != null && quick.enabled && quick.gameObject.activeInHierarchy)
@@ -224,11 +242,13 @@ public class LevelManager : MonoBehaviour
     /// <summary>
     /// Lit le vaisseau sélectionné dans RunConfig / ShipCatalog,
     /// renvoie le nombre de vies et la durée de bouclier pour ce niveau.
+    /// Met aussi à jour currentShipImageFile pour le décor de fond.
     /// </summary>
     private void ResolveShipStats(out int lives, out float durationSec)
     {
         lives = 0;
         durationSec = 0f;
+        currentShipImageFile = null;
 
         var run = RunConfig.Instance;
         var catalog = ShipCatalogService.Catalog;
@@ -246,6 +266,8 @@ public class LevelManager : MonoBehaviour
             Debug.LogWarning("[LevelManager] Vaisseau introuvable : " + shipId);
             return;
         }
+
+        currentShipImageFile = ship.imageFile;
 
         lives = Mathf.Max(0, ship.lives);
         durationSec = Mathf.Max(0.1f, ship.shieldSecondsPerLevel);
@@ -377,8 +399,14 @@ public class LevelManager : MonoBehaviour
                 },
                 onBack: () =>
                 {
-                    Debug.Log("[LevelManager] Retour menu non implémenté.");
+                    // Évite de rejouer l’intro du title
+                    if (RunConfig.Instance != null)
+                        RunConfig.Instance.SkipTitleIntroOnce = true;
+
+                    // Retour propre au menu Title
+                    UnityEngine.SceneManagement.SceneManager.LoadScene("Title");
                 }
+
             );
         }
         else
@@ -716,4 +744,3 @@ public class LevelManager : MonoBehaviour
     }
 
 }
-

@@ -42,6 +42,18 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: BG_DeepSpace
+    uniqueID: 471866529
+    locked: 0
+  - name: BG_Mid
+    uniqueID: 4175189985
+    locked: 0
+  - name: BG_Near
+    uniqueID: 1724162911
+    locked: 0
+  - name: Bg_Ship
+    uniqueID: 2811398615
+    locked: 0
   m_RenderingLayers:
   - Default
   - Light Layer 1
