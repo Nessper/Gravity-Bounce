@@ -45,8 +45,8 @@ public class BallSpawner : MonoBehaviour
     [SerializeField] private GameObject ballPrefab;
 
     [Header("Spawn Area & Cadence (fallbacks)")]
-    [SerializeField] private float xRange = 4.6f;
-    [SerializeField] private float ySpawn = 17.8f;
+    [SerializeField] private float xRange = 2.18f;
+    [SerializeField] private float ySpawn = 6.3f;
     [SerializeField] private float zSpawn = -0.2f;
     [SerializeField] private float intervalDefault = 0.6f;
     [SerializeField] private bool spawnAtT0 = false;

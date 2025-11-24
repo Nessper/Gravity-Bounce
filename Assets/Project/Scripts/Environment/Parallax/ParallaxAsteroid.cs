@@ -5,10 +5,12 @@ using UnityEngine;
 /// Le sprite dérive dans une direction donnée, et lorsqu'il
 /// sort du cadre de la caméra, il est replacé de l'autre côté
 /// avec une position horizontale aléatoire.
+/// Optionnel : applique une rotation aléatoire à chaque wrap.
 /// </summary>
 [RequireComponent(typeof(Renderer))]
-public class ParallaxAsteroidL3 : MonoBehaviour
+public class ParallaxAsteroid : MonoBehaviour
 {
+    [Header("Vitesse")]
     [Tooltip("Vitesse minimale (unités par seconde).")]
     public float minSpeed = 0.2f;
 
@@ -20,6 +22,13 @@ public class ParallaxAsteroidL3 : MonoBehaviour
 
     [Tooltip("Marge en dehors de l'écran avant le wrap.")]
     public float margin = 1f;
+
+    [Header("Rotation aléatoire")]
+    [Tooltip("Appliquer une rotation aléatoire quand l'astéroïde réapparaît.")]
+    public bool randomizeRotationOnWrap = true;
+
+    [Tooltip("Plage d'angles (en degrés) pour la rotation Z aléatoire.")]
+    public Vector2 randomRotationRange = new Vector2(0f, 360f);
 
     private Camera mainCam;
     private float currentSpeed;
@@ -39,6 +48,12 @@ public class ParallaxAsteroidL3 : MonoBehaviour
         }
 
         currentSpeed = Random.Range(minSpeed, maxSpeed);
+
+        // Optionnel : rotation initiale aléatoire pour éviter que tout le monde ait le même angle.
+        if (randomizeRotationOnWrap)
+        {
+            ApplyRandomRotation();
+        }
     }
 
     private void Update()
@@ -89,6 +104,22 @@ public class ParallaxAsteroidL3 : MonoBehaviour
 
             // Optionnel: nouvelle vitesse à chaque wrap
             currentSpeed = Random.Range(minSpeed, maxSpeed);
+
+            // Nouvelle rotation aléatoire à chaque réapparition
+            if (randomizeRotationOnWrap)
+            {
+                ApplyRandomRotation();
+            }
         }
+    }
+
+    /// <summary>
+    /// Applique une rotation aléatoire autour de l'axe Z
+    /// dans la plage définie par randomRotationRange.
+    /// </summary>
+    private void ApplyRandomRotation()
+    {
+        float angle = Random.Range(randomRotationRange.x, randomRotationRange.y);
+        transform.rotation = Quaternion.Euler(0f, 0f, angle);
     }
 }
