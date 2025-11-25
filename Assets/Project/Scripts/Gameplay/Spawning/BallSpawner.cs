@@ -43,6 +43,8 @@ public class BallSpawner : MonoBehaviour
     [Header("Refs")]
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private GameObject ballPrefab;
+    [SerializeField] private Transform ballsParent;
+
 
     [Header("Spawn Area & Cadence (fallbacks)")]
     [SerializeField] private float xRange = 2.18f;
@@ -532,7 +534,7 @@ public class BallSpawner : MonoBehaviour
 
             for (int i = 0; i < batch; i++)
             {
-                GameObject go = Instantiate(ballPrefab);
+                GameObject go = Instantiate(ballPrefab, ballsParent, false);
                 go.SetActive(false);
                 pool.Push(go);
                 prewarmedCount++;

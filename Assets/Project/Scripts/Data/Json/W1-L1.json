@@ -47,7 +47,7 @@
 
   "Phases": [
     { "Name": "PHASE 1",       "Weight": 2, "Intervalle": 1.0, "AngleMin": 0, "AngleMax": 0,
-      "Mix": [ {"Type":"White","Poids":0.90}, {"Type":"Blue","Poids":0.10} ] },
+      "Mix": [ {"Type":"White","Poids":0.25}, {"Type":"Blue","Poids":0.25}, {"Type":"Black","Poids":0.25}, {"Type":"Red","Poids":0.25} ]},
     { "Name": "PHASE 2",     "Weight": 3, "Intervalle": 1.0, "AngleMin": 0, "AngleMax": 0,
       "Mix": [ {"Type":"White","Poids":0.85}, {"Type":"Blue","Poids":0.08}, {"Type":"Black","Poids":0.07} ] },
     { "Name": "PHASE 3",  "Weight": 1, "Intervalle": 0.8, "AngleMin": 0, "AngleMax": 0,
@@ -61,3 +61,5 @@
 
   "Theme": "City"
 }
+
+
