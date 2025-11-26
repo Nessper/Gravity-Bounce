@@ -54,6 +54,9 @@ TagManager:
   - name: Bg_Ship
     uniqueID: 2811398615
     locked: 0
+  - name: Bin
+    uniqueID: 3296349127
+    locked: 0
   m_RenderingLayers:
   - Default
   - Light Layer 1
