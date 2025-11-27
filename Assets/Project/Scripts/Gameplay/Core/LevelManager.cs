@@ -28,6 +28,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private BallSpawner ballSpawner;               // Spawner de billes (3 phases + évacuation)
     [SerializeField] private BinCollector collector;                // Gestion des flushs (collecte des billes)
     [SerializeField] private EndSequenceController endSequence;     // Phase d’évacuation et fin de niveau
+    [SerializeField] private ObstacleManager obstacleManager;       // Gestion des obstacles
 
     // ----------------------------------------------------------
     // RÉFÉRENCES UI
@@ -138,10 +139,13 @@ public class LevelManager : MonoBehaviour
         // 5) Configurer le spawner + la barre de progression
         SetupSpawnerAndProgress();
 
-        // 6) Configurer la séquence d’évacuation (après la fin du timer)
+        //6) Configurer les obstacles
+        SetupObstacles();
+
+        // 7) Configurer la séquence d’évacuation (après la fin du timer)
         SetupEvacuationSequence();
 
-        // 7) Afficher l’intro de niveau ou démarrer direct s’il n’y en a pas
+        // 8) Afficher l’intro de niveau ou démarrer direct s’il n’y en a pas
         SetupIntroOrAutoStart();
     }
 
@@ -327,6 +331,26 @@ public class LevelManager : MonoBehaviour
         // Récupère le plan de phases calculé par le spawner (pour l'UI d'intro).
         phasePlanInfos = ballSpawner.GetPhasePlans();
     }
+
+    /// <summary>
+    /// Construit les obstacles définis dans le JSON en utilisant l'ObstacleManager.
+    /// Ne fait rien si pas de data ou pas d'obstacles.
+    /// </summary>
+    private void SetupObstacles()
+    {
+        if (obstacleManager == null)
+        {
+            return;
+        }
+
+        if (data == null || data.Obstacles == null || data.Obstacles.Length == 0)
+        {
+            return;
+        }
+
+        obstacleManager.BuildObstacles(data.Obstacles);
+    }
+
 
     /// <summary>
     /// Prépare la phase d’évacuation après la fin du timer :

@@ -11,6 +11,12 @@ public class BinCollector : MonoBehaviour
     [SerializeField] private BinTrigger rightBin;
     [SerializeField] private BallSpawner spawner;   // requis pour le recycle
 
+    [Header("FX de flush")]
+    [Tooltip("Effet visuel de flush pour le bin gauche.")]
+    [SerializeField] private BinFlushFX leftFlushFx;
+    [Tooltip("Effet visuel de flush pour le bin droit.")]
+    [SerializeField] private BinFlushFX rightFlushFx;
+
     [Header("Options de flush")]
     [SerializeField] private float delayBeforeFlush = 1.2f; // délai en run normal (pas en fin de niveau)
 
@@ -75,17 +81,28 @@ public class BinCollector : MonoBehaviour
             if (!force && trigger.Count < trigger.flushThreshold)
                 yield break;
 
-            // Snapshot (et purge) du contenu du bac
+            // --------------------------------------------------
+            // 1) Pré-calcul pour le FX AVANT disparition des billes
+            // --------------------------------------------------
+            int previewScore = trigger.PeekTotalPoints();
+            bool hasBlack = trigger.ContainsBlack();
+            TriggerFlushFx(side, previewScore, hasBlack);
+
+            // --------------------------------------------------
+            // 2) Snapshot logique (score & combos) + purge du bin
+            // --------------------------------------------------
             List<BallState> lot = trigger.TakeSnapshotAndClear();
             if (lot == null || lot.Count == 0)
                 yield break;
 
-            // 1) Construire le snapshot logique (score & combos)
             var snapshot = BuildSnapshot(lot, side);
+
             scoreManager?.GetSnapshot(snapshot);
             comboEngine?.OnFlush(snapshot);
 
-            // 2) Recyclage: on désactive toutes les billes du lot (même si déjà "collected")
+            // --------------------------------------------------
+            // 3) Recyclage: on désactive toutes les billes du lot
+            // --------------------------------------------------
             if (spawner == null)
             {
                 Debug.LogError("[BinCollector] Spawner non assigné : impossible de recycler. (Fallback: Destroy)");
@@ -93,7 +110,7 @@ public class BinCollector : MonoBehaviour
                 {
                     if (st == null) continue;
                     st.collected = true;
-                    Destroy(st.gameObject); // fallback dev pour ne pas polluer la scène
+                    Object.Destroy(st.gameObject); // fallback dev pour ne pas polluer la scène
                 }
                 yield break;
             }
@@ -145,6 +162,25 @@ public class BinCollector : MonoBehaviour
 
         snapshot.totalPointsDuLot = total;
         return snapshot;
+    }
+
+    /// <summary>
+    /// Déclenche le FX de flush pour le côté concerné, en fonction des infos
+    /// pré-calculées dans le bin (score du flush et présence d'une bille noire).
+    /// </summary>
+    private void TriggerFlushFx(Side side, int flushScore, bool hasBlack)
+    {
+        BinFlushFX fx = null;
+
+        if (side == Side.Left)
+            fx = leftFlushFx;
+        else if (side == Side.Right)
+            fx = rightFlushFx;
+
+        if (fx != null)
+        {
+            fx.PlayFlush(hasBlack, flushScore);
+        }
     }
 
     private BinTrigger GetTrigger(Side side)

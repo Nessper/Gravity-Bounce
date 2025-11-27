@@ -59,6 +59,27 @@
     "DurationSec": 10 
   },
 
+  "Obstacles": [
+    {
+      "obstacleId": "Obstacle1",
+      "localPosition": { "x": -1.5, "y": 0.0, "z": 0.0 },
+      "localEulerAngles": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "phaseIndex": 0
+    },
+    {
+      "obstacleId": "Obstacle1",
+      "localPosition": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "localEulerAngles": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "phaseIndex": 0
+    },
+    {
+      "obstacleId": "Obstacle1",
+      "localPosition": { "x": 1.5, "y": 0.0, "z": 0.0 },
+      "localEulerAngles": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "phaseIndex": 0
+    }
+  ],
+
   "Theme": "City"
 }
 

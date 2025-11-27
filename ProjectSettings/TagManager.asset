@@ -57,6 +57,9 @@ TagManager:
   - name: Bin
     uniqueID: 3296349127
     locked: 0
+  - name: Obstacles
+    uniqueID: 2507059627
+    locked: 0
   m_RenderingLayers:
   - Default
   - Light Layer 1

@@ -85,6 +85,7 @@ public class LevelData
     public ScoreGoalsData[] ScoreGoals;
     public string Theme;
     public PhaseData[] Phases;
+    public ObstaclePlacement[] Obstacles;
 
     // Phase d'évacuation (optionnelle, hors spawner)
     public EvacuationData Evacuation;

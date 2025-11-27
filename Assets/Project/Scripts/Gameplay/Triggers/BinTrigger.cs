@@ -24,6 +24,36 @@ public class BinTrigger : MonoBehaviour
     }
 
     /// <summary>
+    /// Renvoie la somme des points des billes actuellement dans le bin,
+    /// sans modifier l'état du bin.
+    /// Utilisé pour pré-calculer la couleur du FX de flush.
+    /// </summary>
+    public int PeekTotalPoints()
+    {
+        int total = 0;
+        foreach (var st in present)
+        {
+            if (st == null) continue;
+            total += st.points;
+        }
+        return total;
+    }
+
+    /// <summary>
+    /// Indique si au moins une bille noire est présente dans le bin.
+    /// </summary>
+    public bool ContainsBlack()
+    {
+        foreach (var st in present)
+        {
+            if (st == null) continue;
+            if (st.type == BallType.Black)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Utilisé par le collector pour prendre le lot et vider le bin.
     /// </summary>
     public List<BallState> TakeSnapshotAndClear()
@@ -50,7 +80,6 @@ public class BinTrigger : MonoBehaviour
 
         return snapshot;
     }
-
 
     private void OnTriggerEnter(Collider other)
     {
