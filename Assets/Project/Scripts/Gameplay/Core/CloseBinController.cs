@@ -3,7 +3,8 @@ using UnityEngine;
 /// <summary>
 /// Gère l'ouverture / fermeture des bacs côté gameplay (murs de fermeture)
 /// et notifie le visuel de chaque bac.
-/// Input actuel : maintien de Shift pour fermer les bacs.
+/// Ne lit aucun input directement :
+/// l'état "fermé / ouvert" est fourni par des sources externes (clavier, bouton, etc.).
 /// </summary>
 public class CloseBinController : MonoBehaviour
 {
@@ -19,7 +20,7 @@ public class CloseBinController : MonoBehaviour
     private bool canControl = true;  // false = input désactivé (fin de niveau, pause, etc.)
 
     /// <summary>
-    /// Active / désactive la prise en compte de l'input.
+    /// Active ou désactive la prise en compte de l'input.
     /// Si on coupe le contrôle alors que les bacs sont fermés,
     /// on les rouvre pour éviter de rester bloqué visuellement / physiquement.
     /// </summary>
@@ -33,23 +34,28 @@ public class CloseBinController : MonoBehaviour
         }
     }
 
-    private void Update()
+    /// <summary>
+    /// Méthode appelée par une source d'input (clavier, bouton, etc.).
+    /// desiredClosed = true si l'input demande de fermer les bacs (maintien),
+    /// false si l'input lâche et que les bacs doivent s'ouvrir.
+    /// </summary>
+    public void SetClosedFromInput(bool desiredClosed)
     {
+        // Si le contrôle est désactivé, on force l'ouverture
         if (!canControl)
-            return;
-
-        bool shiftDown = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-
-        if (shiftDown)
-        {
-            if (!isClosed)
-                SetClosedState(true);
-        }
-        else
         {
             if (isClosed)
+            {
                 SetClosedState(false);
+            }
+            return;
         }
+
+        // Si l'état demandé est déjà l'état actuel, on ne fait rien
+        if (desiredClosed == isClosed)
+            return;
+
+        SetClosedState(desiredClosed);
     }
 
     /// <summary>
@@ -68,5 +74,13 @@ public class CloseBinController : MonoBehaviour
         // Visuel des bacs
         if (leftBinVisual != null) leftBinVisual.SetClosed(closed);
         if (rightBinVisual != null) rightBinVisual.SetClosed(closed);
+    }
+
+    /// <summary>
+    /// Permet à d'autres systèmes de connaitre l'état actuel des bacs.
+    /// </summary>
+    public bool IsClosed()
+    {
+        return isClosed;
     }
 }
