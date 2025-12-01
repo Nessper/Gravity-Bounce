@@ -1,10 +1,9 @@
 using UnityEngine;
 
 /// <summary>
-/// Contrôle physique du paddle du joueur.
-/// Ce script ne lit AUCUN input directement :
-/// il se contente d'appliquer une position cible en X,
-/// fournie par un autre script d'input (souris, touch, etc.).
+/// Contrôle du paddle du joueur.
+/// Ne lit AUCUN input directement :
+/// applique une position cible en X fournie par un autre script.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
@@ -21,39 +20,45 @@ public class PlayerController : MonoBehaviour
     private Rigidbody playerRb;
     private float targetX; // Position cible en X (définie par l'input externe)
 
+    public float XRange
+    {
+        get { return xRange; }
+    }
+
     private void Awake()
     {
         playerRb = GetComponent<Rigidbody>();
+
+        if (playerRb != null)
+        {
+            playerRb.isKinematic = true;
+            playerRb.interpolation = RigidbodyInterpolation.None;
+        }
 
         // On initialise la targetX à la position actuelle pour éviter un saut au démarrage
         targetX = transform.position.x;
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
         if (!canControl)
             return;
 
-        Vector3 currentPos = playerRb.position;
-
-        // Déplacement direct vers la targetX (tu peux lisser plus tard si besoin)
+        // On déplace le paddle directement, sans passer par la physique
+        Vector3 currentPos = transform.position;
         Vector3 nextPos = new Vector3(targetX, currentPos.y, currentPos.z);
-        playerRb.MovePosition(nextPos);
+        transform.position = nextPos;
     }
 
     /// <summary>
     /// Définit la position cible en X, en coordonnées monde.
-    /// Le clamp est fait ici pour garantir le respect de xRange,
-    /// quel que soit l'input utilisé.
+    /// Clampée dans [-xRange, xRange].
     /// </summary>
     public void SetTargetXWorld(float worldX)
     {
         targetX = Mathf.Clamp(worldX, -xRange, xRange);
     }
 
-    /// <summary>
-    /// Active ou désactive le contrôle du paddle (pause, fin de niveau, etc.).
-    /// </summary>
     public void SetActiveControl(bool state)
     {
         canControl = state;
@@ -61,7 +66,6 @@ public class PlayerController : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        // Adapté à ton setup (tag "Ball" par exemple)
         if (collision.collider.CompareTag("Ball"))
         {
             if (flashFeedback != null)

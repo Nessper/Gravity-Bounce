@@ -15,18 +15,28 @@ public class CloseBinInputTouch : MonoBehaviour
 
     private void Update()
     {
-        // Ne tourne que sur mobile
-        if (!Application.isMobilePlatform)
-            return;
-
         if (!inputEnabled || closeBin == null || closeBinZone == null)
             return;
 
+#if UNITY_EDITOR
+        // Mode Editor : souris = doigt
+        HandleMouseSimulatedTouch();
+#else
+    // Mode Build / Mobile : uniquement les vrais touch
+    if (!Application.isMobilePlatform)
+        return;
+
+    HandleRealTouches();
+#endif
+    }
+
+
+    private void HandleRealTouches()
+    {
         if (Input.touchCount == 0)
         {
             if (activeFingerId != -1)
             {
-                // Le doigt actif a disparu : on rouvre les bacs
                 closeBin.SetClosedFromInput(false);
                 activeFingerId = -1;
             }
@@ -68,7 +78,6 @@ public class CloseBinInputTouch : MonoBehaviour
 
                 if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled)
                 {
-                    // On rouvre les bacs quand le doigt est relâché
                     closeBin.SetClosedFromInput(false);
                     activeFingerId = -1;
                 }
@@ -76,12 +85,29 @@ public class CloseBinInputTouch : MonoBehaviour
                 break;
             }
 
-            // Cas bizarre : le doigt actif a disparu sans Ended/Canceled
             if (!found)
             {
                 closeBin.SetClosedFromInput(false);
                 activeFingerId = -1;
             }
+        }
+    }
+
+    private void HandleMouseSimulatedTouch()
+    {
+        Vector2 mousePos = Input.mousePosition;
+        bool inside = RectTransformUtility.RectangleContainsScreenPoint(closeBinZone, mousePos);
+
+        if (Input.GetMouseButtonDown(0) && inside)
+        {
+            activeFingerId = 0;
+            closeBin.SetClosedFromInput(true);
+        }
+
+        if (Input.GetMouseButtonUp(0) && activeFingerId == 0)
+        {
+            closeBin.SetClosedFromInput(false);
+            activeFingerId = -1;
         }
     }
 

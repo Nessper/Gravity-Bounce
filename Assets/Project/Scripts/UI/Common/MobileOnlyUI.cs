@@ -2,24 +2,20 @@ using UnityEngine;
 
 public class MobileOnlyUI : MonoBehaviour
 {
-    [SerializeField] private bool hideInEditor = false;
+    [SerializeField] private bool enableInEditor = false;
 
     private void Awake()
     {
-        bool isMobile = Application.isMobilePlatform;
-
 #if UNITY_EDITOR
-        if (!isMobile && hideInEditor)
-        {
-            gameObject.SetActive(false);
-            return;
-        }
-#else
-        if (!isMobile)
+        if (!enableInEditor)
         {
             gameObject.SetActive(false);
             return;
         }
 #endif
+        if (!Application.isMobilePlatform)
+        {
+            gameObject.SetActive(false);
+        }
     }
 }

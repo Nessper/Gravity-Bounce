@@ -1,0 +1,10 @@
+# ninja log v5
+32	1575	7862256287452935	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	c03266cd57ecb480
+56	1594	7862256287611365	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	b9c6bdd351ae5b73
+13	1608	7862256287709201	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	a1a4f9f09bbc4438
+23	1722	7862256288911759	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	d4a75a817b646b72
+69	1734	7862256289046165	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	a44bb0f1912c202e
+84	1929	7862256291008042	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	2d7fc522e79c62b4
+43	2191	7862256293607061	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	8b6b2ca6e975d5fe
+1	2343	7862256295178155	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	510b645f2c27ce0d
+2344	2486	7862256296653221	C:/Users/PAUL/Documents/Unity/tuto unity/Gravity Bounce/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/2fur294l/obj/arm64-v8a/libgame.so	1c7dd6499ed989ce

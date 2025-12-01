@@ -1,4 +1,4 @@
-# Unity
+# --- UNITY CORE DIRECTORIES ---
 [Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
@@ -8,7 +8,14 @@ UserSettings/
 MemoryCaptures/
 Recordings/
 
-# Visual Studio / Rider
+# --- UNITY BUILD GARBAGE ---
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+**/BackUpThisFolder_ButDontShipItWithYourGame/
+**/il2cppOutput/
+MonoBleedingEdge/
+Builds/
+
+# --- VISUAL STUDIO / RIDER ---
 .vs/
 *.csproj
 *.sln
@@ -17,11 +24,11 @@ Recordings/
 .idea/
 *.sln.iml
 
-# OS junk
+# --- OS JUNK ---
 .DS_Store
 Thumbs.db
 
-# Other caches
+# --- OTHER CACHES ---
 *.opendb
 *.VC.db
 Backups/

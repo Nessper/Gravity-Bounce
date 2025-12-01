@@ -1,121 +1,174 @@
 using UnityEngine;
-using UnityEngine.UI; // pour RectTransformUtility
 
-/// <summary>
-/// Source d'input pour le paddle en mode mobile.
-/// Seul un touch qui COMMENCE dans la zone ThumbTouchArea
-/// peut contrôler le paddle.
-/// </summary>
 public class PlayerInputTouch : MonoBehaviour
 {
     [Header("Références")]
-    [SerializeField] private Camera mainCam;
     [SerializeField] private PlayerController player;
     [SerializeField] private RectTransform thumbTouchArea;
 
-    // Id du doigt actuellement utilisé pour contrôler le paddle (-1 = aucun)
-    private int activeFingerId = -1;
+    // Pour le halo / hints
+    private bool hasActivePointer;
+    public bool HasActivePointer
+    {
+        get { return hasActivePointer; }
+    }
 
-    private bool isDragging = false;
-    private float dragOffsetX = 0f;
+    [Header("Options")]
+    [SerializeField] private bool inputEnabled = true;
+    [SerializeField] private float responsiveness = 3.5f;
+    [SerializeField] private float expo = 1.4f;
+
+    // Id du doigt qui contrôle actuellement le paddle (-1 = aucun)
+    private int activeFingerId = -1;
 
     private void Update()
     {
-        // Ne tourne que sur mobile
+        if (!inputEnabled || player == null)
+            return;
+
+#if UNITY_EDITOR
+        HandleMouseSimulatedTouch();
+#else
         if (!Application.isMobilePlatform)
-            return;
-
-        if (player == null || mainCam == null || thumbTouchArea == null)
-            return;
-
-        if (Input.touchCount == 0)
         {
-            // Plus de touch : on reset
+            hasActivePointer = false;
             activeFingerId = -1;
-            isDragging = false;
             return;
         }
 
-        // 1) Si aucun doigt n'est encore assigné, on cherche un touch qui commence dans la zone
+        HandleRealTouches();
+#endif
+    }
+
+#if UNITY_EDITOR
+    private void HandleMouseSimulatedTouch()
+    {
+        if (!Input.GetMouseButton(0))
+        {
+            hasActivePointer = false;
+            return;
+        }
+
+        Vector2 mousePos = Input.mousePosition;
+
+        // Si une ThumbTouchArea est définie, on ne prend que les clics dedans
+        if (thumbTouchArea != null &&
+            !RectTransformUtility.RectangleContainsScreenPoint(thumbTouchArea, mousePos))
+        {
+            hasActivePointer = false;
+            return;
+        }
+
+        hasActivePointer = true;
+        UpdatePaddleFromScreenPos(mousePos);
+    }
+#endif
+
+    private void HandleRealTouches()
+    {
+        if (Input.touchCount == 0)
+        {
+            hasActivePointer = false;
+            activeFingerId = -1;
+            return;
+        }
+
+        // Si aucun doigt n'est encore associé, on en cherche un qui commence dans la ThumbZone
         if (activeFingerId == -1)
         {
             for (int i = 0; i < Input.touchCount; i++)
             {
                 Touch t = Input.GetTouch(i);
 
-                if (t.phase == TouchPhase.Began)
-                {
-                    if (IsInThumbArea(t.position))
-                    {
-                        // On capture ce doigt comme contrôleur du paddle
-                        activeFingerId = t.fingerId;
-
-                        float distance = Mathf.Abs(mainCam.transform.position.z - player.transform.position.z);
-                        Vector3 screenPos = new Vector3(t.position.x, t.position.y, distance);
-                        Vector3 worldPos = mainCam.ScreenToWorldPoint(screenPos);
-
-                        dragOffsetX = player.transform.position.x - worldPos.x;
-                        isDragging = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // 2) Si on a un doigt actif, on le suit
-        if (activeFingerId != -1)
-        {
-            bool found = false;
-
-            for (int i = 0; i < Input.touchCount; i++)
-            {
-                Touch t = Input.GetTouch(i);
-
-                if (t.fingerId != activeFingerId)
+                if (t.phase != TouchPhase.Began)
                     continue;
 
-                found = true;
-
-                float distance = Mathf.Abs(mainCam.transform.position.z - player.transform.position.z);
-                Vector3 screenPos = new Vector3(t.position.x, t.position.y, distance);
-                Vector3 worldPos = mainCam.ScreenToWorldPoint(screenPos);
-
-                switch (t.phase)
+                if (IsInThumbZone(t.position))
                 {
-                    case TouchPhase.Moved:
-                    case TouchPhase.Stationary:
-                        if (isDragging)
-                        {
-                            float targetX = worldPos.x + dragOffsetX;
-                            player.SetTargetXWorld(targetX);
-                        }
-                        break;
-
-                    case TouchPhase.Ended:
-                    case TouchPhase.Canceled:
-                        activeFingerId = -1;
-                        isDragging = false;
-                        break;
+                    activeFingerId = t.fingerId;
+                    hasActivePointer = true;
+                    UpdatePaddleFromScreenPos(t.position);
+                    return;
                 }
-
-                break;
             }
 
-            // Si le doigt actif a disparu (cas bizarre), on reset
-            if (!found)
+            // Aucun touch Began dans la zone
+            hasActivePointer = false;
+            return;
+        }
+
+        // Sinon, on suit le doigt déjà actif
+        bool found = false;
+
+        for (int i = 0; i < Input.touchCount; i++)
+        {
+            Touch t = Input.GetTouch(i);
+
+            if (t.fingerId != activeFingerId)
+                continue;
+
+            found = true;
+
+            if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled)
             {
                 activeFingerId = -1;
-                isDragging = false;
+                hasActivePointer = false;
             }
+            else
+            {
+                hasActivePointer = true;
+                UpdatePaddleFromScreenPos(t.position);
+            }
+
+            break;
+        }
+
+        // Cas bizarre : le doigt actif a disparu de la liste
+        if (!found)
+        {
+            activeFingerId = -1;
+            hasActivePointer = false;
         }
     }
 
-    /// <summary>
-    /// Retourne true si la position écran donnée est dans la zone de pouce.
-    /// </summary>
-    private bool IsInThumbArea(Vector2 screenPosition)
+    private bool IsInThumbZone(Vector2 screenPos)
     {
-        // On suppose que thumbTouchArea est dans le même Canvas que l'UI principale
-        return RectTransformUtility.RectangleContainsScreenPoint(thumbTouchArea, screenPosition);
+        if (thumbTouchArea == null)
+            return true; // fallback : tout l'écran si pas de zone
+
+        // Canvas en Screen Space Overlay -> camera = null
+        return RectTransformUtility.RectangleContainsScreenPoint(
+            thumbTouchArea,
+            screenPos,
+            null
+        );
+    }
+
+    private void UpdatePaddleFromScreenPos(Vector2 screenPos)
+    {
+        float tNorm = screenPos.x / Screen.width;
+        float centered = (tNorm - 0.5f) * 2f;
+
+        // expo > 1 = meilleure précision sur petits mouvements
+        float abs = Mathf.Abs(centered);
+        float curved = Mathf.Pow(abs, expo);
+        centered = Mathf.Sign(centered) * curved;
+
+        // nervosité globale
+        centered = Mathf.Clamp(centered * responsiveness, -1f, 1f);
+
+        float targetX = centered * player.XRange;
+        player.SetTargetXWorld(targetX);
+    }
+
+    public void SetInputEnabled(bool state)
+    {
+        inputEnabled = state;
+
+        if (!state)
+        {
+            activeFingerId = -1;
+            hasActivePointer = false;
+        }
     }
 }
