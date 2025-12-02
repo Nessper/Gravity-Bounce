@@ -17571,7 +17571,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CloseBinIconAnimator
   rotationSpeed: 60
-  pulseAmplitude: 0.08
+  pulseAmplitude: 0.1
   pulseSpeed: 2
 --- !u!114 &1964602100
 MonoBehaviour:
