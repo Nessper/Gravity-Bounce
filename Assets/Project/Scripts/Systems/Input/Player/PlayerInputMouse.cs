@@ -14,9 +14,9 @@ public class PlayerInputMouse : MonoBehaviour
     [Header("Etat")]
     [SerializeField] private bool inputEnabled = true;
 
+
     private void Update()
     {
-        // Sur mobile, on laisse ce script tranquille
         if (Application.isMobilePlatform)
             return;
 
@@ -28,17 +28,14 @@ public class PlayerInputMouse : MonoBehaviour
 
         Vector3 screenPos = Input.mousePosition;
 
-        // Distance entre la caméra et le paddle sur l'axe Z
         float distance = Mathf.Abs(mainCam.transform.position.z - player.transform.position.z);
-
-        // Conversion écran -> monde
         Vector3 worldPos = mainCam.ScreenToWorldPoint(
             new Vector3(screenPos.x, screenPos.y, distance)
         );
 
-        // On envoie uniquement le X au PlayerController
         player.SetTargetXWorld(worldPos.x);
     }
+
 
     /// <summary>
     /// Active ou désactive la prise en compte de l'input souris.

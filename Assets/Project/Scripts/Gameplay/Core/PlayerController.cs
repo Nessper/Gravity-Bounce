@@ -44,11 +44,11 @@ public class PlayerController : MonoBehaviour
         if (!canControl)
             return;
 
-        // On déplace le paddle directement, sans passer par la physique
         Vector3 currentPos = transform.position;
         Vector3 nextPos = new Vector3(targetX, currentPos.y, currentPos.z);
         transform.position = nextPos;
     }
+
 
     /// <summary>
     /// Définit la position cible en X, en coordonnées monde.
@@ -56,8 +56,10 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     public void SetTargetXWorld(float worldX)
     {
-        targetX = Mathf.Clamp(worldX, -xRange, xRange);
+        float clamped = Mathf.Clamp(worldX, -xRange, xRange);
+        targetX = clamped;
     }
+
 
     public void SetActiveControl(bool state)
     {

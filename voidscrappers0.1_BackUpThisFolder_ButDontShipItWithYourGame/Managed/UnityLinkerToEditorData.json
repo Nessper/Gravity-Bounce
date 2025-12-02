@@ -978,6 +978,14 @@
             "icon": null
           },
           {
+            "name": "CapsuleCollider",
+            "scenes": [
+              "Assets/Project/Scenes/Main.unity"
+            ],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
             "name": "Collider",
             "scenes": [],
             "dependencyType": 1,

@@ -3,17 +3,39 @@
 [Tt]emp/
 [Oo]bj/
 [Bb]uild*/
+[Bb]uilds/
 [Ll]ogs/
 UserSettings/
 MemoryCaptures/
 Recordings/
+CrashReports/
 
-# --- UNITY BUILD GARBAGE ---
+# --- UNITY AUTO-GENERATED ---
+*.pidb
+*.suo
+*.user
+*.userprefs
+*.booproj
+*.vpdb
+*.unityproj
+*.tmp
+*.UnityPackageManager
+*.ncrunch*
+*.local
+*.gradle
+*.swp
+sysinfo.txt
+
+# --- BURST ---
+**/BurstDebugInformation_DoNotShip*/
+**/BurstCache/
+
+# --- BACKUP TRASH ---
 *_BackUpThisFolder_ButDontShipItWithYourGame/
+**/*_BackUpThisFolder_ButDontShipItWithYourGame/
 **/BackUpThisFolder_ButDontShipItWithYourGame/
-**/il2cppOutput/
-MonoBleedingEdge/
-Builds/
+**/BackUpThisFolder_* 
+**/Builds_BackUp*/ 
 
 # --- VISUAL STUDIO / RIDER ---
 .vs/
@@ -23,6 +45,30 @@ Builds/
 *.userprefs
 .idea/
 *.sln.iml
+*.DotSettings.user
+
+# --- ANDROID / GRADLE / EXPORT ---
+*.apk
+*.aab
+*.keystore
+*.jks
+.gradle/
+gradle/
+.gradle/
+**/exported_project/
+**/Android/*
+**/Android/
+**/launcher/
+**/unityLibrary/
+
+# --- IL2CPP / PLATFORM BUILD ARTIFACTS ---
+**/il2cppOutput/
+**/Symbols/
+**/SymbolDump/
+**/PlayerDataCache/
+**/MonoBleedingEdge/
+**/obj/Android/
+**/obj/iOS/
 
 # --- OS JUNK ---
 .DS_Store

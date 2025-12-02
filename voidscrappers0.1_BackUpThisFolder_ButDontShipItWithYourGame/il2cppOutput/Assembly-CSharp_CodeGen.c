@@ -120,6 +120,8 @@ extern void U3CAnimateToStateU3Ed__9_System_Collections_IEnumerator_get_Current_
 extern void CloseBinIconAnimator_Awake_mA7B7FDB85FB850DA3DA7E6159481A218C2E19E00 (void);
 extern void CloseBinIconAnimator_Update_mD4F07D77FBAA603A040C244A1F59674740BC221E (void);
 extern void CloseBinIconAnimator__ctor_mFBD6926D19535F47FB40A3E77656C62BF6E3B783 (void);
+extern void BallPhysicsTuning_Start_m59F40A5D6CA3E4A7A034060D3CF757357DCB0B48 (void);
+extern void BallPhysicsTuning__ctor_mD811D2B88D8E94C4A6738956925B29B19217B9CC (void);
 extern void BinCollector_get_IsAnyFlushActive_m62F8638899991EFB1405B047B2F4C130D172F91B (void);
 extern void BinCollector_IsLeftFlushing_m0248D303248E2AF4DCEB0AA7178295A467381D0D (void);
 extern void BinCollector_IsRightFlushing_m11D9B15077AF1B5F09E2C4732E04D922DA80A00D (void);
@@ -233,6 +235,14 @@ extern void U3CFinalSweepMarkLostAndRecycleU3Ed__45_MoveNext_m6E7ED477A48074A676
 extern void U3CFinalSweepMarkLostAndRecycleU3Ed__45_System_Collections_Generic_IEnumeratorU3CSystem_ObjectU3E_get_Current_mFED27D98D806F98BDF3D85CFAD12538B6C130AB8 (void);
 extern void U3CFinalSweepMarkLostAndRecycleU3Ed__45_System_Collections_IEnumerator_Reset_mD24B8FF57151A5E36775159788D154CEDD76E8BC (void);
 extern void U3CFinalSweepMarkLostAndRecycleU3Ed__45_System_Collections_IEnumerator_get_Current_m315F4442612F5F0783BDC8300F7ECCF889EA1770 (void);
+extern void PlatformTuning_get_Instance_m792D7FF6A13A2F42304AA190F463137031D0E06A (void);
+extern void PlatformTuning_set_Instance_m36A970079349E6C9F05C606E8D7B91D7E8CD83DA (void);
+extern void PlatformTuning_Awake_mDB91E5B3E41A699949890567BA50A56378769E61 (void);
+extern void PlatformTuning_Start_mC4F5F53A0B098F2AEF009E3301E693C59007F8AC (void);
+extern void PlatformTuning_ResolveGravityProfile_m2ABE35591C72B19A7EF7045507F717AA8DA24B4D (void);
+extern void PlatformTuning_get_ActiveGravityMult_m03B21D7413CCA8F7B4236E09020A355DA2318C14 (void);
+extern void PlatformTuning_RefreshProfile_m1F1A55B884C4092A6C95BBDED70A899CC4A0CF2A (void);
+extern void PlatformTuning__ctor_m0A36BF7B90755E56B85B420C7A09F408CB40D6B8 (void);
 extern void PlayerController_get_XRange_mDB4F323186DF2CB95E5EF7CDA84B1228AA778405 (void);
 extern void PlayerController_Awake_m82639826DE098DC447C79B43900C5F2A630B3DC3 (void);
 extern void PlayerController_Update_m1F4051EB5BCBCCE5EEE2E3E49B7E278C3B14EC33 (void);
@@ -462,7 +472,7 @@ extern void PlayerInputTouch_get_HasActivePointer_m3DBDAC245B17D2E3F91055E294BC6
 extern void PlayerInputTouch_Update_m41B73C99EBCFBB164A7770FF76CA23FD36A7988D (void);
 extern void PlayerInputTouch_HandleRealTouches_m0B2A5C7578B6E1D477126886452FEA306F726527 (void);
 extern void PlayerInputTouch_IsInThumbZone_mC28F7722255338F5E7CEEFE2583AB488772A9693 (void);
-extern void PlayerInputTouch_UpdatePaddleFromScreenPos_m1DCAB95F5EC5C6D736B6D6DC2FE8238C966D41A9 (void);
+extern void PlayerInputTouch_UpdatePaddleFromRelativeDelta_mF72A8CAE57AAC1E1AA4E88AF2354383B96131BD1 (void);
 extern void PlayerInputTouch_SetInputEnabled_mCEFC0560BF31D4D2BE5F7D288BDB56EC9E434E15 (void);
 extern void PlayerInputTouch__ctor_mC95BDA86410E83AE60770B29C44DE6FE0DE6DB6C (void);
 extern void GameSaveData_GetBestScoreForLevel_m8153F4459A189E98915331EE95984252270EA300 (void);
@@ -491,6 +501,7 @@ extern void RunConfig_set_Instance_mBA4863C6BB2D42572C2AFB601F753773B9263621 (vo
 extern void RunConfig_Awake_m368FA46224A3737E828077D24D98A56DA1C7D36E (void);
 extern void RunConfig_Start_m5BC17326E78E10CC6213536D61926AC8B0750F4F (void);
 extern void RunConfig_SetSelectedShip_m57411B86DB63C82049278EE0FC339FC730E3D79C (void);
+extern void RunConfig_get_IsMobileProfile_mE815BF81066815D8C2F43737EFD97378D9DB844E (void);
 extern void RunConfig__ctor_m4CB708A64291100B050F97498E6A761A60FC174F (void);
 extern void RunRecoveryOnBoot_Start_m6F550ED75AABA68ECAC857E51D28D908490F8157 (void);
 extern void RunRecoveryOnBoot__ctor_m3FC51CAE831A97F6B2CFC49B2CA8E3303E5BAA22 (void);
@@ -788,7 +799,7 @@ extern void Section__ctor_m5F732533E4DFC0167D965E5F5DB332E46055399B (void);
 extern void UnitySourceGeneratedAssemblyMonoScriptTypes_v1_Get_mBEB95BEB954BB63E9710BBC7AD5E78C4CB0A0033 (void);
 extern void UnitySourceGeneratedAssemblyMonoScriptTypes_v1__ctor_mE70FB23ACC1EA12ABC948AA22C2E78B2D0AA39B1 (void);
 extern void U3CPrivateImplementationDetailsU3E_ComputeStringHash_m6EA1F233618497AEFF8902A5EDFA24C74E2F2876 (void);
-static Il2CppMethodPointer s_methodPointers[781] = 
+static Il2CppMethodPointer s_methodPointers[792] = 
 {
 	EndLevelStats__ctor_m2BF831D2EE6BCDE43FC06433FD22E90E9D3FF5CF,
 	SpawnData__ctor_m32C5F49A389019214B76C9284A1CA2036EC9322E,
@@ -903,6 +914,8 @@ static Il2CppMethodPointer s_methodPointers[781] =
 	CloseBinIconAnimator_Awake_mA7B7FDB85FB850DA3DA7E6159481A218C2E19E00,
 	CloseBinIconAnimator_Update_mD4F07D77FBAA603A040C244A1F59674740BC221E,
 	CloseBinIconAnimator__ctor_mFBD6926D19535F47FB40A3E77656C62BF6E3B783,
+	BallPhysicsTuning_Start_m59F40A5D6CA3E4A7A034060D3CF757357DCB0B48,
+	BallPhysicsTuning__ctor_mD811D2B88D8E94C4A6738956925B29B19217B9CC,
 	BinCollector_get_IsAnyFlushActive_m62F8638899991EFB1405B047B2F4C130D172F91B,
 	BinCollector_IsLeftFlushing_m0248D303248E2AF4DCEB0AA7178295A467381D0D,
 	BinCollector_IsRightFlushing_m11D9B15077AF1B5F09E2C4732E04D922DA80A00D,
@@ -1016,6 +1029,14 @@ static Il2CppMethodPointer s_methodPointers[781] =
 	U3CFinalSweepMarkLostAndRecycleU3Ed__45_System_Collections_Generic_IEnumeratorU3CSystem_ObjectU3E_get_Current_mFED27D98D806F98BDF3D85CFAD12538B6C130AB8,
 	U3CFinalSweepMarkLostAndRecycleU3Ed__45_System_Collections_IEnumerator_Reset_mD24B8FF57151A5E36775159788D154CEDD76E8BC,
 	U3CFinalSweepMarkLostAndRecycleU3Ed__45_System_Collections_IEnumerator_get_Current_m315F4442612F5F0783BDC8300F7ECCF889EA1770,
+	PlatformTuning_get_Instance_m792D7FF6A13A2F42304AA190F463137031D0E06A,
+	PlatformTuning_set_Instance_m36A970079349E6C9F05C606E8D7B91D7E8CD83DA,
+	PlatformTuning_Awake_mDB91E5B3E41A699949890567BA50A56378769E61,
+	PlatformTuning_Start_mC4F5F53A0B098F2AEF009E3301E693C59007F8AC,
+	PlatformTuning_ResolveGravityProfile_m2ABE35591C72B19A7EF7045507F717AA8DA24B4D,
+	PlatformTuning_get_ActiveGravityMult_m03B21D7413CCA8F7B4236E09020A355DA2318C14,
+	PlatformTuning_RefreshProfile_m1F1A55B884C4092A6C95BBDED70A899CC4A0CF2A,
+	PlatformTuning__ctor_m0A36BF7B90755E56B85B420C7A09F408CB40D6B8,
 	PlayerController_get_XRange_mDB4F323186DF2CB95E5EF7CDA84B1228AA778405,
 	PlayerController_Awake_m82639826DE098DC447C79B43900C5F2A630B3DC3,
 	PlayerController_Update_m1F4051EB5BCBCCE5EEE2E3E49B7E278C3B14EC33,
@@ -1245,7 +1266,7 @@ static Il2CppMethodPointer s_methodPointers[781] =
 	PlayerInputTouch_Update_m41B73C99EBCFBB164A7770FF76CA23FD36A7988D,
 	PlayerInputTouch_HandleRealTouches_m0B2A5C7578B6E1D477126886452FEA306F726527,
 	PlayerInputTouch_IsInThumbZone_mC28F7722255338F5E7CEEFE2583AB488772A9693,
-	PlayerInputTouch_UpdatePaddleFromScreenPos_m1DCAB95F5EC5C6D736B6D6DC2FE8238C966D41A9,
+	PlayerInputTouch_UpdatePaddleFromRelativeDelta_mF72A8CAE57AAC1E1AA4E88AF2354383B96131BD1,
 	PlayerInputTouch_SetInputEnabled_mCEFC0560BF31D4D2BE5F7D288BDB56EC9E434E15,
 	PlayerInputTouch__ctor_mC95BDA86410E83AE60770B29C44DE6FE0DE6DB6C,
 	GameSaveData_GetBestScoreForLevel_m8153F4459A189E98915331EE95984252270EA300,
@@ -1274,6 +1295,7 @@ static Il2CppMethodPointer s_methodPointers[781] =
 	RunConfig_Awake_m368FA46224A3737E828077D24D98A56DA1C7D36E,
 	RunConfig_Start_m5BC17326E78E10CC6213536D61926AC8B0750F4F,
 	RunConfig_SetSelectedShip_m57411B86DB63C82049278EE0FC339FC730E3D79C,
+	RunConfig_get_IsMobileProfile_mE815BF81066815D8C2F43737EFD97378D9DB844E,
 	RunConfig__ctor_m4CB708A64291100B050F97498E6A761A60FC174F,
 	RunRecoveryOnBoot_Start_m6F550ED75AABA68ECAC857E51D28D908490F8157,
 	RunRecoveryOnBoot__ctor_m3FC51CAE831A97F6B2CFC49B2CA8E3303E5BAA22,
@@ -1575,9 +1597,9 @@ static Il2CppMethodPointer s_methodPointers[781] =
 extern void FinalComboResult__ctor_m496952573B0F886FEF17B228F57535DA4214A736_AdjustorThunk (void);
 static Il2CppTokenAdjustorThunkPair s_adjustorThunks[1] = 
 {
-	{ 0x06000099, FinalComboResult__ctor_m496952573B0F886FEF17B228F57535DA4214A736_AdjustorThunk },
+	{ 0x0600009B, FinalComboResult__ctor_m496952573B0F886FEF17B228F57535DA4214A736_AdjustorThunk },
 };
-static const int32_t s_InvokerIndices[781] = 
+static const int32_t s_InvokerIndices[792] = 
 {
 	13181,
 	13181,
@@ -1592,7 +1614,7 @@ static const int32_t s_InvokerIndices[781] =
 	13181,
 	13181,
 	13181,
-	22707,
+	22708,
 	21178,
 	13181,
 	7019,
@@ -1692,6 +1714,8 @@ static const int32_t s_InvokerIndices[781] =
 	13181,
 	13181,
 	13181,
+	13181,
+	13181,
 	12807,
 	12807,
 	12807,
@@ -1786,7 +1810,7 @@ static const int32_t s_InvokerIndices[781] =
 	13181,
 	13181,
 	13181,
-	22707,
+	22708,
 	13181,
 	13181,
 	13181,
@@ -1805,6 +1829,14 @@ static const int32_t s_InvokerIndices[781] =
 	12990,
 	13181,
 	12990,
+	22624,
+	21522,
+	13181,
+	13181,
+	13181,
+	13087,
+	13181,
+	13181,
 	13087,
 	13181,
 	13181,
@@ -2034,7 +2066,7 @@ static const int32_t s_InvokerIndices[781] =
 	13181,
 	13181,
 	7187,
-	10168,
+	10086,
 	9813,
 	13181,
 	8094,
@@ -2042,7 +2074,7 @@ static const int32_t s_InvokerIndices[781] =
 	13181,
 	13181,
 	13181,
-	22623,
+	22624,
 	21522,
 	12990,
 	9997,
@@ -2058,11 +2090,12 @@ static const int32_t s_InvokerIndices[781] =
 	12932,
 	6963,
 	13181,
-	22623,
+	22624,
 	21522,
 	13181,
 	13181,
 	9997,
+	12807,
 	13181,
 	13181,
 	13181,
@@ -2215,7 +2248,7 @@ static const int32_t s_InvokerIndices[781] =
 	9939,
 	12932,
 	13181,
-	22707,
+	22708,
 	9939,
 	13181,
 	12807,
@@ -2336,7 +2369,7 @@ static const int32_t s_InvokerIndices[781] =
 	12990,
 	13181,
 	12990,
-	22623,
+	22624,
 	21522,
 	13181,
 	13181,
@@ -2357,7 +2390,7 @@ static const int32_t s_InvokerIndices[781] =
 	12990,
 	13181,
 	13181,
-	22730,
+	22731,
 	13181,
 	21378,
 };
@@ -2365,7 +2398,7 @@ IL2CPP_EXTERN_C const Il2CppCodeGenModule g_AssemblyU2DCSharp_CodeGenModule;
 const Il2CppCodeGenModule g_AssemblyU2DCSharp_CodeGenModule = 
 {
 	"Assembly-CSharp.dll",
-	781,
+	792,
 	s_methodPointers,
 	1,
 	s_adjustorThunks,
