@@ -2009,6 +2009,7 @@ Transform:
   - {fileID: 838164063}
   - {fileID: 1627947643}
   - {fileID: 1955269963}
+  - {fileID: 1863902294}
   m_Father: {fileID: 1215621184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &238494205
@@ -2783,7 +2784,8 @@ MonoBehaviour:
   collector: {fileID: 111438863}
   endSequence: {fileID: 1235702352}
   obstacleManager: {fileID: 1860133842}
-  levelIntroUI: {fileID: 603873192}
+  controlsController: {fileID: 818225577}
+  briefingController: {fileID: 603873193}
   countdownUI: {fileID: 597808803}
   pauseController: {fileID: 794936362}
   levelIdUI: {fileID: 1435165206}
@@ -2795,13 +2797,7 @@ MonoBehaviour:
   shipBackgroundLoader: {fileID: 1646446896}
   levelJson: {fileID: 4900000, guid: 00853a88421a0274486657374537de6c, type: 3}
   runSession: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
-  crewDatabase: {fileID: 11400000, guid: 7987c74e891e7404da8f9d9770b64390, type: 2}
-  introDialogUI: {fileID: 773406133}
-  worldIndex: 1
-  levelIndex: 1
-  initialIntroDelay: 0.5
-  delayBetweenLines: 2
-  introDialogEndHold: 5
+  introSequenceController: {fileID: 1863902293}
   OnEndComputed:
     m_PersistentCalls:
       m_Calls: []
@@ -4948,8 +4944,9 @@ GameObject:
   m_Component:
   - component: {fileID: 603873191}
   - component: {fileID: 603873192}
+  - component: {fileID: 603873193}
   m_Layer: 0
-  m_Name: IntroLevelUI
+  m_Name: BriefingLevelUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5020,6 +5017,20 @@ MonoBehaviour:
   shipShieldText: {fileID: 964969097}
   playButton: {fileID: 2103947675}
   backButton: {fileID: 2085556320}
+--- !u!114 &603873193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 603873190}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6daa13318cfeb1744a45e21deaa06a47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelBriefingController
+  introLevelUI: {fileID: 603873192}
+  titleSceneName: Title
 --- !u!1 &613850161
 GameObject:
   m_ObjectHideFlags: 0
@@ -5051,6 +5062,7 @@ Transform:
   m_Children:
   - {fileID: 621264653}
   - {fileID: 874546552}
+  - {fileID: 818225576}
   m_Father: {fileID: 1215621184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &617079534
@@ -7487,6 +7499,53 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 810000880}
   m_CullTransparentMesh: 1
+--- !u!1 &818225575
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 818225576}
+  - component: {fileID: 818225577}
+  m_Layer: 0
+  m_Name: LevelControlsController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &818225576
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 818225575}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 613850162}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &818225577
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 818225575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77e50d8b5fd46bd438dac0b743fa5cec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelControlsController
+  player: {fileID: 1330354634}
+  closeBinController: {fileID: 2049829430}
+  mobileControlsRoot: {fileID: 1451150150}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -8281,7 +8340,6 @@ GameObject:
   - component: {fileID: 931896785}
   - component: {fileID: 931896784}
   - component: {fileID: 931896783}
-  - component: {fileID: 931896786}
   m_Layer: 5
   m_Name: ThumbTouchArea
   m_TagString: Untagged
@@ -8359,19 +8417,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 931896781}
   m_CullTransparentMesh: 1
---- !u!114 &931896786
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 931896781}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: af6199129ef62fa41ad4d8d7003b6081, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MobileOnlyUI
-  enableInEditor: 0
 --- !u!114 &953883639 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5458286113562217650, guid: 282b2848a70f57143bda9919d9d4caa5, type: 3}
@@ -12868,12 +12913,12 @@ GameObject:
   m_Component:
   - component: {fileID: 1451150151}
   m_Layer: 5
-  m_Name: ControlsLayer
+  m_Name: MobileControlsLayer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1451150151
 RectTransform:
   m_ObjectHideFlags: 0
@@ -13056,7 +13101,6 @@ GameObject:
   - component: {fileID: 1490259538}
   - component: {fileID: 1490259541}
   - component: {fileID: 1490259540}
-  - component: {fileID: 1490259544}
   - component: {fileID: 1490259539}
   m_Layer: 5
   m_Name: CloseBinZone
@@ -13135,19 +13179,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1490259537}
   m_CullTransparentMesh: 1
---- !u!114 &1490259544
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1490259537}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: af6199129ef62fa41ad4d8d7003b6081, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MobileOnlyUI
-  enableInEditor: 0
 --- !u!1001 &1491957520
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17185,6 +17216,59 @@ MonoBehaviour:
   boardRoot: {fileID: 1529241366}
   obstaclesRoot: {fileID: 756336880}
   obstacle1Prefab: {fileID: 4152072890604033012, guid: 35e9057523895be4c8b0cfc529fc2040, type: 3}
+--- !u!1 &1863902292
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1863902294}
+  - component: {fileID: 1863902293}
+  m_Layer: 0
+  m_Name: IntroLevelController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1863902293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1863902292}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6fe87ec6ee4ef449b5cf078ba4ee380, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelIntroSequenceController
+  controlsController: {fileID: 818225577}
+  countdownUI: {fileID: 597808803}
+  crewDatabase: {fileID: 11400000, guid: 7987c74e891e7404da8f9d9770b64390, type: 2}
+  introDialogUI: {fileID: 773406133}
+  worldIndex: 1
+  levelIndex: 1
+  initialIntroDelay: 0.5
+  delayBetweenLines: 0.3
+  introDialogEndHold: 0.8
+--- !u!4 &1863902294
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1863902292}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 207393966}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1875500124
 GameObject:
   m_ObjectHideFlags: 0

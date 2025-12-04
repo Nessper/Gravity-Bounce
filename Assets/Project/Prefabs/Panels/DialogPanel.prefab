@@ -617,7 +617,7 @@ MonoBehaviour:
   dialogAudioSource: {fileID: 5359261514947833049}
   preTypeDelay: 0.25
   charsPerSecond: 40
-  holdAfterFinish: 0.6
+  holdAfterFinish: 0.4
   useSlideIn: 1
   slideDistance: 40
   slideDuration: 0.25

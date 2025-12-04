@@ -29,23 +29,23 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private BinCollector collector;                // Gestion des flushs (collecte des billes)
     [SerializeField] private EndSequenceController endSequence;     // Phase d’évacuation et fin de niveau
     [SerializeField] private ObstacleManager obstacleManager;       // Gestion des obstacles
+    [SerializeField] private LevelControlsController controlsController; // Gstion des Inputs
 
     // ----------------------------------------------------------
     // RÉFÉRENCES UI
     // ----------------------------------------------------------
 
     [Header("UI / Overlays")]
-    [SerializeField] private IntroLevelUI levelIntroUI;             // Écran d’intro du niveau (titre, texte)
-    [SerializeField] private CountdownUI countdownUI;               // Compte à rebours "3-2-1" + compte à rebours évacuation
-    [SerializeField] private PauseController pauseController;       // Système de pause
-    [SerializeField] private LevelIdUI levelIdUI;                   // Affichage ID du niveau (W1-L1, etc.)
-    [SerializeField] private ScoreUI scoreUI;                       // Affichage du score en HUD
-    [SerializeField] private LivesUI livesUI;                       // Affichage des vies restantes
-    [SerializeField] private ProgressBarUI progressBarUI;           // Barre de progression des billes
-    [SerializeField] private PhaseBannerUI phaseBannerUI;           // Bannière de phase (Intro, Tension, Evacuation, etc.)
+    [SerializeField] private LevelBriefingController briefingController; // Gère le briefing (overlay d'intro)
+    [SerializeField] private CountdownUI countdownUI;                    // Compte à rebours "3-2-1" + compte à rebours évacuation
+    [SerializeField] private PauseController pauseController;            // Système de pause
+    [SerializeField] private LevelIdUI levelIdUI;                        // Affichage ID du niveau (W1-L1, etc.)
+    [SerializeField] private ScoreUI scoreUI;                            // Affichage du score en HUD
+    [SerializeField] private LivesUI livesUI;                            // Affichage des vies restantes
+    [SerializeField] private ProgressBarUI progressBarUI;                // Barre de progression des billes
+    [SerializeField] private PhaseBannerUI phaseBannerUI;                // Bannière de phase (Intro, Tension, Evacuation, etc.)
 
-    [Header("UI - Fin de niveau")]
-    [SerializeField] private EndLevelUI endLevelUI;                 // UI de fin de niveau (stats, objectifs, combos...)
+
 
     // ----------------------------------------------------------
     // ENVIRONNEMENT / VAISSEAU DE FOND
@@ -68,26 +68,8 @@ public class LevelManager : MonoBehaviour
     private float runDurationSec;                                   // Durée du niveau (dépend du vaisseau)
     private bool endSequenceRunning;                                // Pour éviter plusieurs fins de niveau
 
-
-    [Header("Narration / Crew")]
-    [Tooltip("Base de donnees des personnages (id -> portrait, nom, voix, etc.).")]
-    [SerializeField] private CrewDatabase crewDatabase;
-
-    [Header("Narration / Intro")]
-    [Tooltip("UI utilisee pour afficher les dialogues d'intro (portrait + texte).")]
-    [SerializeField] private IntroDialogUI introDialogUI;
-    [Tooltip("World index utilise pour les dialogues d'intro (doit correspondre aux donnees JSON de dialogs_XX).")]
-    [SerializeField] private int worldIndex = 1;
-    [Tooltip("Level index utilise pour les dialogues d'intro (doit correspondre aux donnees JSON de dialogs_XX).")]
-    [SerializeField] private int levelIndex = 1;
-    [Tooltip("Petite pause avant le debut de la sequence de dialogues")]
-    [SerializeField] private float initialIntroDelay = 0.5f;
-    [Tooltip("Délai fixe après chaque ligne (en plus de la pause du typewriter).")]
-    [SerializeField] private float delayBetweenLines = 0.3f;
-    [Tooltip("Délai fixe sur le dernier message")]
-    [SerializeField] private float introDialogEndHold = 0.8f;
-
-
+    [Header("Narration / Intro Sequence")]
+    [SerializeField] private LevelIntroSequenceController introSequenceController;
 
 
     // Nom de fichier de l'image du vaisseau sélectionné (pour le décor de fond).
@@ -374,110 +356,35 @@ public class LevelManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Sequence complete de debut de niveau :
-    /// - controle des entrees (desactive pendant l'intro)
-    /// - lecture des dialogues d'intro (si dispo)
-    /// - compte a rebours "3-2-1"
-    /// - activation des controles et demarrage reel du niveau.
+    /// Desactive tous les controles de gameplay.
+    /// Si un LevelControlsController est configure, on lui delegue,
+    /// sinon on retombe sur l'ancien comportement direct.
     /// </summary>
-    private IEnumerator PlayLevelStartSequence()
+    private void DisableGameplayControls()
     {
-        // On s'assure que le joueur ne peut pas jouer pendant la sequence d'intro.
+        if (controlsController != null)
+        {
+            controlsController.DisableGameplayControls();
+            return;
+        }
+
+        // Fallback legacy (si jamais controlsController n'est pas assigne)
         player?.SetActiveControl(false);
         closeBinController?.SetActiveControl(false);
-        pauseController?.EnablePause(false);
-
-        // 1) Dialogues d'intro (si definis dans le JSON)
-        yield return StartCoroutine(PlayIntroDialogSequence());
-
-        // 2) Compte à rebours "3-2-1" si disponible
-        if (countdownUI != null)
-        {
-            // On utilise la coroutine mais sans callback, car on n'en a plus besoin
-            yield return StartCoroutine(countdownUI.PlayCountdown(null));
-        }
-
-
-        // 3) Activation des controles + demarrage reel du niveau
-        EnableGameplayControls();
-        StartLevel();
     }
 
-    /// <summary>
-    /// Lit la sequence de dialogue d'intro pour (worldIndex, levelIndex)
-    /// via DialogManager. Utilise CrewDatabase pour retrouver le personnage
-    /// et IntroDialogUI pour afficher portrait + nom + texte.
-    /// </summary>
-    private IEnumerator PlayIntroDialogSequence()
+    private void EnableGameplayControlsInternal()
     {
-        // 1) Récupérer le DialogManager
-        DialogManager dialogManager = Object.FindFirstObjectByType<DialogManager>();
-        if (dialogManager == null)
-            yield break;
-
-        // 2) Attendre que la base soit prête
-        while (!dialogManager.IsReady)
-            yield return null;
-
-        // 3) Récupérer la séquence d'intro pour ce world/level
-        DialogSequence sequence = dialogManager.GetIntroSequence(worldIndex, levelIndex);
-        if (sequence == null)
-            yield break;
-
-        DialogLine[] lines = dialogManager.GetRandomVariantLines(sequence);
-        if (lines == null || lines.Length == 0)
-            yield break;
-
-        // 4) Petite pause cinématique avant le tout premier bloc
-        if (initialIntroDelay > 0f)
-            yield return new WaitForSeconds(initialIntroDelay);
-
-        // 5) Boucle sur les lignes
-        for (int i = 0; i < lines.Length; i++)
+        if (controlsController != null)
         {
-            DialogLine line = lines[i];
-
-            CrewCharacter character = null;
-            if (crewDatabase != null && !string.IsNullOrEmpty(line.speakerId))
-            {
-                character = crewDatabase.GetCharacter(line.speakerId);
-            }
-
-            if (introDialogUI != null)
-            {
-                // Effet machine à écrire + pauses internes
-                yield return StartCoroutine(introDialogUI.PlayLine(character, line.text));
-
-                // Pause globale entre les lignes (sauf après la dernière)
-                if (i < lines.Length - 1 && delayBetweenLines > 0f)
-                {
-                    yield return new WaitForSeconds(delayBetweenLines);
-                }
-            }
-            else
-            {
-                // Fallback console si jamais l'UI n'est pas branchée
-                string speakerLabel = character != null ? character.displayName : line.speakerId;
-                Debug.Log("[IntroDialog] [" + speakerLabel + "] " + line.text);
-
-                if (i < lines.Length - 1 && delayBetweenLines > 0f)
-                {
-                    yield return new WaitForSeconds(delayBetweenLines);
-                }
-            }
-        }
-        if (introDialogEndHold > 0f)
-        {
-            yield return new WaitForSeconds(introDialogEndHold);
+            controlsController.EnableGameplayControls();
+            return;
         }
 
-        // 6) Fin de séquence : on cache l'UI si présente
-        if (introDialogUI != null)
-        {
-            introDialogUI.Hide();
-        }
+        // Fallback legacy
+        player?.SetActiveControl(true);
+        closeBinController?.SetActiveControl(true);
     }
-
 
     /// <summary>
     /// Prépare la phase d’évacuation après la fin du timer :
@@ -487,9 +394,7 @@ public class LevelManager : MonoBehaviour
     private void SetupEvacuationSequence()
     {
         // On s’assure que le joueur ne peut pas jouer avant le vrai départ
-        player?.SetActiveControl(false);
-        closeBinController?.SetActiveControl(false);
-        pauseController?.EnablePause(false);
+        DisableGameplayControls();
 
         float evacDuration = (data != null)
             ? Mathf.Max(0.1f, data.Evacuation.DurationSec)
@@ -517,59 +422,59 @@ public class LevelManager : MonoBehaviour
         );
     }
 
+
     /// <summary>
-    /// Gère le flux d’intro : affiche IntroLevelUI si dispo, et
-    /// appelle StartLevel après le compte à rebours.
-    /// Si pas d’intro, on lance directement StartLevel.
-    /// </summary>
-    /// <summary>
-    /// Gère le flux d’intro : affiche IntroLevelUI si dispo, puis
-    /// lance la sequence de debut de niveau (dialogues d'intro + compte a rebours).
-    /// Si pas d’intro, on lance directement la sequence de debut.
+    /// Gère le flux d'intro :
+    /// - affiche le briefing (LevelIntroOverlay) via LevelBriefingController
+    /// - une fois le briefing terminé (Play), lance la sequence de debut de niveau
+    ///   (dialogues d'intro + compte a rebours + StartLevel).
+    /// Le briefing est obligatoire : s'il n'est pas correctement configure, on log une erreur
+    /// et on enchaine directement sur la sequence de debut.
     /// </summary>
     private void SetupIntroOrAutoStart()
     {
-        if (levelIntroUI != null && data != null)
+        if (briefingController != null && data != null)
         {
-            levelIntroUI.Show(
+            briefingController.Show(
                 data,
-                phasePlanInfos, // plan de phases pour le briefing
+                phasePlanInfos,
                 onPlay: () =>
                 {
-                    // Le joueur confirme le depart -> on cache le briefing
-                    levelIntroUI.Hide();
-
-                    // Sequence de debut: dialogues + countdown + StartLevel
-                    StartCoroutine(PlayLevelStartSequence());
+                    // Une fois le briefing termine, on lance la sequence d'intro complete
+                    if (introSequenceController != null)
+                    {
+                        introSequenceController.Play(() =>
+                        {
+                            StartLevel();
+                        });
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[LevelManager] Aucun LevelIntroSequenceController assigne. Demarrage direct du niveau.");
+                        StartLevel();
+                    }
                 },
-                onBack: () =>
-                {
-                    // Evite de rejouer l’intro du title
-                    if (RunConfig.Instance != null)
-                        RunConfig.Instance.SkipTitleIntroOnce = true;
-
-                    // Retour propre au menu Title
-                    UnityEngine.SceneManagement.SceneManager.LoadScene("Title");
-                }
+                onBack: null
             );
         }
         else
         {
-            // Pas de briefing -> on enchaine directement sur la sequence de debut.
-            StartCoroutine(PlayLevelStartSequence());
+            Debug.LogError("[LevelManager] Aucun LevelBriefingController assigne alors que le briefing est obligatoire. Demarrage direct du niveau sans intro.");
+            StartLevel();
         }
     }
 
 
+
+
     /// <summary>
-    /// Active les contrôles joueur et la pause.
+    /// Active les controles joueur et la pause.
     /// </summary>
     private void EnableGameplayControls()
     {
-        player?.SetActiveControl(true);
-        closeBinController?.SetActiveControl(true);
-        pauseController?.EnablePause(true);
+        EnableGameplayControlsInternal();
     }
+
 
     // =====================================================================
     // BOUCLE DE JEU
@@ -588,7 +493,6 @@ public class LevelManager : MonoBehaviour
         endSequenceRunning = false;
 
         endSequence?.ResetState();
-        endLevelUI?.Hide();
 
         if (levelTimer != null)
             levelTimer.enabled = true;
@@ -596,6 +500,7 @@ public class LevelManager : MonoBehaviour
         ballSpawner?.StartSpawning();
         MarkLevelStartedInSave();
     }
+
 
     /// <summary>
     /// Appelé quand le timer du niveau arrive à 0 :
@@ -685,112 +590,42 @@ public class LevelManager : MonoBehaviour
     /// Les objectifs secondaires sont évalués ici, mais leur affichage
     /// sera géré plus tard dans l'UI de fin.
     /// </summary>
+    /// <summary>
+    /// Calcule si l'objectif principal est atteint ou non, construit
+    /// les EndLevelStats et MainObjectiveResult via LevelResultEvaluator,
+    /// puis emet OnEndComputed.
+    /// Les resultats d'objectifs secondaires sont stockes pour consultation
+    /// par d'autres modules (UI, meta, etc.).
+    /// </summary>
     private void EvaluateLevelResult()
     {
         if (scoreManager == null || data == null)
         {
-            Debug.LogWarning("[LevelManager] ScoreManager ou données manquantes.");
+            Debug.LogWarning("[LevelManager] ScoreManager ou LevelData manquants, evaluation impossible.");
             return;
         }
-
-        int spawnedPlan = scoreManager.TotalBillesPrevues;
-        int spawnedReal = scoreManager.GetRealSpawned();
-        int collected = scoreManager.TotalBilles;
-
-        int spawnedForEval = spawnedReal > 0 ? spawnedReal : spawnedPlan;
-        if (spawnedForEval <= 0)
-        {
-            Debug.LogWarning("[LevelManager] Aucune bille, évaluation ignorée.");
-            return;
-        }
-
-        // Objectif fixé par le JSON (ThresholdCount)
-        int required = Mathf.Max(0, data.MainObjective?.ThresholdCount ?? 0);
-        bool success = collected >= required;
 
         int elapsed = Mathf.RoundToInt(levelTimer != null ? levelTimer.GetElapsedTime() : 0f);
-        var stats = scoreManager.BuildEndLevelStats(elapsed);
 
-        var mainObj = new MainObjectiveResult
+        var evalResult = LevelResultEvaluator.Evaluate(
+            scoreManager,
+            data,
+            secondaryObjectivesManager,
+            elapsed
+        );
+
+        if (evalResult.Stats == null)
         {
-            Text = data.MainObjective?.Text ?? string.Empty,
-            ThresholdPct = 0, // on ne travaille plus en pourcentage ici
-            Required = required,
-            Collected = collected,
-            Achieved = success,
-            BonusApplied = (success && data.MainObjective != null) ? data.MainObjective.Bonus : 0
-        };
-
-        // Évaluation des objectifs secondaires (si définis)
-        if (data.SecondaryObjectives != null && data.SecondaryObjectives.Length > 0)
-        {
-            secondaryObjectiveResults = secondaryObjectivesManager.BuildResults();
-
-            // Optionnel : on peut loguer pour debug.
-            int totalReward = secondaryObjectivesManager.GetTotalRewardScore();
-            if (totalReward > 0)
-            {
-                Debug.Log("[LevelManager] Secondary objectives reward total = " + totalReward);
-            }
-
-            // IMPORTANT : on ne touche pas encore au score final ici.
-            // L'utilisation de AwardedScore sera gérée plus tard dans la cérémonie.
-        }
-        else
-        {
-            secondaryObjectiveResults = null;
+            Debug.LogWarning("[LevelManager] Evaluation de fin de niveau invalide (Stats null).");
+            return;
         }
 
-        // ===================================================================================
-        // COMBOS FINAUX (PerfectRun, CombosCollector, etc.)
-        // ===================================================================================
+        // On memorise les resultats d'objectifs secondaires (peut etre null s'il n'y en a pas).
+        secondaryObjectiveResults = evalResult.SecondaryObjectives;
 
-        // On s'assure que la liste des combos finaux est bien initialisée / vidée.
-        if (stats.Combos == null)
-            stats.Combos = new List<EndLevelStats.ComboCalc>();
-        else
-            stats.Combos.Clear();
-
-        // Contexte pour l'évaluation des combos finaux.
-        // On utilise les stats déjà calculées : temps écoulé et total de billes.
-        var finalCtx = new FinalComboContext
-        {
-            timeElapsedSec = stats.TimeElapsedSec,
-            totalBilles = stats.BallsCollected + stats.BallsLost
-        };
-
-        // Evaluation des combos finaux à partir du ScoreManager.
-        var finalCombos = FinalComboEvaluator.Evaluate(scoreManager, finalCtx);
-
-        if (finalCombos != null && finalCombos.Count > 0)
-        {
-            for (int i = 0; i < finalCombos.Count; i++)
-            {
-                var fc = finalCombos[i];
-
-                // On prépare une ligne de combo pour EndLevelStats,
-                // en utilisant pour l'instant un multiplicateur fixe (1f).
-                var comboLine = new EndLevelStats.ComboCalc
-                {
-                    // On stocke l'identifiant technique du combo (ex: "PerfectRun", "WhiteMaster").
-                    // La traduction en texte lisible est faite côté EndLevelUI via FinalComboStyleProvider.
-                    Label = fc.id,
-                    Base = fc.points,
-                    Mult = 1f,
-                    Total = fc.points
-                };
-
-                stats.Combos.Add(comboLine);
-
-            }
-        }
-
-        // ===================================================================================
-        // EVENT DE FIN
-        // ===================================================================================
-
-
-        OnEndComputed.Invoke(stats, data, mainObj);
+        // Event central de fin de niveau : tout ce qui gere la ceremonie
+        // se branche sur OnEndComputed, LevelManager ne fait rien de plus ici.
+        OnEndComputed.Invoke(evalResult.Stats, data, evalResult.MainObjective);
     }
 
     // =====================================================================
