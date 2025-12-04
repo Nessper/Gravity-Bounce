@@ -1,0 +1,173 @@
+{
+  "language": "fr",
+  "sequences": [
+    {
+      "id": "W1_L1_intro_tuto",
+      "type": "intro",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "captain",
+              "text": "Mike, rappel basique : tu renvoies les billes dans le bac de gauche ou de droite. Rien au milieu, rien dans le vide."
+            },
+            {
+              "speakerId": "mike",
+              "text": "Noté Capitaine. Gauche, droite, pas le vide. Je peux gérer ça."
+            },
+            {
+              "speakerId": "captain",
+              "text": "Leigh, Rye, vous filtrez les billes noires. On ne laisse rien passer."
+            },
+            {
+              "speakerId": "leigh",
+              "text": "Compris. On ferme les bacs dès qu'une noire se pointe."
+            },
+            {
+              "speakerId": "rye",
+              "text": "Ouais. Les blanches dedans, les noires dehors. Simple."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L1_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 1,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "captain",
+              "text": "Phase d'échauffement. Observe les trajectoires avant de jouer au héros."
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "mike",
+              "text": "Ok, on commence doux. Je prends la main sur le rebond."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L1_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 1,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "leigh",
+              "text": "Afflux de billes en hausse. Si tu te laisses déborder ici, la suite va piquer."
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "mike",
+              "text": "Je vois le volume monter. C'est bien, je commençais à m'ennuyer."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L1_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 1,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "captain",
+              "text": "Les billes noires se multiplient. Garde ton timing propre ou tu vas le sentir au score."
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "rye",
+              "text": "Je vois déjà des noires. Si tu les laisses passer, je te le rappellerai."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L1_phase3",
+      "type": "phase",
+      "world": 1,
+      "level": 1,
+      "phaseIndex": 3,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "captain",
+              "text": "Dernière phase. Tu termines propre, ou tu recommences."
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "mike",
+              "text": "Allez, dernière salve. On finit ça sans lâcher une seule bille."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L1_post_success",
+      "type": "postLevel",
+      "world": 1,
+      "level": 1,
+      "outcome": "success",
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "mike",
+              "text": "Premier secteur nettoyé. J'avoue, c'était presque confortable."
+            },
+            {
+              "speakerId": "captain",
+              "text": "Ne prends pas l'habitude du confort. Le prochain secteur ne sera pas aussi gentil."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

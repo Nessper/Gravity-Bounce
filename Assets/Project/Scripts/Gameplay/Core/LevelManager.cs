@@ -68,6 +68,28 @@ public class LevelManager : MonoBehaviour
     private float runDurationSec;                                   // Durée du niveau (dépend du vaisseau)
     private bool endSequenceRunning;                                // Pour éviter plusieurs fins de niveau
 
+
+    [Header("Narration / Crew")]
+    [Tooltip("Base de donnees des personnages (id -> portrait, nom, voix, etc.).")]
+    [SerializeField] private CrewDatabase crewDatabase;
+
+    [Header("Narration / Intro")]
+    [Tooltip("UI utilisee pour afficher les dialogues d'intro (portrait + texte).")]
+    [SerializeField] private IntroDialogUI introDialogUI;
+    [Tooltip("World index utilise pour les dialogues d'intro (doit correspondre aux donnees JSON de dialogs_XX).")]
+    [SerializeField] private int worldIndex = 1;
+    [Tooltip("Level index utilise pour les dialogues d'intro (doit correspondre aux donnees JSON de dialogs_XX).")]
+    [SerializeField] private int levelIndex = 1;
+    [Tooltip("Petite pause avant le debut de la sequence de dialogues")]
+    [SerializeField] private float initialIntroDelay = 0.5f;
+    [Tooltip("Délai fixe après chaque ligne (en plus de la pause du typewriter).")]
+    [SerializeField] private float delayBetweenLines = 0.3f;
+    [Tooltip("Délai fixe sur le dernier message")]
+    [SerializeField] private float introDialogEndHold = 0.8f;
+
+
+
+
     // Nom de fichier de l'image du vaisseau sélectionné (pour le décor de fond).
     // Récupéré dans ResolveShipStats à partir du ShipDefinition.
     private string currentShipImageFile;
@@ -351,6 +373,111 @@ public class LevelManager : MonoBehaviour
         obstacleManager.BuildObstacles(data.Obstacles);
     }
 
+    /// <summary>
+    /// Sequence complete de debut de niveau :
+    /// - controle des entrees (desactive pendant l'intro)
+    /// - lecture des dialogues d'intro (si dispo)
+    /// - compte a rebours "3-2-1"
+    /// - activation des controles et demarrage reel du niveau.
+    /// </summary>
+    private IEnumerator PlayLevelStartSequence()
+    {
+        // On s'assure que le joueur ne peut pas jouer pendant la sequence d'intro.
+        player?.SetActiveControl(false);
+        closeBinController?.SetActiveControl(false);
+        pauseController?.EnablePause(false);
+
+        // 1) Dialogues d'intro (si definis dans le JSON)
+        yield return StartCoroutine(PlayIntroDialogSequence());
+
+        // 2) Compte à rebours "3-2-1" si disponible
+        if (countdownUI != null)
+        {
+            // On utilise la coroutine mais sans callback, car on n'en a plus besoin
+            yield return StartCoroutine(countdownUI.PlayCountdown(null));
+        }
+
+
+        // 3) Activation des controles + demarrage reel du niveau
+        EnableGameplayControls();
+        StartLevel();
+    }
+
+    /// <summary>
+    /// Lit la sequence de dialogue d'intro pour (worldIndex, levelIndex)
+    /// via DialogManager. Utilise CrewDatabase pour retrouver le personnage
+    /// et IntroDialogUI pour afficher portrait + nom + texte.
+    /// </summary>
+    private IEnumerator PlayIntroDialogSequence()
+    {
+        // 1) Récupérer le DialogManager
+        DialogManager dialogManager = Object.FindFirstObjectByType<DialogManager>();
+        if (dialogManager == null)
+            yield break;
+
+        // 2) Attendre que la base soit prête
+        while (!dialogManager.IsReady)
+            yield return null;
+
+        // 3) Récupérer la séquence d'intro pour ce world/level
+        DialogSequence sequence = dialogManager.GetIntroSequence(worldIndex, levelIndex);
+        if (sequence == null)
+            yield break;
+
+        DialogLine[] lines = dialogManager.GetRandomVariantLines(sequence);
+        if (lines == null || lines.Length == 0)
+            yield break;
+
+        // 4) Petite pause cinématique avant le tout premier bloc
+        if (initialIntroDelay > 0f)
+            yield return new WaitForSeconds(initialIntroDelay);
+
+        // 5) Boucle sur les lignes
+        for (int i = 0; i < lines.Length; i++)
+        {
+            DialogLine line = lines[i];
+
+            CrewCharacter character = null;
+            if (crewDatabase != null && !string.IsNullOrEmpty(line.speakerId))
+            {
+                character = crewDatabase.GetCharacter(line.speakerId);
+            }
+
+            if (introDialogUI != null)
+            {
+                // Effet machine à écrire + pauses internes
+                yield return StartCoroutine(introDialogUI.PlayLine(character, line.text));
+
+                // Pause globale entre les lignes (sauf après la dernière)
+                if (i < lines.Length - 1 && delayBetweenLines > 0f)
+                {
+                    yield return new WaitForSeconds(delayBetweenLines);
+                }
+            }
+            else
+            {
+                // Fallback console si jamais l'UI n'est pas branchée
+                string speakerLabel = character != null ? character.displayName : line.speakerId;
+                Debug.Log("[IntroDialog] [" + speakerLabel + "] " + line.text);
+
+                if (i < lines.Length - 1 && delayBetweenLines > 0f)
+                {
+                    yield return new WaitForSeconds(delayBetweenLines);
+                }
+            }
+        }
+        if (introDialogEndHold > 0f)
+        {
+            yield return new WaitForSeconds(introDialogEndHold);
+        }
+
+        // 6) Fin de séquence : on cache l'UI si présente
+        if (introDialogUI != null)
+        {
+            introDialogUI.Hide();
+        }
+    }
+
 
     /// <summary>
     /// Prépare la phase d’évacuation après la fin du timer :
@@ -395,52 +522,44 @@ public class LevelManager : MonoBehaviour
     /// appelle StartLevel après le compte à rebours.
     /// Si pas d’intro, on lance directement StartLevel.
     /// </summary>
+    /// <summary>
+    /// Gère le flux d’intro : affiche IntroLevelUI si dispo, puis
+    /// lance la sequence de debut de niveau (dialogues d'intro + compte a rebours).
+    /// Si pas d’intro, on lance directement la sequence de debut.
+    /// </summary>
     private void SetupIntroOrAutoStart()
     {
         if (levelIntroUI != null && data != null)
         {
             levelIntroUI.Show(
                 data,
-                phasePlanInfos, // nouveau param : plan de phases calculé par le spawner
+                phasePlanInfos, // plan de phases pour le briefing
                 onPlay: () =>
                 {
+                    // Le joueur confirme le depart -> on cache le briefing
                     levelIntroUI.Hide();
 
-                    if (countdownUI != null)
-                    {
-                        // Compte à rebours "3-2-1" puis démarrage du niveau
-                        StartCoroutine(countdownUI.PlayCountdown(() =>
-                        {
-                            EnableGameplayControls();
-                            StartLevel();
-                        }));
-                    }
-                    else
-                    {
-                        EnableGameplayControls();
-                        StartLevel();
-                    }
+                    // Sequence de debut: dialogues + countdown + StartLevel
+                    StartCoroutine(PlayLevelStartSequence());
                 },
                 onBack: () =>
                 {
-                    // Évite de rejouer l’intro du title
+                    // Evite de rejouer l’intro du title
                     if (RunConfig.Instance != null)
                         RunConfig.Instance.SkipTitleIntroOnce = true;
 
                     // Retour propre au menu Title
                     UnityEngine.SceneManagement.SceneManager.LoadScene("Title");
                 }
-
             );
         }
         else
         {
-            // Pas d’intro -> démarrage direct
-            EnableGameplayControls();
-            StartLevel();
+            // Pas de briefing -> on enchaine directement sur la sequence de debut.
+            StartCoroutine(PlayLevelStartSequence());
         }
-
     }
+
 
     /// <summary>
     /// Active les contrôles joueur et la pause.

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ddec4d489843e74d86c50a206c7ce96, type: 3}
+  m_Name: Mike
+  m_EditorClassIdentifier: Assembly-CSharp::CrewCharacter
+  id: mike
+  displayName: Mike
+  portrait: {fileID: 21300000, guid: 811fbd4d8c810a54aa3d30e34d458d7c, type: 3}
+  uiColor: {r: 0, g: 0.65, b: 0.65, a: 1}
+  dialogClip: {fileID: 8300000, guid: 758eadef9cbf9ac4ba519195a3c17868, type: 3}
+  pitch: 1
+  volume: 1
