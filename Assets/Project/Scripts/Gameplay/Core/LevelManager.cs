@@ -43,7 +43,6 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private ScoreUI scoreUI;                            // Affichage du score en HUD
     [SerializeField] private LivesUI livesUI;                            // Affichage des vies restantes
     [SerializeField] private ProgressBarUI progressBarUI;                // Barre de progression des billes
-    [SerializeField] private PhaseBannerUI phaseBannerUI;                // Bannière de phase (Intro, Tension, Evacuation, etc.)
 
 
 

@@ -3,17 +3,22 @@ using UnityEngine.UI;
 
 /// <summary>
 /// HUD de barre de progression des billes collectées par rapport au plan du niveau.
-/// 
+///
 /// Rôle :
 /// - Affiche la progression globale des billes collectées (TotalBilles / plannedTotalBalls).
 /// - Place un marqueur visuel sur la barre pour l'objectif principal (ThresholdCount).
 /// - Anime le remplissage via AnimatedFillImage.
-/// 
+/// - Déclenche une petite animation sur le marqueur lorsqu'on atteint l'objectif principal.
+///
 /// Ce composant ne gère pas la logique de score.
 /// Il lit les données dans ScoreManager et se contente de refléter l'état courant en UI.
 /// </summary>
 public class ProgressBarUI : MonoBehaviour
 {
+    // --------------------------------------------------------------------
+    // RÉFÉRENCES
+    // --------------------------------------------------------------------
+
     [Header("Références")]
     [SerializeField] private ScoreManager scoreManager;
     // Référence vers le ScoreManager, pour lire TotalBilles et écouter les changements de score.
@@ -23,7 +28,19 @@ public class ProgressBarUI : MonoBehaviour
     // Doit être associé à l'Image de la barre (celle qui a un fillAmount).
 
     [SerializeField] private Image goalMarkerImage = null;
-    // Trait vertical (facultatif) indiquant le seuil de l'objectif principal sur la barre.
+    // RectTransform (Image) utilisé comme conteneur du marqueur de seuil.
+    // C'est cet objet qui est positionné sur la barre.
+
+    [Header("Animation seuil objectif")]
+    [SerializeField] private ThresholdPulseUI goalMarkerPulse = null;
+    // Composant optionnel chargé de gérer l'animation du marqueur (swap d'icône + scale).
+
+    [SerializeField] private bool playPulseOnReach = true;
+    // Si true, déclenche l'animation du marqueur lorsqu'on atteint l'objectif principal.
+
+    // --------------------------------------------------------------------
+    // DONNÉES FIXES DU NIVEAU
+    // --------------------------------------------------------------------
 
     [Header("Données fixes du niveau")]
     [SerializeField] private int plannedTotalBalls = 1;
@@ -32,11 +49,22 @@ public class ProgressBarUI : MonoBehaviour
     [SerializeField] private int objectiveThreshold = 0;
     // Nombre de billes à atteindre pour l'objectif principal (ThresholdCount).
 
+    // --------------------------------------------------------------------
+    // ÉTAT INTERNE
+    // --------------------------------------------------------------------
+
     // Indique si la barre a été configurée pour ce niveau.
     private bool isConfigured;
 
     // Indique si le listener ScoreManager.onScoreChanged est branché.
     private bool attached;
+
+    // Indique si l'animation du seuil a déjà été jouée.
+    private bool goalPulsePlayed;
+
+    // --------------------------------------------------------------------
+    // CYCLE UNITY
+    // --------------------------------------------------------------------
 
     private void OnEnable()
     {
@@ -54,10 +82,14 @@ public class ProgressBarUI : MonoBehaviour
         attached = false;
     }
 
+    // --------------------------------------------------------------------
+    // CONFIGURATION
+    // --------------------------------------------------------------------
+
     /// <summary>
     /// Configure la barre de progression pour ce niveau.
     /// Appelée une fois au début du niveau par le contrôleur (LevelManager).
-    /// 
+    ///
     /// plannedTotalBalls  = nombre total de billes prévues sur le niveau.
     /// objectiveThreshold = nombre de billes à atteindre pour l'objectif principal.
     /// </summary>
@@ -67,6 +99,7 @@ public class ProgressBarUI : MonoBehaviour
         this.objectiveThreshold = Mathf.Max(0, objectiveThreshold);
 
         isConfigured = true;
+        goalPulsePlayed = false;
 
         // Branchement sur l'event de score si ce n'est pas déjà fait.
         if (!attached && scoreManager != null)
@@ -75,7 +108,7 @@ public class ProgressBarUI : MonoBehaviour
             attached = true;
         }
 
-        // Met à jour la position du marqueur d'objectif (trait vertical).
+        // Met à jour la position du marqueur d'objectif (trait / icône).
         UpdateGoalMarker();
 
         // Met à jour la barre avec l'état actuel.
@@ -91,6 +124,10 @@ public class ProgressBarUI : MonoBehaviour
         int currentScore = scoreManager != null ? scoreManager.CurrentScore : 0;
         HandleScoreChanged(currentScore);
     }
+
+    // --------------------------------------------------------------------
+    // RÉACTION AUX CHANGEMENTS DE SCORE
+    // --------------------------------------------------------------------
 
     /// <summary>
     /// Callback appelé lorsqu'un changement de score est notifié par ScoreManager.
@@ -110,11 +147,30 @@ public class ProgressBarUI : MonoBehaviour
             return;
         }
 
+        // Progression globale basée sur le nombre total de billes collectées.
         int collected = scoreManager.TotalBilles;
         float t = Mathf.Clamp01(collected / (float)plannedTotalBalls);
 
+        // Si on a un objectif principal défini et qu'on vient de l'atteindre ou dépasser,
+        // on déclenche une fois l'animation du marqueur.
+        if (!goalPulsePlayed &&
+     playPulseOnReach &&
+     objectiveThreshold > 0 &&
+     collected >= objectiveThreshold)
+        {
+            goalPulsePlayed = true;
+
+            if (goalMarkerPulse != null)
+                goalMarkerPulse.PlayReached();
+        }
+
+
         UpdateFill(t);
     }
+
+    // --------------------------------------------------------------------
+    // MISE À JOUR VISUELLE
+    // --------------------------------------------------------------------
 
     /// <summary>
     /// Met à jour le remplissage visuel de la barre.
@@ -134,12 +190,11 @@ public class ProgressBarUI : MonoBehaviour
         {
             // Fallback de sécurité : si animatedFill n'est pas assigné,
             // on ne fait rien (mais on pourrait logguer un warning si nécessaire).
-            // L'ancien comportement direct sur fillImage a été retiré.
         }
     }
 
     /// <summary>
-    /// Place un trait vertical sur la barre, à la position objectiveThreshold / plannedTotalBalls.
+    /// Place un marqueur sur la barre, à la position objectiveThreshold / plannedTotalBalls.
     /// Hypothèse simple : barre horizontale, left->right, pivot du conteneur centré.
     /// </summary>
     private void UpdateGoalMarker()
@@ -147,16 +202,28 @@ public class ProgressBarUI : MonoBehaviour
         if (goalMarkerImage == null)
             return;
 
+        // markerRect = l'Image par défaut (Icon_Default)
         RectTransform markerRect = goalMarkerImage.rectTransform;
         RectTransform barRect = GetComponent<RectTransform>();
 
         if (objectiveThreshold <= 0 || plannedTotalBalls <= 0)
         {
-            markerRect.gameObject.SetActive(false);
+            // On désactive le conteneur complet s'il existe, sinon juste l'icône
+            Transform parent = markerRect.parent;
+            if (parent != null)
+                parent.gameObject.SetActive(false);
+            else
+                markerRect.gameObject.SetActive(false);
+
             return;
         }
 
-        markerRect.gameObject.SetActive(true);
+        // On s'assure que le conteneur est actif
+        Transform markerParent = markerRect.parent;
+        if (markerParent != null)
+            markerParent.gameObject.SetActive(true);
+        else
+            markerRect.gameObject.SetActive(true);
 
         // t = ratio de l'objectif principal par rapport au total prévu.
         float t = Mathf.Clamp01(objectiveThreshold / (float)plannedTotalBalls);
@@ -166,8 +233,13 @@ public class ProgressBarUI : MonoBehaviour
         // t=0 -> bord gauche, t=1 -> bord droit.
         float xLocal = (t - 0.5f) * barWidth;
 
-        Vector2 anchored = markerRect.anchoredPosition;
+        // IMPORTANT :
+        // On déplace le PARENT si possible (GoalMarkerContainer), pas seulement l'icône.
+        RectTransform targetRect = markerParent as RectTransform ?? markerRect;
+
+        Vector2 anchored = targetRect.anchoredPosition;
         anchored.x = xLocal;
-        markerRect.anchoredPosition = anchored;
+        targetRect.anchoredPosition = anchored;
     }
+
 }

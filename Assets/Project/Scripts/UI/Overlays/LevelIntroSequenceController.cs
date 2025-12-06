@@ -80,8 +80,6 @@ public class LevelIntroSequenceController : MonoBehaviour
     [Tooltip("HUD du haut (score run, barre de progression, pause, etc.).")]
     [SerializeField] private GameObject topHUDRoot;
 
-    [Tooltip("HUD du bas (score local, timer, vies, etc.).")]
-    [SerializeField] private GameObject bottomHUDRoot;
 
     [Header("Timing")]
     [Tooltip("Délai entre la fin du flash et le début du compte à rebours.")]
@@ -167,8 +165,7 @@ public class LevelIntroSequenceController : MonoBehaviour
         // HUD masqué
         if (topHUDRoot != null)
             topHUDRoot.SetActive(false);
-        if (bottomHUDRoot != null)
-            bottomHUDRoot.SetActive(false);
+       
 
         // Flash plateau initialement invisible
         if (boardFlashCanvasGroup != null)
@@ -353,8 +350,7 @@ public class LevelIntroSequenceController : MonoBehaviour
         // HUD visibles
         if (topHUDRoot != null)
             topHUDRoot.SetActive(true);
-        if (bottomHUDRoot != null)
-            bottomHUDRoot.SetActive(true);
+       
         // Masquer HUD d'intro
         if (introHUDRoot != null)
             introHUDRoot.SetActive(false);
@@ -534,8 +530,7 @@ public class LevelIntroSequenceController : MonoBehaviour
 
         if (topHUDRoot != null)
             topHUDRoot.SetActive(true);
-        if (bottomHUDRoot != null)
-            bottomHUDRoot.SetActive(true);
+        
         if (introHUDRoot != null)
             introHUDRoot.SetActive(false);
 

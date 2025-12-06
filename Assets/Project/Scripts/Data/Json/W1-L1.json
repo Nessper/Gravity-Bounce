@@ -4,7 +4,7 @@
   "Title": "FIRST CONTACT",
   "MainObjective": { 
     "Text": "Collect at least 50 nodes.", 
-    "ThresholdCount": 2, 
+    "ThresholdCount": 30, 
     "Bonus": 300 
   },
   "ScoreGoals": [
