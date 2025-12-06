@@ -23,6 +23,9 @@ public class EndSequenceController : MonoBehaviour
     private Action onEvacStart;
     private Action<float> onEvacTick;
 
+    // NOUVEAU : event public pour prévenir le reste du jeu
+    public event Action OnEvacuationStarted;
+
     // ------------------------------
     //   CONFIGURATION
     // ------------------------------
@@ -73,6 +76,10 @@ public class EndSequenceController : MonoBehaviour
         closeBinController?.SetActiveControl(true);
         collector?.SetAutoFlushEnabled(true);
 
+        // NOUVEAU : on notifie le monde que l'évac commence
+        OnEvacuationStarted?.Invoke();
+
+        // Ancien callback (UI, countdown, etc.) reste possible
         onEvacStart?.Invoke();
 
         // 2) Compte à rebours en temps réel

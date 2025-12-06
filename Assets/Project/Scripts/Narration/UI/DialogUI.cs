@@ -8,7 +8,7 @@ using TMPro;
 /// Utilisée pour l'intro du niveau (dialogues avant le countdown).
 /// Version TextMeshPro avec effet "machine a ecrire" et slide-in du panel.
 /// </summary>
-public class IntroDialogUI : MonoBehaviour
+public class DialogUI : MonoBehaviour
 {
     [Header("References UI")]
     [Tooltip("Racine visuelle du dialogue (panel, group, etc.). Sera activée/désactivée.")]

@@ -148,6 +148,22 @@
     },
 
     {
+      "id": "W1_L1_phase4",
+      "type": "phase",
+      "world": 1,
+      "level": 1,
+      "phaseIndex": 4,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Evacuation enclenchée. Vide les bacs." }
+          ]
+        }
+      ]
+    },
+
+    {
       "id": "W1_L1_post_success",
       "type": "postLevel",
       "world": 1,

@@ -411,15 +411,13 @@ public class LevelManager : MonoBehaviour
             tickInterval: 1f,
             onEvacStartCb: () =>
             {
-                // Affiche le nom de la phase d'évacuation + lance un countdown visuel si dispo
-                if (!string.IsNullOrWhiteSpace(evacName))
-                    phaseBannerUI?.ShowPhaseText(evacName, evacDuration);
-
+                // Plus de texte ici. PhaseDialogController est prévenu par l'event OnEvacuationStarted.
                 if (countdownUI != null)
                     StartCoroutine(countdownUI.PlayCountdownSeconds(evacDuration));
             },
             onEvacTickCb: null
         );
+
     }
 
 
