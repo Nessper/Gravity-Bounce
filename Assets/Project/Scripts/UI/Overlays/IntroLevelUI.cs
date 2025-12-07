@@ -7,79 +7,39 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 
-
-/// <summary>
-/// UI d’intro du niveau (nouvelle version).
-/// STEP 1 : Câblage du Header (ID + World + titre)
-///          + Score Targets (Bronze / Silver / Gold)
-/// STEP 2 (partiel) : Préparation de la structure du Level Briefing (Phases),
-///                    avec remplissage minimal de Name + SpawnSpeed.
-///                    Duration / Nodes / Mix seront câblés plus tard.
-/// </summary>
 public class IntroLevelUI : MonoBehaviour
 {
     [Header("Root")]
     [SerializeField] private GameObject overlayIntro;
 
-    // --------------------------------------------------------------------
-    // HEADER
-    // --------------------------------------------------------------------
-
     [Header("Header")]
-    [SerializeField] private TMP_Text levelIdText;       // ID brut du niveau (ex: W1-L1) en haut à gauche
-    [SerializeField] private TMP_Text worldLevelText;    // World (ex: "World 1")
-    [SerializeField] private TMP_Text titleText;         // Titre du niveau
-
-    // --------------------------------------------------------------------
-    // LEVEL BRIEFING - PHASES (3 phases x 5 champs)
-    // --------------------------------------------------------------------
-    // Index convention:
-    // 0 = Phase 1, 1 = Phase 2, 2 = Phase 3
-    // On se contente pour l’instant de remplir:
-    // - phaseNameTexts[i]     <- data.Phases[i].Name
-    // - phaseSpawnSpeedTexts[i] <- data.Phases[i].Intervalle
-    // Les autres champs seront câblés dans une étape ultérieure.
+    [SerializeField] private TMP_Text levelIdText;
+    [SerializeField] private TMP_Text worldLevelText;
+    [SerializeField] private TMP_Text titleText;
 
     [Header("Level Briefing - Phases")]
-    [SerializeField] private TMP_Text[] phaseNameTexts;        // Phase_name
-    [SerializeField] private TMP_Text[] phaseDurationTexts;    // Duration (à calculer plus tard)
-    [SerializeField] private TMP_Text[] phaseNodesTexts;       // Nodes (à calculer plus tard)
-    [SerializeField] private TMP_Text[] phaseMixTexts;         // Mix (à calculer plus tard)
-    [SerializeField] private TMP_Text[] phaseSpawnSpeedTexts;  // SpawnSpeed (Intervalle du JSON)
+    [SerializeField] private TMP_Text[] phaseNameTexts;
+    [SerializeField] private TMP_Text[] phaseDurationTexts;
+    [SerializeField] private TMP_Text[] phaseNodesTexts;
+    [SerializeField] private TMP_Text[] phaseMixTexts;
+    [SerializeField] private TMP_Text[] phaseSpawnSpeedTexts;
 
-    // --------------------------------------------------------------------
-    // MAIN OBJECTIVE (Mission Priority)
-    // --------------------------------------------------------------------
     [Header("Main Objective")]
     [SerializeField] private TMP_Text mainObjectiveText;
 
-    // --------------------------------------------------------------------
-    // OPTIONAL DIRECTIVES (Secondary Objectives)
-    // --------------------------------------------------------------------
     [Header("Optional Directives")]
-    [SerializeField] private TMP_Text[] optionalDirectiveTexts;   // size = 3 max
-
-    // --------------------------------------------------------------------
-    // SCORE TARGETS (Bronze / Silver / Gold)
-    // --------------------------------------------------------------------
+    [SerializeField] private TMP_Text[] optionalDirectiveTexts;
 
     [Header("Score Targets")]
     [SerializeField] private TMP_Text bronzeGoalText;
     [SerializeField] private TMP_Text silverGoalText;
     [SerializeField] private TMP_Text goldGoalText;
 
-    // --------------------------------------------------------------------
-    // SPACESHIP (Selected Ship)
-    // --------------------------------------------------------------------
     [Header("Ship Info")]
     [SerializeField] private Image shipImage;
     [SerializeField] private TMP_Text shipNameText;
-    [SerializeField] private TMP_Text shipLivesText;
+    [SerializeField] private TMP_Text shipHullText;
     [SerializeField] private TMP_Text shipShieldText;
-
-    // --------------------------------------------------------------------
-    // BOUTONS
-    // --------------------------------------------------------------------
 
     [Header("Buttons")]
     [SerializeField] private Button playButton;
@@ -87,6 +47,10 @@ public class IntroLevelUI : MonoBehaviour
 
     private System.Action onPlayCallback;
     private System.Action onBackCallback;
+
+    // Valeurs runtime de hull (injectées par le briefing)
+    private int runtimeHull = -1;
+    private int runtimeMaxHull = -1;
 
     private void Awake()
     {
@@ -100,11 +64,27 @@ public class IntroLevelUI : MonoBehaviour
             backButton.onClick.AddListener(OnBackClicked);
     }
 
-    /// <summary>
-    /// Affiche l’intro du niveau.
-    /// - data : LevelData brut (titre, objectifs, etc.)
-    /// - phasePlans : plan de phases calculé par le BallSpawner (durée, quota, interval, nom)
-    /// </summary>
+    public void SetShipRuntimeHull(int currentHull, int maxHull)
+    {
+        runtimeHull = Mathf.Max(-1, currentHull);
+        runtimeMaxHull = Mathf.Max(-1, maxHull);
+
+        // Si l'overlay est déjà visible, on met à jour le texte tout de suite
+        if (shipHullText != null && overlayIntro != null && overlayIntro.activeInHierarchy)
+        {
+            if (runtimeHull >= 0 && runtimeMaxHull > 0)
+            {
+                shipHullText.text = runtimeHull.ToString() + "/" + runtimeMaxHull.ToString();
+            }
+            else
+            {
+                // Fallback au cas où, mais normalement on ne devrait pas passer ici
+                shipHullText.text = "x" + runtimeMaxHull.ToString();
+            }
+        }
+    }
+
+
     public void Show(LevelData data, PhasePlanInfo[] phasePlans, System.Action onPlay, System.Action onBack)
     {
         if (data == null)
@@ -113,10 +93,7 @@ public class IntroLevelUI : MonoBehaviour
         onPlayCallback = onPlay;
         onBackCallback = onBack;
 
-        // --------------------------------------------------------------------
-        // HEADER : ID + World + Titre du niveau
-        // --------------------------------------------------------------------
-
+        // HEADER
         if (levelIdText != null)
             levelIdText.text = data.LevelID;
 
@@ -129,18 +106,12 @@ public class IntroLevelUI : MonoBehaviour
         if (titleText != null)
             titleText.text = data.Title;
 
-        // --------------------------------------------------------------------
-        // LEVEL BRIEFING - PHASES (remplissage à partir du plan du BallSpawner)
-        // --------------------------------------------------------------------
-        // On part d'abord sur des placeholders "-", puis on remplit ce qu'on peut
-        // en fonction du nombre réel de phases et du plan.
+        // PHASES
         ResetPhaseBriefingPlaceholders();
 
         if (data.Phases != null && data.Phases.Length > 0 &&
             phasePlans != null && phasePlans.Length > 0)
         {
-            // Nombre maximum de lignes qu'on peut afficher proprement :
-            // limité par le JSON, le plan, et les tableaux de TMP.
             int phaseCount = Mathf.Min(
                 data.Phases.Length,
                 phasePlans.Length,
@@ -157,35 +128,24 @@ public class IntroLevelUI : MonoBehaviour
             {
                 var plan = phasePlans[i];
 
-                // Nom de phase
                 if (phaseNameTexts != null && phaseNameTexts[i] != null)
-                {
                     phaseNameTexts[i].text = plan.Name;
-                }
 
-                // Durée (arrondie en secondes)
                 if (phaseDurationTexts != null && phaseDurationTexts[i] != null)
                 {
                     int rounded = Mathf.RoundToInt(plan.DurationSec);
                     phaseDurationTexts[i].text = "Duration : " + rounded.ToString() + "s";
                 }
 
-                // Nodes (quota de billes prévues)
                 if (phaseNodesTexts != null && phaseNodesTexts[i] != null)
-                {
                     phaseNodesTexts[i].text = "Nodes : " + plan.Quota.ToString();
-                }
 
-                // Spawn Interval (vitesse d’apparition)
                 if (phaseSpawnSpeedTexts != null && phaseSpawnSpeedTexts[i] != null)
                 {
                     string intervalText = "Spawn interval : " + plan.IntervalSec.ToString("0.0", fr) + "s";
                     phaseSpawnSpeedTexts[i].text = intervalText;
                 }
 
-                // -------------------------------
-                // MIX : W27 / B3 / R2 / V5 (counts, pas pourcentages)
-                // -------------------------------
                 if (phaseMixTexts != null && phaseMixTexts[i] != null)
                 {
                     var phase = data.Phases[i];
@@ -197,7 +157,6 @@ public class IntroLevelUI : MonoBehaviour
                     }
                     else
                     {
-                        // 1) Somme des poids valides (même logique que pour les pourcentages)
                         float totalPoids = 0f;
                         for (int k = 0; k < mixEntries.Length; k++)
                         {
@@ -214,7 +173,7 @@ public class IntroLevelUI : MonoBehaviour
                         }
                         else
                         {
-                            List<string> parts = new List<string>();
+                            var parts = new List<string>();
 
                             for (int k = 0; k < mixEntries.Length; k++)
                             {
@@ -230,22 +189,16 @@ public class IntroLevelUI : MonoBehaviour
                                     case "White": letter = "W"; break;
                                     case "Blue": letter = "B"; break;
                                     case "Red": letter = "R"; break;
-                                    case "Black": letter = "V"; break; // Void
+                                    case "Black": letter = "V"; break;
                                 }
 
                                 if (letter != null)
                                 {
-                                    // Ratio de ce type dans le mix
                                     float ratio = m.Poids / totalPoids;
-
-                                    // Nombre de billes de ce type prévu dans la phase
                                     int count = Mathf.RoundToInt(ratio * plan.Quota);
 
-                                    // On n’affiche que les types réellement présents
                                     if (count > 0)
-                                    {
                                         parts.Add(letter + count);
-                                    }
                                 }
                             }
 
@@ -255,156 +208,100 @@ public class IntroLevelUI : MonoBehaviour
                         }
                     }
                 }
-
             }
         }
-        else
-        {
-            // Si pas de phases ou pas de plan, on garde juste les "-" mis par ResetPhaseBriefingPlaceholders.
-        }
 
-
-
-        // --------------------------------------------------------------------
-        // MAIN OBJECTIVE : texte issu du JSON (MainObjective.Text)
-        // --------------------------------------------------------------------
+        // MAIN OBJECTIVE
         if (mainObjectiveText != null)
         {
             if (data.MainObjective != null && !string.IsNullOrEmpty(data.MainObjective.Text))
-            {
-                // Affiche le texte de l'objectif principal tel quel
                 mainObjectiveText.text = data.MainObjective.Text;
-            }
             else
-            {
-                // Fallback propre si pas d'objectif défini dans le JSON
                 mainObjectiveText.text = "-";
-            }
         }
 
-        //----------------------------------------------
-        // OPTIONAL DIRECTIVES (Secondary Objectives)
-        //----------------------------------------------
+        // SECONDARY OBJECTIVES
         if (optionalDirectiveTexts != null)
         {
-            // Tout désactiver au début
             for (int i = 0; i < optionalDirectiveTexts.Length; i++)
             {
                 if (optionalDirectiveTexts[i] != null)
                     optionalDirectiveTexts[i].gameObject.SetActive(false);
             }
 
-            // Si pas d'objectifs secondaires -> rien à afficher
-            if (data.SecondaryObjectives == null || data.SecondaryObjectives.Length == 0)
-                return;
-
-            int count = Mathf.Min(data.SecondaryObjectives.Length, optionalDirectiveTexts.Length);
-
-            for (int i = 0; i < count; i++)
+            if (data.SecondaryObjectives != null && data.SecondaryObjectives.Length > 0)
             {
-                var so = data.SecondaryObjectives[i];
+                int count = Mathf.Min(data.SecondaryObjectives.Length, optionalDirectiveTexts.Length);
 
-                if (so != null && optionalDirectiveTexts[i] != null)
+                for (int i = 0; i < count; i++)
                 {
-                    // On active la ligne correspondante
-                    optionalDirectiveTexts[i].gameObject.SetActive(true);
+                    var so = data.SecondaryObjectives[i];
 
-                    // On affiche UiText (la version "joueur")
-                    optionalDirectiveTexts[i].text = so.UiText;
+                    if (so != null && optionalDirectiveTexts[i] != null)
+                    {
+                        optionalDirectiveTexts[i].gameObject.SetActive(true);
+                        optionalDirectiveTexts[i].text = so.UiText;
+                    }
                 }
             }
         }
 
-        // --------------------------------------------------------------------
-        // SCORE TARGETS : Bronze / Silver / Gold
-        // --------------------------------------------------------------------
-
+        // SCORE TARGETS
         if (data.ScoreGoals != null && data.ScoreGoals.Length >= 3)
         {
             var fr = new CultureInfo("fr-FR");
 
-            // Bronze
             if (bronzeGoalText != null)
                 bronzeGoalText.text = data.ScoreGoals[0].Points.ToString("N0", fr);
-
-            // Silver
             if (silverGoalText != null)
                 silverGoalText.text = data.ScoreGoals[1].Points.ToString("N0", fr);
-
-            // Gold
             if (goldGoalText != null)
                 goldGoalText.text = data.ScoreGoals[2].Points.ToString("N0", fr);
         }
         else
         {
-            // JSON incomplet -> fallback pour éviter des cases vides
             if (bronzeGoalText != null) bronzeGoalText.text = "-";
             if (silverGoalText != null) silverGoalText.text = "-";
             if (goldGoalText != null) goldGoalText.text = "-";
         }
 
-        // --------------------------------------------------------------------
-        // SPACESHIP INFO (depuis RunConfig -> ShipCatalog)
-        // --------------------------------------------------------------------
+        // SHIP INFO
         FillShipInfo();
-
-        // --------------------------------------------------------------------
-        // FINAL : Active l’overlay
-        // --------------------------------------------------------------------
 
         if (overlayIntro != null)
             overlayIntro.SetActive(true);
     }
 
-    /// <summary>
-    /// Remet des placeholders sur les lignes de phases
-    /// si le JSON ne définit aucune phase.
-    /// </summary>
     private void ResetPhaseBriefingPlaceholders()
     {
         if (phaseNameTexts != null)
         {
             for (int i = 0; i < phaseNameTexts.Length; i++)
-            {
-                if (phaseNameTexts[i] != null)
-                    phaseNameTexts[i].text = "-";
-            }
+                if (phaseNameTexts[i] != null) phaseNameTexts[i].text = "-";
         }
 
         if (phaseDurationTexts != null)
         {
             for (int i = 0; i < phaseDurationTexts.Length; i++)
-            {
-                if (phaseDurationTexts[i] != null)
-                    phaseDurationTexts[i].text = "-";
-            }
+                if (phaseDurationTexts[i] != null) phaseDurationTexts[i].text = "-";
         }
 
         if (phaseNodesTexts != null)
         {
             for (int i = 0; i < phaseNodesTexts.Length; i++)
-            {
-                if (phaseNodesTexts[i] != null)
-                    phaseNodesTexts[i].text = "-";
-            }
+                if (phaseNodesTexts[i] != null) phaseNodesTexts[i].text = "-";
         }
 
         if (phaseMixTexts != null)
         {
             for (int i = 0; i < phaseMixTexts.Length; i++)
-            {
-                if (phaseMixTexts[i] != null)
-                    phaseMixTexts[i].text = "-";
-            }
+                if (phaseMixTexts[i] != null) phaseMixTexts[i].text = "-";
         }
 
         if (phaseSpawnSpeedTexts != null)
         {
             for (int i = 0; i < phaseSpawnSpeedTexts.Length; i++)
-            {
-                if (phaseSpawnSpeedTexts[i] != null)
-                    phaseSpawnSpeedTexts[i].text = "-";
-            }
+                if (phaseSpawnSpeedTexts[i] != null) phaseSpawnSpeedTexts[i].text = "-";
         }
     }
 
@@ -426,16 +323,11 @@ public class IntroLevelUI : MonoBehaviour
 
     private void FillShipInfo()
     {
-        // Sécurité
         if (RunConfig.Instance == null || ShipCatalogService.Catalog == null)
             return;
 
         var catalog = ShipCatalogService.Catalog;
-
-        // ID du vaisseau choisi
         string selectedId = RunConfig.Instance.SelectedShipId;
-
-        // On récupère le ShipDefinition correspondant
         var ship = catalog.ships.Find(s => s.id == selectedId);
 
         if (ship == null)
@@ -443,49 +335,40 @@ public class IntroLevelUI : MonoBehaviour
             Debug.LogWarning("[IntroLevelUI] Ship not found: " + selectedId);
             return;
         }
-        // -------------------------------------------------------------
-        // IMAGE (chargée depuis StreamingAssets, même logique que ShipSelectController)
-        // -------------------------------------------------------------
+
+        // IMAGE
         if (shipImage != null && !string.IsNullOrEmpty(ship.imageFile))
         {
-            // On réutilise la même approche que dans ShipSelectController :
-            // le fichier est attendu dans StreamingAssets/Ships/Images/<fileName>
             StartCoroutine(LoadSpriteFromStreamingAssets(ship.imageFile, shipImage));
         }
 
-
-        // -------------------------------------------------------------
         // NOM
-        // -------------------------------------------------------------
         if (shipNameText != null)
             shipNameText.text = ship.displayName;
 
-        // -------------------------------------------------------------
-        // LIVES
-        // -------------------------------------------------------------
-        if (shipLivesText != null)
-            shipLivesText.text = "x" + ship.maxHull;
-
-        // -------------------------------------------------------------
-        // SHIELD (durée de protection par niveau)
-        // -------------------------------------------------------------
-        if (shipShieldText != null)
+        // HULL
+        if (shipHullText != null)
         {
-            // Format simple : "60 s"
-            shipShieldText.text = ship.shieldSecondsPerLevel.ToString("0") + "s";
+            if (runtimeHull >= 0 && runtimeMaxHull > 0)
+            {
+                shipHullText.text = runtimeHull.ToString() + " / " + runtimeMaxHull.ToString();
+            }
+            else
+            {
+                shipHullText.text = "x" + ship.maxHull;
+            }
         }
+
+        // SHIELD
+        if (shipShieldText != null)
+            shipShieldText.text = ship.shieldSecondsPerLevel.ToString("0") + "s";
     }
 
-    /// <summary>
-    /// Charge une texture depuis StreamingAssets/Ships/Images et la convertit en Sprite pour l'UI.
-    /// Même logique que dans ShipSelectController, pour rester cohérent.
-    /// </summary>
     private IEnumerator LoadSpriteFromStreamingAssets(string fileName, Image target)
     {
         if (target == null || string.IsNullOrEmpty(fileName))
             yield break;
 
-        // Construction de l'URL, identique au ShipSelectController
         string url = Path.Combine(Application.streamingAssetsPath, "Ships/Images", fileName);
 
         using (var req = UnityWebRequestTexture.GetTexture(url))
@@ -512,6 +395,4 @@ public class IntroLevelUI : MonoBehaviour
             target.preserveAspect = true;
         }
     }
-
-
 }

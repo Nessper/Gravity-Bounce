@@ -6,12 +6,12 @@ using UnityEngine.Events;
 /// <summary>
 /// Orchestrateur du niveau :
 /// - charge la config JSON
-/// - initialise score, vies, timer, spawner
+/// - initialise score, hull, timer, spawner
 /// - pilote le flow : intro -> compte à rebours -> gameplay -> évacuation -> fin de niveau
 /// - calcule le résultat (objectif principal) et émet OnEndComputed pour l'UI de fin.
 /// 
 /// IMPORTANT :
-/// - Il ne gère plus lui-même la perte de vie sur échec (GameFlowController + RunSessionState s'en chargent).
+/// - Il ne gère plus lui-même la perte de hull sur échec (GameFlowController + RunSessionState s'en chargent).
 /// - Il ne parle plus directement à EndLevelUI, il se contente d'émettre OnEndComputed.
 /// </summary>
 public class LevelManager : MonoBehaviour
@@ -21,71 +21,69 @@ public class LevelManager : MonoBehaviour
     // ----------------------------------------------------------
 
     [Header("Gameplay")]
-    [SerializeField] private PlayerController player;               // Contrôle du paddle
-    [SerializeField] private CloseBinController closeBinController; // Contrôle de fermeture des bacs
-    [SerializeField] private LevelTimer levelTimer;                 // Timer principal du niveau
-    [SerializeField] private ScoreManager scoreManager;             // Gestion du score et des stats
-    [SerializeField] private BallSpawner ballSpawner;               // Spawner de billes (3 phases + évacuation)
-    [SerializeField] private BinCollector collector;                // Gestion des flushs (collecte des billes)
-    [SerializeField] private EndSequenceController endSequence;     // Phase d’évacuation et fin de niveau
-    [SerializeField] private ObstacleManager obstacleManager;       // Gestion des obstacles
-    [SerializeField] private LevelControlsController controlsController; // Gestion des Inputs
+    [SerializeField] private PlayerController player;
+    [SerializeField] private CloseBinController closeBinController;
+    [SerializeField] private LevelTimer levelTimer;
+    [SerializeField] private ScoreManager scoreManager;
+    [SerializeField] private BallSpawner ballSpawner;
+    [SerializeField] private BinCollector collector;
+    [SerializeField] private EndSequenceController endSequence;
+    [SerializeField] private ObstacleManager obstacleManager;
+    [SerializeField] private LevelControlsController controlsController;
+    [SerializeField] private HullSystem hullSystem;
 
     // ----------------------------------------------------------
     // RÉFÉRENCES UI
     // ----------------------------------------------------------
 
     [Header("UI / Overlays")]
-    [SerializeField] private LevelBriefingController briefingController; // Gère le briefing (overlay d'intro)
-    [SerializeField] private CountdownUI countdownUI;                    // Compte à rebours "3-2-1" + compte à rebours évacuation
-    [SerializeField] private PauseController pauseController;            // Système de pause
-    [SerializeField] private LevelIdUI levelIdUI;                        // Affichage ID du niveau (W1-L1, etc.)
-    [SerializeField] private ScoreUI scoreUI;                            // Affichage du score en HUD
-    [SerializeField] private HullUI hullUI;                            // Affichage des vies restantes
-    [SerializeField] private ProgressBarUI progressBarUI;                // Barre de progression des billes
+    [SerializeField] private LevelBriefingController briefingController;
+    [SerializeField] private CountdownUI countdownUI;
+    [SerializeField] private PauseController pauseController;
+    [SerializeField] private LevelIdUI levelIdUI;
+    [SerializeField] private ScoreUI scoreUI;
+    [SerializeField] private HullUI hullUI;
+    [SerializeField] private ProgressBarUI progressBarUI;
 
     // ----------------------------------------------------------
     // ENVIRONNEMENT / VAISSEAU DE FOND
     // ----------------------------------------------------------
 
     [Header("Environment / Ship Background")]
-    [SerializeField] private ShipBackgroundLoader shipBackgroundLoader; // Charge et affiche le vaisseau de fond (décor sous le plateau)
+    [SerializeField] private ShipBackgroundLoader shipBackgroundLoader;
 
     // ----------------------------------------------------------
     // CONFIGURATION & ÉTAT
     // ----------------------------------------------------------
 
     [Header("Config / State")]
-    [SerializeField] private TextAsset levelJson;                   // Fichier JSON du niveau (LevelData)
-    [SerializeField] private RunSessionState runSession;            // État de la session (vies, etc.)
+    [SerializeField] private TextAsset levelJson;
+    [SerializeField] private RunSessionState runSession;
 
-    private PhasePlanInfo[] phasePlanInfos;                         // Plan de phases exposé par le BallSpawner (durée, quota, interval, nom).
-    private LevelData data;                                         // Données du niveau parsées depuis le JSON
-    private string levelID;                                         // ID du niveau (copie de data.LevelID)
-    private float runDurationSec;                                   // Durée du niveau (dépend du vaisseau)
-    private bool endSequenceRunning;                                // Pour éviter plusieurs fins de niveau
+    private PhasePlanInfo[] phasePlanInfos;
+    private LevelData data;
+    private string levelID;
+    private float runDurationSec;
+    private bool endSequenceRunning;
+
+    // Hull maximal du vaisseau (issu du ShipDefinition / catalog)
+    private int maxHull;
+
+    // Dernier Hull connu via RunSessionState.OnHullChanged
+    private int lastKnownHull = -1;
 
     [Header("Narration / Intro Sequence")]
     [SerializeField] private LevelIntroSequenceController introSequenceController;
 
     // Nom de fichier de l'image du vaisseau sélectionné (pour le décor de fond).
-    // Récupéré dans ResolveShipStats à partir du ShipDefinition.
     private string currentShipImageFile;
 
     // --- Objectifs secondaires ---
-    // Manager logique des objectifs secondaires pour ce niveau.
-    // Ne modifie pas le gameplay en temps réel, ne sert qu'à suivre la progression
-    // et à produire des résultats en fin de niveau.
     private SecondaryObjectivesManager secondaryObjectivesManager =
         new SecondaryObjectivesManager();
 
-    // Résultats calculés en fin de niveau, utilisables par l'UI de fin.
     private List<SecondaryObjectiveResult> secondaryObjectiveResults;
 
-    /// <summary>
-    /// Event émis quand le niveau est terminé et que les stats sont prêtes.
-    /// EndLevelUI s'abonne à cet event pour afficher la séquence de fin.
-    /// </summary>
     public UnityEvent<EndLevelStats, LevelData, MainObjectiveResult> OnEndComputed
         = new UnityEvent<EndLevelStats, LevelData, MainObjectiveResult>();
 
@@ -95,15 +93,12 @@ public class LevelManager : MonoBehaviour
 
     private void OnEnable()
     {
-        // On écoute la fin du timer pour déclencher la phase d’évacuation
         if (levelTimer != null)
             levelTimer.OnTimerEnd += HandleTimerEnd;
 
-        // On écoute les changements de vies pour mettre à jour la UI (RunSessionState -> HUD)
         if (runSession != null)
             runSession.OnHullChanged.AddListener(HandleHullChanged);
 
-        // On écoute les flushs enregistrés par le ScoreManager
         if (scoreManager != null)
             scoreManager.OnFlushSnapshotRegistered += HandleFlushSnapshotRegistered;
     }
@@ -122,28 +117,34 @@ public class LevelManager : MonoBehaviour
 
     private void Start()
     {
-        // 1) Charger la config du niveau depuis le JSON
+        // 1) JSON
         LoadLevelConfig();
 
-        // 2) Configurer les objectifs secondaires (à partir de LevelData.SecondaryObjectives)
+        // 2) Objectifs secondaires
         SetupSecondaryObjectives();
 
-        // 3) Configurer le score et la durée (vies déjà gérées par RunSessionBootstrapper)
+        // 3) Score + durée + décor de fond
         SetupScoreAndHull();
 
-        // 4) Configurer le timer (durée du niveau)
+        // 4) Timer
         SetupTimer();
 
-        // 5) Configurer le spawner + la barre de progression
+        // 5) Spawner + ProgressBar
         SetupSpawnerAndProgress();
 
-        // 6) Configurer les obstacles
+        // 6) Obstacles
         SetupObstacles();
 
-        // 7) Configurer la séquence d’évacuation (après la fin du timer)
+        // 7) Evacuation
         SetupEvacuationSequence();
 
-        // 8) Afficher l’intro de niveau ou démarrer direct s’il n’y en a pas
+        // 7bis) Seed du hull pour être sûr d'avoir une valeur dès le début
+        if (runSession != null)
+        {
+            HandleHullChanged(runSession.Hull);
+        }
+
+        // 8) Intro / briefing
         SetupIntroOrAutoStart();
     }
 
@@ -151,9 +152,6 @@ public class LevelManager : MonoBehaviour
     // SETUP
     // =====================================================================
 
-    /// <summary>
-    /// Charge le JSON du niveau et renseigne LevelData + LevelID + LevelIdUI.
-    /// </summary>
     private void LoadLevelConfig()
     {
         if (levelJson == null)
@@ -173,10 +171,6 @@ public class LevelManager : MonoBehaviour
         levelIdUI?.SetLevelId(levelID);
     }
 
-    /// <summary>
-    /// Initialise le manager d'objectifs secondaires à partir du LevelData.
-    /// Ne fait rien si aucun objectif secondaire n'est défini.
-    /// </summary>
     private void SetupSecondaryObjectives()
     {
         secondaryObjectiveResults = null;
@@ -187,46 +181,56 @@ public class LevelManager : MonoBehaviour
         secondaryObjectivesManager.Setup(data.SecondaryObjectives);
     }
 
-    /// <summary>
-    /// Initialise le score et la durée du niveau.
-    /// Les vies sont désormais initialisées par RunSessionBootstrapper
-    /// (RunStateData.remainingLivesInRun -> RunSessionState).
-    /// Ici, on se contente de :
-    /// - brancher ScoreManager sur la UI,
-    /// - remettre le score à zéro,
-    /// - déterminer la durée du niveau à partir du vaisseau (et éventuellement MainQuickStart),
-    /// - récupérer le fichier image du vaisseau pour le décor de fond.
-    /// </summary>
     private void SetupScoreAndHull()
     {
-        // Branche le ScoreManager sur la UI de score
         if (scoreManager != null && scoreUI != null)
             scoreManager.onScoreChanged.AddListener(scoreUI.UpdateScoreText);
 
-        // Score remis à zéro pour ce niveau
         scoreManager?.ResetScore(0);
 
+        // Pas de RunSession : on fait ce qu'on peut avec le ship catalog
         if (runSession == null)
         {
             Debug.LogError("[LevelManager] RunSessionState non assigné.");
 
-            // On récupère quand même la durée du niveau pour le timer
-            int dummyLives;
-            ResolveShipStats(out dummyLives, out runDurationSec);
+            ResolveShipStats(out maxHull, out runDurationSec);
+
+            // Même sans runSession, on peut au moins afficher le maxHull
+            if (hullSystem != null)
+            {
+                // On initialise avec hull = maxHull (valeur "pleine" par défaut)
+                hullSystem.Initialize(maxHull, maxHull);
+            }
+            else
+            {
+                hullUI?.SetMaxHull(maxHull);
+                hullUI?.SetHull(maxHull);
+            }
+
             return;
         }
 
-        // On détermine la durée du niveau à partir du vaisseau sélectionné
-        int unusedLives;
-        ResolveShipStats(out unusedLives, out runDurationSec);
+        // Récupère maxHull et durée depuis le vaisseau
+        ResolveShipStats(out maxHull, out runDurationSec);
 
-        // Charge le vaisseau de fond si possible (image liée au vaisseau sélectionné)
+        int hullForHud = runSession.Hull; // ex : 9 après RunRecoveryOnBoot
+
+        // Initialise le système de coque (qui mettra la UI à jour)
+        if (hullSystem != null)
+        {
+            hullSystem.Initialize(hullForHud, maxHull);
+        }
+        else if (hullUI != null)
+        {
+            hullUI.SetMaxHull(maxHull);
+            hullUI.SetHull(hullForHud);
+        }
+
         if (shipBackgroundLoader != null && !string.IsNullOrEmpty(currentShipImageFile))
         {
             shipBackgroundLoader.Init(currentShipImageFile);
         }
 
-        // MainQuickStart (outil debug) peut overrider la durée
         var quick = Object.FindFirstObjectByType<MainQuickStart>();
         if (quick != null && quick.enabled && quick.gameObject.activeInHierarchy)
         {
@@ -237,11 +241,8 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Lit le vaisseau sélectionné dans RunConfig / ShipCatalog,
-    /// renvoie le nombre de vies et la durée de bouclier pour ce niveau.
-    /// Met aussi à jour currentShipImageFile pour le décor de fond.
-    /// </summary>
+
+
     private void ResolveShipStats(out int hull, out float durationSec)
     {
         hull = 0;
@@ -271,10 +272,7 @@ public class LevelManager : MonoBehaviour
         durationSec = Mathf.Max(0.1f, ship.shieldSecondsPerLevel);
     }
 
-    /// <summary>
-    /// Configure le timer du niveau (sans l’activer).
-    /// Il sera activé au moment où on démarre réellement le niveau (StartLevel).
-    /// </summary>
+
     private void SetupTimer()
     {
         if (levelTimer == null)
@@ -284,13 +282,6 @@ public class LevelManager : MonoBehaviour
         levelTimer.StartTimer(runDurationSec);
     }
 
-    /// <summary>
-    /// Configure le spawner à partir du LevelData et branche la ProgressBar
-    /// via les callbacks OnPlannedReady (total prévu) et OnActivated (bille activée).
-    /// 
-    /// Désormais, le "total prévu" utilisé pour la progression et l'objectif
-    /// est le nombre de billes NON NOIRES prévues (BallSpawner.PlannedNonBlackSpawnCount).
-    /// </summary>
     private void SetupSpawnerAndProgress()
     {
         if (ballSpawner == null || data == null)
@@ -301,64 +292,43 @@ public class LevelManager : MonoBehaviour
             if (scoreManager == null)
                 return;
 
-            // Nombre de billes prévues HORS NOIRES (plan théorique)
             int plannedNonBlack = ballSpawner.PlannedNonBlackSpawnCount;
 
-            // Informe le ScoreManager du nombre de billes prévues (hors noires)
             scoreManager.SetPlannedBalls(plannedNonBlack);
 
-            // Récupère le seuil d'objectif principal (en nombre de billes non noires)
             int threshold = data.MainObjective != null ? data.MainObjective.ThresholdCount : 0;
 
-            // Configure la barre de progression avec total (hors noires) + objectif principal
             if (progressBarUI != null)
             {
                 progressBarUI.Configure(plannedNonBlack, threshold);
                 progressBarUI.Refresh();
             }
 
-            // Configure l'objectif principal dans le ScoreManager (seuil en non-noires)
             scoreManager.SetObjectiveThreshold(threshold);
         };
 
         ballSpawner.OnActivated += _ =>
         {
-            // À chaque bille activée, on rafraîchit la barre
             progressBarUI?.Refresh();
         };
 
-        // Applique la config du JSON (phases, mix, angles...) et pré-alloue des billes
         ballSpawner.ConfigureFromLevel(data, runDurationSec);
         ballSpawner.StartPrewarm(256);
 
-        // Récupère le plan de phases calculé par le spawner (pour l'UI d'intro).
         phasePlanInfos = ballSpawner.GetPhasePlans();
     }
 
-    /// <summary>
-    /// Construit les obstacles définis dans le JSON en utilisant l'ObstacleManager.
-    /// Ne fait rien si pas de data ou pas d'obstacles.
-    /// </summary>
     private void SetupObstacles()
     {
         if (obstacleManager == null)
-        {
             return;
-        }
 
         if (data == null || data.Obstacles == null || data.Obstacles.Length == 0)
-        {
             return;
-        }
 
         obstacleManager.BuildObstacles(data.Obstacles);
     }
 
-    /// <summary>
-    /// Désactive tous les contrôles de gameplay.
-    /// Si un LevelControlsController est configuré, on lui délègue,
-    /// sinon on retombe sur l'ancien comportement direct.
-    /// </summary>
     private void DisableGameplayControls()
     {
         if (controlsController != null)
@@ -367,7 +337,6 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        // Fallback legacy (si jamais controlsController n'est pas assigné)
         player?.SetActiveControl(false);
         closeBinController?.SetActiveControl(false);
     }
@@ -380,26 +349,17 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        // Fallback legacy
         player?.SetActiveControl(true);
         closeBinController?.SetActiveControl(true);
     }
 
-    /// <summary>
-    /// Prépare la phase d’évacuation après la fin du timer :
-    /// - coupe les contrôles au début
-    /// - configure EndSequenceController avec durée d'évacuation, callbacks, etc.
-    /// </summary>
     private void SetupEvacuationSequence()
     {
-        // On s’assure que le joueur ne peut pas jouer avant le vrai départ
         DisableGameplayControls();
 
         float evacDuration = (data != null)
             ? Mathf.Max(0.1f, data.Evacuation.DurationSec)
             : 10f;
-
-        string evacName = (data != null) ? data.Evacuation.Name : null;
 
         endSequence?.Configure(
             collector,
@@ -418,17 +378,25 @@ public class LevelManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Gère le flux d'intro :
-    /// - affiche le briefing (LevelIntroOverlay) via LevelBriefingController
-    /// - une fois le briefing terminé (Play), lance la sequence de début de niveau
-    ///   (dialogues d'intro + compte à rebours + StartLevel).
-    /// Le briefing est obligatoire : s'il n'est pas correctement configuré, on log une erreur
-    /// et on enchaîne directement sur la sequence de début.
+    /// Injecte le hull courant dans le briefing, puis affiche le briefing.
     /// </summary>
     private void SetupIntroOrAutoStart()
     {
         if (briefingController != null && data != null)
         {
+            int hullForIntro = lastKnownHull;
+
+            if (hullForIntro < 0 && runSession != null)
+            {
+                hullForIntro = runSession.Hull;
+            }
+
+            if (hullForIntro >= 0)
+            {
+                int maxHullForUi = maxHull > 0 ? maxHull : hullForIntro;
+                briefingController.SetShipRuntimeHull(hullForIntro, maxHullForUi);
+            }
+
             briefingController.Show(
                 data,
                 phasePlanInfos,
@@ -457,9 +425,6 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Active les contrôles joueur et la pause.
-    /// </summary>
     private void EnableGameplayControls()
     {
         EnableGameplayControlsInternal();
@@ -469,13 +434,6 @@ public class LevelManager : MonoBehaviour
     // BOUCLE DE JEU
     // =====================================================================
 
-    /// <summary>
-    /// Point d’entrée réel du niveau :
-    /// - remet la timeScale
-    /// - reset la séquence de fin
-    /// - active le timer
-    /// - lance le spawner
-    /// </summary>
     public void StartLevel()
     {
         Time.timeScale = 1f;
@@ -490,10 +448,6 @@ public class LevelManager : MonoBehaviour
         MarkLevelStartedInSave();
     }
 
-    /// <summary>
-    /// Appelé quand le timer du niveau arrive à 0 :
-    /// stoppe le spawner et lance la phase d’évacuation contrôlée par EndSequenceController.
-    /// </summary>
     private void HandleTimerEnd()
     {
         if (endSequenceRunning)
@@ -508,13 +462,6 @@ public class LevelManager : MonoBehaviour
         });
     }
 
-    /// <summary>
-    /// Routine de fin :
-    /// 1) flush forcé des bacs
-    /// 2) balayage final pour marquer les billes restantes comme perdues
-    /// 3) log des stats du spawner
-    /// 4) évaluation du résultat (objectif principal) + event OnEndComputed
-    /// </summary>
     private IEnumerator EndOfLevelFinalizeRoutine()
     {
         collector?.CollectAll(force: true, skipDelay: true);
@@ -526,13 +473,8 @@ public class LevelManager : MonoBehaviour
         EvaluateLevelResult();
     }
 
-    /// <summary>
-    /// Balayage final après la phase d’évacuation :
-    /// tout ce qui reste actif et non collected est compté comme perdu et recyclé.
-    /// </summary>
     private IEnumerator FinalSweepMarkLostAndRecycle(BallSpawner spawner, ScoreManager score)
     {
-        // Laisse 2 frames pour laisser le flush forcé terminer ses events
         yield return null;
         yield return null;
 
@@ -603,8 +545,27 @@ public class LevelManager : MonoBehaviour
 
     private void HandleHullChanged(int hull)
     {
-        hullUI?.SetHull(hull);
+        // On mémorise la valeur runtime
+        lastKnownHull = hull;
+
+        // HUD gameplay via HullSystem si dispo, sinon fallback direct
+        if (hullSystem != null)
+        {
+            hullSystem.SetCurrentHull(hull);
+        }
+        else
+        {
+            hullUI?.SetHull(hull);
+        }
+
+        // Et on passe la même info au briefing si jamais il est déjà prêt
+        if (briefingController != null)
+        {
+            int maxHullForUi = maxHull > 0 ? maxHull : hull;
+            briefingController.SetShipRuntimeHull(hull, maxHullForUi);
+        }
     }
+
 
     public string GetLevelID()
     {

@@ -22,7 +22,7 @@ public class CountdownUI : MonoBehaviour
         while (counter > 0)
         {
             countdownText.text = counter.ToString();
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds(1f); // temps SCALÉ -> respecte Time.timeScale
             counter--;
         }
 
@@ -35,7 +35,7 @@ public class CountdownUI : MonoBehaviour
         onComplete?.Invoke();
     }
 
-    // --- AJOUT MINIMAL : compte à rebours générique (realtime), sans "GO!" ---
+    // --- VERSION SCALÉE : respecte la pause (Time.timeScale) ---
     public IEnumerator PlayCountdownSeconds(float totalSeconds, System.Action onComplete = null)
     {
         if (!countdownText)
@@ -48,12 +48,24 @@ public class CountdownUI : MonoBehaviour
         float remaining = Mathf.Max(0f, totalSeconds);
         countdownText.gameObject.SetActive(true);
 
-        // Affichage entier 10,9,8... (cadence 1s). Si tu veux plus fluide, passe à 0.1f.
+        int lastDisplayed = -1;
+
+        // Boucle en temps SCALÉ -> Time.deltaTime s'arrête quand Time.timeScale = 0
         while (remaining > 0f)
         {
-            countdownText.text = Mathf.CeilToInt(remaining).ToString();
-            yield return new WaitForSecondsRealtime(1f);
-            remaining -= 1f;
+            remaining -= Time.deltaTime;
+
+            int displayValue = Mathf.CeilToInt(remaining);
+            if (displayValue < 0)
+                displayValue = 0;
+
+            if (displayValue != lastDisplayed)
+            {
+                lastDisplayed = displayValue;
+                countdownText.text = displayValue.ToString();
+            }
+
+            yield return null;
         }
 
         countdownText.gameObject.SetActive(false);

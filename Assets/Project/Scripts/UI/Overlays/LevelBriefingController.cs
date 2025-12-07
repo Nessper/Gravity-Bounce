@@ -7,7 +7,6 @@ using UnityEngine.SceneManagement;
 /// - Reçoit LevelData + PhasePlanInfo[].
 /// - Affiche IntroLevelUI.
 /// - Gère les boutons Play / Back.
-/// LevelManager ne connaît plus les détails d'affichage.
 /// </summary>
 public class LevelBriefingController : MonoBehaviour
 {
@@ -17,12 +16,25 @@ public class LevelBriefingController : MonoBehaviour
     [Header("Navigation")]
     [SerializeField] private string titleSceneName = "Title";
 
+    // Valeurs runtime de Hull injectées par le LevelManager
+    private int runtimeHull = -1;
+    private int runtimeMaxHull = -1;
+
     /// <summary>
-    /// Affiche le briefing du niveau.
-    /// Le briefing est considéré comme obligatoire :
-    /// si data ou introLevelUI sont manquants, on log une erreur et on appelle quand même onPlay
-    /// pour éviter de bloquer en dev.
+    /// Appelé par le LevelManager quand il reçoit une mise à jour de Hull.
+    /// Permet d'afficher la valeur courante (ex: 9 / 10) dans l'intro.
     /// </summary>
+    public void SetShipRuntimeHull(int currentHull, int maxHull)
+    {
+        runtimeHull = Mathf.Max(-1, currentHull);
+        runtimeMaxHull = Mathf.Max(-1, maxHull);
+
+        if (introLevelUI != null)
+        {
+            introLevelUI.SetShipRuntimeHull(runtimeHull, runtimeMaxHull);
+        }
+    }
+
     public void Show(
         LevelData levelData,
         PhasePlanInfo[] phasePlanInfos,
@@ -38,9 +50,15 @@ public class LevelBriefingController : MonoBehaviour
 
         if (introLevelUI == null)
         {
-            Debug.LogError("[LevelBriefingController] IntroLevelUI non assigne. Briefing obligatoire mais UI manquante.");
+            Debug.LogError("[LevelBriefingController] IntroLevelUI non assigné. Briefing obligatoire mais UI manquante.");
             onPlay?.Invoke();
             return;
+        }
+
+        // On s'assure que l'IntroLevelUI possède les bonnes valeurs de hull
+        if (runtimeHull >= 0 && runtimeMaxHull > 0)
+        {
+            introLevelUI.SetShipRuntimeHull(runtimeHull, runtimeMaxHull);
         }
 
         introLevelUI.Show(
@@ -48,25 +66,19 @@ public class LevelBriefingController : MonoBehaviour
             phasePlanInfos,
             onPlay: () =>
             {
-                // Le joueur confirme le depart -> on cache le briefing
                 introLevelUI.Hide();
-
-                // On notifie le caller (LevelManager) qu'on peut lancer la suite (intro narrative + countdown).
                 onPlay?.Invoke();
             },
             onBack: () =>
             {
-                // Evite de rejouer l'intro du Title
                 if (RunConfig.Instance != null)
                     RunConfig.Instance.SkipTitleIntroOnce = true;
 
-                // Retour propre au menu Title
                 if (!string.IsNullOrEmpty(titleSceneName))
                 {
                     SceneManager.LoadScene(titleSceneName);
                 }
 
-                // Callback optionnel vers le caller (pour stats ou flow meta plus tard)
                 onBack?.Invoke();
             }
         );

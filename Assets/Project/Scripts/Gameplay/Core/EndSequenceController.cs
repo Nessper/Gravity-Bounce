@@ -3,7 +3,6 @@ using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 
-
 public class EndSequenceController : MonoBehaviour
 {
     [SerializeField] private BinCollector collector;
@@ -11,7 +10,6 @@ public class EndSequenceController : MonoBehaviour
     [SerializeField] private CloseBinController closeBinController;
     [SerializeField] private PauseController pauseController;
     [SerializeField] private ScoreManager scoreManager;
-
 
     [Header("Evacuation")]
     [SerializeField] private float evacDurationSec = 10f;   // durée d'évacuation
@@ -23,24 +21,32 @@ public class EndSequenceController : MonoBehaviour
     private Action onEvacStart;
     private Action<float> onEvacTick;
 
-    // NOUVEAU : event public pour prévenir le reste du jeu
+    // Event public pour prévenir le reste du jeu
     public event Action OnEvacuationStarted;
 
     // ------------------------------
     //   CONFIGURATION
     // ------------------------------
     public void Configure(
-        BinCollector c, PlayerController p, CloseBinController cb, PauseController pc,
-        float evacDuration = -1f, float tickInterval = -1f,
-        Action onEvacStartCb = null, Action<float> onEvacTickCb = null)
+        BinCollector c,
+        PlayerController p,
+        CloseBinController cb,
+        PauseController pc,
+        float evacDuration = -1f,
+        float tickInterval = -1f,
+        Action onEvacStartCb = null,
+        Action<float> onEvacTickCb = null)
     {
         collector = c;
         player = p;
         closeBinController = cb;
         pauseController = pc;
 
-        if (evacDuration > 0f) evacDurationSec = evacDuration;
-        if (tickInterval > 0f) tickIntervalSec = tickInterval;
+        if (evacDuration > 0f)
+            evacDurationSec = evacDuration;
+
+        if (tickInterval > 0f)
+            tickIntervalSec = tickInterval;
 
         onEvacStart = onEvacStartCb;
         onEvacTick = onEvacTickCb;
@@ -76,21 +82,39 @@ public class EndSequenceController : MonoBehaviour
         closeBinController?.SetActiveControl(true);
         collector?.SetAutoFlushEnabled(true);
 
-        // NOUVEAU : on notifie le monde que l'évac commence
+        // Notifie le monde que l'évac commence
         OnEvacuationStarted?.Invoke();
 
-        // Ancien callback (UI, countdown, etc.) reste possible
+        // Callback UI (ex: lancement du countdown)
         onEvacStart?.Invoke();
 
-        // 2) Compte à rebours en temps réel
+        // 2) Compte à rebours en TEMPS SCALÉ (respecte Time.timeScale)
         float remaining = duration;
+        float tickTimer = 0f;
+
         while (remaining > 0f)
         {
-            onEvacTick?.Invoke(remaining);
-            float step = Mathf.Min(tickIntervalSec, remaining);
-            yield return new WaitForSecondsRealtime(step);
-            remaining -= step;
+            float dt = Time.deltaTime;
+
+            // Si le jeu est complètement figé par safety (Time.timeScale = 0),
+            // dt sera 0, donc la boucle ne progresse pas.
+            remaining -= dt;
+            tickTimer += dt;
+
+            if (remaining < 0f)
+                remaining = 0f;
+
+            // Tick logique toutes les tickIntervalSec
+            if (tickIntervalSec > 0f && tickTimer >= tickIntervalSec)
+            {
+                tickTimer -= tickIntervalSec;
+                onEvacTick?.Invoke(remaining);
+            }
+
+            yield return null;
         }
+
+        // Tick final à 0 pour terminer proprement
         onEvacTick?.Invoke(0f);
 
         // 3) Stop auto-flush pour figer les bins

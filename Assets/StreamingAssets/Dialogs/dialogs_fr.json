@@ -12,23 +12,23 @@
           "lines": [
             {
               "speakerId": "captain",
-              "text": "Mike, rappel basique : tu renvoies les billes dans le bac de gauche ou de droite. Rien au milieu, rien dans le vide."
+              "text": "Mike, rappel basique : tu rediriges les billes dans le bac de gauche ou de droite. Les violettes tu les laisses passer."
             },
             {
               "speakerId": "mike",
-              "text": "Noté Capitaine. Gauche, droite, pas le vide. Je peux gérer ça."
+              "text": "Noté Cap'tain. Je laisse passer les violettes."
             },
             {
               "speakerId": "captain",
-              "text": "Leigh, Rye, vous filtrez les billes noires. On ne laisse rien passer."
+              "text": "Leigh, Rye, si une violette se pointe, vous fermez les bacs !"
             },
             {
               "speakerId": "leigh",
-              "text": "Compris. On ferme les bacs dès qu'une noire se pointe."
+              "text": "Reçu."
             },
             {
               "speakerId": "rye",
-              "text": "Ouais. Les blanches dedans, les noires dehors. Simple."
+              "text": "Ouais. Les noires dehors. Simple."
             }
           ]
         }
@@ -47,7 +47,7 @@
           "lines": [
             {
               "speakerId": "captain",
-              "text": "Phase d'échauffement. Observe les trajectoires avant de jouer au héros."
+              "text": "C'est parti. Mike, observe les trajectoires avant de jouer au héros."
             }
           ]
         },
@@ -56,7 +56,7 @@
           "lines": [
             {
               "speakerId": "mike",
-              "text": "Ok, on commence doux. Je prends la main sur le rebond."
+              "text": "Ok, on commence tout doux. Je prends la main sur le rebond."
             }
           ]
         }
@@ -75,7 +75,7 @@
           "lines": [
             {
               "speakerId": "leigh",
-              "text": "Afflux de billes en hausse. Si tu te laisses déborder ici, la suite va piquer."
+              "text": "Afflux de billes en hausse. Te laisse pas déborder."
             }
           ]
         },
@@ -84,7 +84,7 @@
           "lines": [
             {
               "speakerId": "mike",
-              "text": "Je vois le volume monter. C'est bien, je commençais à m'ennuyer."
+              "text": "T'inquiète, je gère."
             }
           ]
         }
@@ -103,7 +103,7 @@
           "lines": [
             {
               "speakerId": "captain",
-              "text": "Les billes noires se multiplient. Garde ton timing propre ou tu vas le sentir au score."
+              "text": "Mike, j'aperçois des violettes, fais gaffe."
             }
           ]
         },
@@ -112,7 +112,7 @@
           "lines": [
             {
               "speakerId": "rye",
-              "text": "Je vois déjà des noires. Si tu les laisses passer, je te le rappellerai."
+              "text": "Mike, t'as interêt à assurer."
             }
           ]
         }
@@ -131,7 +131,7 @@
           "lines": [
             {
               "speakerId": "captain",
-              "text": "Dernière phase. Tu termines propre, ou tu recommences."
+              "text": "Dernière phase. Mike, te relâche pas."
             }
           ]
         },
@@ -140,7 +140,7 @@
           "lines": [
             {
               "speakerId": "mike",
-              "text": "Allez, dernière salve. On finit ça sans lâcher une seule bille."
+              "text": "Reçu Cap'tain !"
             }
           ]
         }
@@ -157,7 +157,7 @@
         {
           "weight": 1,
           "lines": [
-            { "speakerId": "captain", "text": "Evacuation enclenchée. Vide les bacs." }
+            { "speakerId": "captain", "text": "Evacuation enclenchée. On récupère les dernières et on file." }
           ]
         }
       ]
