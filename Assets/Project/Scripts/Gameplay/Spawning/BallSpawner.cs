@@ -5,7 +5,7 @@ using UnityEngine;
 
 /// <summary>
 /// Public phase planning info exposed for UIs (IntroLevelUI, debug panels, etc.).
-/// This is a readonly "view" of the internal spawn plan.
+/// This is a immutable "view" of the internal spawn plan.
 /// </summary>
 [Serializable]
 public struct PhasePlanInfo
@@ -45,7 +45,6 @@ public class BallSpawner : MonoBehaviour
     [SerializeField] private GameObject ballPrefab;
     [SerializeField] private Transform ballsParent;
 
-
     [Header("Spawn Area & Cadence (fallbacks)")]
     [SerializeField] private float xRange = 2.18f;
     [SerializeField] private float ySpawn = 6.3f;
@@ -58,10 +57,22 @@ public class BallSpawner : MonoBehaviour
     // =====================================================================
 
     /// <summary>
-    /// Total number of balls planned for this level (all phases combined).
+    /// Total number of balls planned for this level (all phases combined, all types).
     /// Filled during ConfigureFromLevel.
     /// </summary>
     public int PlannedSpawnCount { get; private set; }
+
+    /// <summary>
+    /// Total number of planned balls excluding black (all phases combined).
+    /// Computed during ConfigureFromLevel / BuildTypeQueues.
+    /// </summary>
+    public int PlannedNonBlackSpawnCount { get; private set; }
+
+    /// <summary>
+    /// Total number of planned black balls (all phases combined).
+    /// Computed during ConfigureFromLevel / BuildTypeQueues.
+    /// </summary>
+    public int PlannedBlackSpawnCount { get; private set; }
 
     /// <summary>
     /// Index of the current phase during runtime spawning (0, 1, 2, ...).
@@ -173,7 +184,7 @@ public class BallSpawner : MonoBehaviour
         // 3) Build mixes per phase (relative type weights)
         BuildMixes();
 
-        // 4) Build final type queues and quotas per phase
+        // 4) Build final type queues and quotas per phase + planned totals
         BuildTypeQueues();
 
         // 5) Reset runtime state / telemetry
@@ -190,6 +201,7 @@ public class BallSpawner : MonoBehaviour
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         Debug.Log($"[Spawner/Plan] plannedTotal={plannedTotal} (spawnAtT0={(spawnAtT0 ? 1 : 0)})");
+        Debug.Log($"[Spawner/Plan] plannedNonBlack={PlannedNonBlackSpawnCount}, plannedBlack={PlannedBlackSpawnCount}");
         for (int i = 0; i < plans.Count; i++)
         {
             var p = plans[i];
@@ -344,12 +356,16 @@ public class BallSpawner : MonoBehaviour
     /// - the quota (number of balls) for each phase,
     /// - the global plannedTotal,
     /// - the per-phase type queues,
-    /// - and the publicPhasePlans snapshot for the UI.
+    /// - the publicPhasePlans snapshot for the UI,
+    /// - PlannedNonBlackSpawnCount and PlannedBlackSpawnCount.
     /// </summary>
     private void BuildTypeQueues()
     {
         typeQueues.Clear();
         plannedTotal = 0;
+
+        PlannedNonBlackSpawnCount = 0;
+        PlannedBlackSpawnCount = 0;
 
         // 1) Compute quota for each phase based on its duration and interval.
         for (int i = 0; i < plans.Count; i++)
@@ -388,8 +404,17 @@ public class BallSpawner : MonoBehaviour
             // If no valid mix or no quota, fallback to default type.
             if (count <= 0 || totalW <= 0f || mix.Count == 0)
             {
-                for (int k = 0; k < count; k++)
-                    queue.Enqueue(DefaultType());
+                if (count > 0)
+                {
+                    BallType def = DefaultType();
+                    for (int k = 0; k < count; k++)
+                        queue.Enqueue(def);
+
+                    if (def == BallType.Black)
+                        PlannedBlackSpawnCount += count;
+                    else
+                        PlannedNonBlackSpawnCount += count;
+                }
 
                 typeQueues.Add(queue);
                 continue;
@@ -427,6 +452,20 @@ public class BallSpawner : MonoBehaviour
                 }
             }
 
+            // Count planned black vs non-black for this phase
+            int nonBlackForPhase = 0;
+            int blackForPhase = 0;
+            for (int k = 0; k < n; k++)
+            {
+                if (mix[k].t == BallType.Black)
+                    blackForPhase += alloc[k];
+                else
+                    nonBlackForPhase += alloc[k];
+            }
+
+            PlannedNonBlackSpawnCount += nonBlackForPhase;
+            PlannedBlackSpawnCount += blackForPhase;
+
             // Second pass: construct the queue by interleaving types.
             int[] left = (int[])alloc.Clone();
             int leftTotal = count;
@@ -455,7 +494,13 @@ public class BallSpawner : MonoBehaviour
             // Safety: if anything went wrong, pad with default type.
             while (queue.Count < count)
             {
-                queue.Enqueue(DefaultType());
+                BallType def = DefaultType();
+                queue.Enqueue(def);
+
+                if (def == BallType.Black)
+                    PlannedBlackSpawnCount++;
+                else
+                    PlannedNonBlackSpawnCount++;
             }
 
             typeQueues.Add(queue);
@@ -470,7 +515,17 @@ public class BallSpawner : MonoBehaviour
 #endif
         }
 
-        // 3) Build the public copy of phase plans for UI (Intro level, debug).
+        // 3) Account for spawnAtT0 in plannedNonBlack/Black using DefaultType.
+        if (spawnAtT0)
+        {
+            BallType def = DefaultType();
+            if (def == BallType.Black)
+                PlannedBlackSpawnCount += 1;
+            else
+                PlannedNonBlackSpawnCount += 1;
+        }
+
+        // 4) Build the public copy of phase plans for UI (Intro level, debug).
         publicPhasePlans = new PhasePlanInfo[plans.Count];
         for (int i = 0; i < plans.Count; i++)
         {

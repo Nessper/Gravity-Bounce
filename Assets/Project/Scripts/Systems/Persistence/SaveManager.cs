@@ -124,7 +124,7 @@ public class SaveManager : MonoBehaviour
         run.currentLevelIndex = 0;
         run.currentLevelId = "W1-L1";
 
-        run.remainingLivesInRun = 0;
+        run.remainingHullInRun = 0;
         run.currentRunScore = 0;
         run.currentWorldScore = 0;
         run.levelsClearedInRun = 0;

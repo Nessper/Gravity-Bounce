@@ -133,7 +133,7 @@ public class RunStateData
     /// <summary>
     /// Nombre de vies restantes dans la campagne.
     /// </summary>
-    public int remainingLivesInRun;
+    public int remainingHullInRun;
 
     /// <summary>
     /// Score cumulé pour le monde en cours.

@@ -29,12 +29,12 @@ public class RunSessionBootstrapper : MonoBehaviour
         // CAS 1 : retry avec conservation des vies (flag consommé ici)
         if (runSessionState.ConsumeKeepFlag())
         {
-            int current = Mathf.Max(0, runSessionState.Lives);
-            runSessionState.InitLives(current);
+            int current = Mathf.Max(0, runSessionState.Hull);
+            runSessionState.InitHull(current);
 
             MarkLevelInProgressIfRunExists();
 
-            Debug.Log("[RunSessionBootstrapper] Keeping existing lives for retry: " + current);
+            Debug.Log("[RunSessionBootstrapper] Keeping existing hull for retry: " + current);
             return;
         }
 
@@ -45,24 +45,24 @@ public class RunSessionBootstrapper : MonoBehaviour
             SaveManager.Instance.Current.runState.hasOngoingRun)
         {
             var run = SaveManager.Instance.Current.runState;
-            int lives = Mathf.Max(0, run.remainingLivesInRun);
+            int hull = Mathf.Max(0, run.remainingHullInRun);
 
-            runSessionState.InitLives(lives);
+            runSessionState.InitHull(hull);
 
             // Level en cours pour la règle "quit = défaite"
             run.levelInProgress = true;
             SaveManager.Instance.Save();
 
-            Debug.Log("[RunSessionBootstrapper] Lives from persistent run: " + lives
+            Debug.Log("[RunSessionBootstrapper] Hull from persistent run: " + hull
                       + " (LevelId=" + run.currentLevelId + ")");
             return;
         }
 
         // CAS 3 : fallback (pas de run persistante) -> on récupère les vies depuis le vaisseau sélectionné
-        int fallbackLives = ResolveFallbackLivesFromShip();
-        runSessionState.InitLives(fallbackLives);
+        int fallbackHull = ResolveFallbackHullFromShip();
+        runSessionState.InitHull(fallbackHull);
 
-        Debug.LogWarning("[RunSessionBootstrapper] Fallback lives init: " + fallbackLives);
+        Debug.LogWarning("[RunSessionBootstrapper] Fallback hull init: " + fallbackHull);
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ public class RunSessionBootstrapper : MonoBehaviour
     /// Détermine le nombre de vies à partir du vaisseau sélectionné dans RunConfig / ShipCatalog.
     /// Utilisé uniquement en fallback si aucune run persistante n'est valide.
     /// </summary>
-    private int ResolveFallbackLivesFromShip()
+    private int ResolveFallbackHullFromShip()
     {
         int lives = 3;
 
@@ -107,7 +107,7 @@ public class RunSessionBootstrapper : MonoBehaviour
             return lives;
         }
 
-        lives = Mathf.Max(0, ship.lives);
+        lives = Mathf.Max(0, ship.maxHull);
         return lives;
     }
 }

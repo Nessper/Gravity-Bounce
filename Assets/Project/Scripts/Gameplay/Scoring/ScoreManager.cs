@@ -10,7 +10,12 @@ public class ScoreManager : MonoBehaviour
     // =====================================================
 
     [Header("Planned Target")]
-    [SerializeField] private int totalBillesPrevues;  // Nombre de billes prevues sur le niveau (plan theorique)
+    [SerializeField]
+    private int totalBillesPrevues;
+    // Nombre de billes PREVUES pour le niveau (plan théorique),
+    // en excluant les billes noires.
+    // Cette valeur doit être alimentée par le plan du niveau
+    // (ex: BallSpawner.PlannedNonBlackSpawnCount).
     public int TotalBillesPrevues => totalBillesPrevues;
 
     // =====================================================
@@ -18,37 +23,51 @@ public class ScoreManager : MonoBehaviour
     // =====================================================
 
     [Header("Main Objective")]
-    [SerializeField] private int objectiveThreshold;  // Nombre de billes a collecter pour atteindre l'objectif principal (ThresholdCount)
+    [SerializeField]
+    private int objectiveThreshold;
+    // Nombre de billes NON NOIRES à collecter pour atteindre l'objectif principal (ThresholdCount).
     public int ObjectiveThreshold => objectiveThreshold;
 
-    // Flag interne pour eviter de declencher plusieurs fois l'evenement
+    // Flag interne pour éviter de déclencher plusieurs fois l'évènement.
     private bool goalReached = false;
 
     [Serializable]
     public class SimpleEvent : UnityEvent { }
 
-    // Evenement declenche une seule fois lorsque le seuil est atteint ou depasse
+    // Évènement déclenché une seule fois lorsque le seuil est atteint ou dépassé.
     public SimpleEvent onGoalReached = new SimpleEvent();
 
     // =====================================================
     //  RUNTIME STATE (ETAT EN COURS DE PARTIE)
     // =====================================================
 
-    private int totalBilles;     // Nombre total de billes collectees (toutes types confondus)
-    private int totalPertes;     // Nombre total de billes perdues (Void)
-    private int currentScore;    // Score courant (points)
-    private int realSpawned;     // Nombre de billes reellement spawnees
+    // Nombre total de billes collectées (tous types confondus).
+    private int totalBilles;
+
+    // Nombre total de billes collectées HORS NOIRES.
+    private int totalBillesNonNoires;
+
+    // Nombre total de billes perdues (Void).
+    private int totalPertes;
+
+    // Score courant (points).
+    private int currentScore;
+
+    // Nombre de billes réellement spawnees (runtime).
+    private int realSpawned;
 
     public int TotalBilles => totalBilles;
+    public int TotalNonBlackBilles => totalBillesNonNoires;
     public int TotalPertes => totalPertes;
     public int CurrentScore => currentScore;
     public int GetRealSpawned() => realSpawned;
 
-    // Details agreges par type de bille (collectees et perdues)
+    // Détails agrégés par type de bille (collectées et perdues).
+    // Clés = noms de type de bille (ex: "White", "Black", "Blue", ...).
     private readonly Dictionary<string, int> totauxParType = new Dictionary<string, int>();
     private readonly Dictionary<string, int> pertesParType = new Dictionary<string, int>();
 
-    // Historique des flushs (snapshots de bacs)
+    // Historique des flushs (snapshots de bacs).
     private readonly List<BinSnapshot> historique = new List<BinSnapshot>();
 
     // =====================================================
@@ -58,17 +77,18 @@ public class ScoreManager : MonoBehaviour
     [Serializable]
     public class IntEvent : UnityEvent<int> { }
 
-    // Notifie toute evolution du score courant
-    [HideInInspector] public IntEvent onScoreChanged = new IntEvent();
+    // Notifie toute évolution du score courant.
+    [HideInInspector]
+    public IntEvent onScoreChanged = new IntEvent();
 
-    // Notifie une perte de bille avec son type (pour feedbacks, HUD, etc.)
+    // Notifie une perte de bille avec son type (pour feedbacks, HUD, etc.).
     public event Action<string> OnBallLost;
 
     // Notifie l'enregistrement d'un flush complet (BinSnapshot) après mise à jour du score.
     // Permet à d'autres systèmes (objectifs secondaires, replays, etc.) de réagir.
     public event Action<BinSnapshot> OnFlushSnapshotRegistered;
 
-    // Acces lecture seule aux aggregats
+    // Accès lecture seule aux agrégats.
     public IReadOnlyDictionary<string, int> GetTotalsByTypeSnapshot()
         => new Dictionary<string, int>(totauxParType);
 
@@ -83,17 +103,18 @@ public class ScoreManager : MonoBehaviour
     // =====================================================
 
     /// <summary>
-    /// Définit le nombre total de billes prévues sur le niveau.
+    /// Définit le nombre total de billes prévues sur le niveau
+    /// (hors noires, côté design).
     /// </summary>
     public void SetPlannedBalls(int count)
     {
         totalBillesPrevues = Mathf.Max(0, count);
     }
 
-
     /// <summary>
-    /// Definit le seuil d'objectif principal (ThresholdCount) et reinitialise le flag de goal.
-    /// Appelle une fois au debut du niveau, apres lecture du JSON.
+    /// Définit le seuil d'objectif principal (ThresholdCount) en nombre
+    /// de billes NON NOIRES à collecter et réinitialise le flag de goal.
+    /// Appelée une fois au début du niveau, après lecture du JSON / plan.
     /// </summary>
     public void SetObjectiveThreshold(int threshold)
     {
@@ -102,12 +123,14 @@ public class ScoreManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Reinitialise completement le score et les compteurs runtime pour une nouvelle partie/niveau.
+    /// Réinitialise complètement le score et les compteurs runtime
+    /// pour une nouvelle partie/niveau.
     /// </summary>
     public void ResetScore(int start = 0)
     {
         currentScore = start;
         totalBilles = 0;
+        totalBillesNonNoires = 0;
         totalPertes = 0;
         realSpawned = 0;
         goalReached = false;
@@ -124,8 +147,8 @@ public class ScoreManager : MonoBehaviour
     // =====================================================
 
     /// <summary>
-    /// Enregistre qu'une bille a ete reellement spawnee.
-    /// Permet de comparer le plan theorique au runtime reel.
+    /// Enregistre qu'une bille a été réellement spawnee.
+    /// Permet de comparer le plan théorique au runtime réel.
     /// </summary>
     public void RegisterRealSpawn()
     {
@@ -144,10 +167,11 @@ public class ScoreManager : MonoBehaviour
 
     /// <summary>
     /// Enregistre un snapshot de bac (flush) :
-    /// - Incremente le total de billes collectees
-    /// - Met a jour les totaux par type
+    /// - Incrémente le total de billes collectées (tous types)
+    /// - Incrémente le total de billes collectées HORS NOIRES
+    /// - Met à jour les totaux par type
     /// - Ajoute les points du lot au score
-    /// - Verifie si l'objectif principal est atteint
+    /// - Vérifie si l'objectif principal est atteint
     /// </summary>
     public void GetSnapshot(BinSnapshot snapshot)
     {
@@ -157,50 +181,76 @@ public class ScoreManager : MonoBehaviour
         // Sauvegarde de l'historique
         historique.Add(snapshot);
 
-        // Incremente le total de billes collectees
+        // Incrémente le total de billes collectées (tous types)
         totalBilles += snapshot.nombreDeBilles;
 
-        // Mise a jour des totaux par type de bille
+        int nonBlackThisFlush = 0;
+
+        // Mise à jour des totaux par type de bille
         if (snapshot.parType != null)
         {
             foreach (var kv in snapshot.parType)
             {
-                if (!totauxParType.ContainsKey(kv.Key))
-                    totauxParType[kv.Key] = 0;
+                string typeKey = kv.Key;
+                int count = kv.Value;
 
-                totauxParType[kv.Key] += kv.Value;
+                if (!totauxParType.ContainsKey(typeKey))
+                    totauxParType[typeKey] = 0;
+
+                totauxParType[typeKey] += count;
+
+                // Comptage des billes NON NOIRES
+                if (!IsBlackType(typeKey))
+                {
+                    nonBlackThisFlush += count;
+                }
             }
         }
+
+        // Incrémente le total HORS NOIRES sur ce flush
+        totalBillesNonNoires += nonBlackThisFlush;
 
         // Ajout des points du flush au score courant
         AddPoints(snapshot.totalPointsDuLot);
 
-        // Verifie si l'objectif principal est atteint ou depasse
+        // Vérifie si l'objectif principal est atteint ou dépassé
         CheckGoalReached();
 
-        // Notifie l'enregistrement de ce flush a tous les listeners interessés
+        // Notifie l'enregistrement de ce flush à tous les listeners intéressés
         OnFlushSnapshotRegistered?.Invoke(snapshot);
     }
 
+    /// <summary>
+    /// Détermine si une clé de type correspond à une bille noire.
+    /// On utilise une comparaison insensible à la casse.
+    /// </summary>
+    private bool IsBlackType(string typeKey)
+    {
+        if (string.IsNullOrEmpty(typeKey))
+            return false;
+
+        return string.Equals(typeKey, "Black", StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
-    /// Verifie si le seuil d'objectif est atteint et, si oui,
-    /// declenche l'evenement onGoalReached une seule fois.
+    /// Vérifie si le seuil d'objectif est atteint et, si oui,
+    /// déclenche l'évènement onGoalReached une seule fois.
+    /// L'objectif est basé sur les billes NON NOIRES collectées.
     /// </summary>
     private void CheckGoalReached()
-    {  
+    {
         if (goalReached)
             return;
 
         if (objectiveThreshold <= 0)
             return;
-       
-        if (totalBilles >= objectiveThreshold)
+
+        // On compare le nombre de billes NON NOIRES collectées au seuil.
+        if (totalBillesNonNoires >= objectiveThreshold)
         {
             goalReached = true;
 
-            // Pour debug simple pour le moment
-            Debug.Log("Goal reached !");
+            Debug.Log("Goal reached (non-black threshold) !");
 
             onGoalReached?.Invoke();
         }
@@ -212,7 +262,7 @@ public class ScoreManager : MonoBehaviour
 
     /// <summary>
     /// Enregistre la perte d'une bille (passage par le Void).
-    /// Met a jour les pertes par type et le total global.
+    /// Met à jour les pertes par type et le total global.
     /// </summary>
     public void RegisterLost(string ballType)
     {
@@ -235,8 +285,8 @@ public class ScoreManager : MonoBehaviour
 
     /// <summary>
     /// Construit un objet EndLevelStats pour la fin de niveau.
-    /// Note: FinalScore est pour l'instant egal au RawScore,
-    /// la logique de multiplicateur/cere monie finale peut le modifier plus tard.
+    /// Note: FinalScore est pour l'instant égal au RawScore,
+    /// la logique de multiplicateur / cérémonie finale peut le modifier plus tard.
     /// </summary>
     public EndLevelStats BuildEndLevelStats(int timeElapsedSec)
     {

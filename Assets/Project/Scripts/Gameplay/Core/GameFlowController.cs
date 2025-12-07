@@ -102,7 +102,7 @@ public class GameFlowController : MonoBehaviour
             endLevelUI.HideStatsPanel();
 
         // On enlève une vie à la run actuelle (runtime)
-        runSession.RemoveLife(1);
+        runSession.RemoveHull(1);
 
         // Synchronise immédiatement la persistance (RunStateData) avec la nouvelle valeur de vies
         SyncPersistentRunOnDefeat();
@@ -110,7 +110,7 @@ public class GameFlowController : MonoBehaviour
         // Résumé du niveau (score de level vs best de level), affiché dans les deux cas
         SetupScoreSummaryForCurrentLevel(defeatScoreSummary);
 
-        if (runSession.Lives <= 0)
+        if (runSession.Hull <= 0)
         {
             // Plus de vies : vraie fin de run -> GAME OVER
             Debug.Log("GAME OVER");
@@ -167,10 +167,10 @@ public class GameFlowController : MonoBehaviour
     /// Côté persistance, les vies ont déjà été synchronisées dans HandleUiSequenceFailed.
     /// On demande simplement à RunSessionBootstrapper de réutiliser les vies actuelles.
     /// </summary>
-    public void RetryLevelKeepLives()
+    public void RetryLevelKeepHull()
     {
         if (runSession != null)
-            runSession.MarkCarryLivesOnNextRestart(true);
+            runSession.MarkCarryHullOnNextRestart(true);
 
         ReloadCurrentLevel();
     }
@@ -179,10 +179,10 @@ public class GameFlowController : MonoBehaviour
     /// Retry depuis GAME OVER : reset complet des vies selon la définition du vaisseau
     /// et réinitialisation de l'état de la run persistante.
     /// </summary>
-    public void RetryLevelResetLives()
+    public void RetryLevelResetHull()
     {
         if (runSession != null)
-            runSession.MarkCarryLivesOnNextRestart(false);
+            runSession.MarkCarryHullOnNextRestart(false);
 
         ResetPersistentRunForNewAttempt();
         ReloadCurrentLevel();
@@ -218,7 +218,7 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     private void HandleRetryDefeatRequested()
     {
-        RetryLevelKeepLives();
+        RetryLevelKeepHull();
     }
 
     /// <summary>
@@ -226,7 +226,7 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     private void HandleRetryGameOverRequested()
     {
-        RetryLevelResetLives();
+        RetryLevelResetHull();
     }
 
     /// <summary>
@@ -257,8 +257,8 @@ public class GameFlowController : MonoBehaviour
         if (run == null || !run.hasOngoingRun)
             return;
 
-        int lives = Mathf.Max(0, runSession != null ? runSession.Lives : run.remainingLivesInRun);
-        run.remainingLivesInRun = lives;
+        int lives = Mathf.Max(0, runSession != null ? runSession.Hull : run.remainingHullInRun);
+        run.remainingHullInRun = lives;
 
         // Le niveau est terminé (raté), donc il n'est plus "en cours"
         run.levelInProgress = false;
@@ -293,8 +293,8 @@ public class GameFlowController : MonoBehaviour
         if (run == null || !run.hasOngoingRun)
             return;
 
-        int lives = Mathf.Max(0, runSession != null ? runSession.Lives : run.remainingLivesInRun);
-        run.remainingLivesInRun = lives;
+        int lives = Mathf.Max(0, runSession != null ? runSession.Hull : run.remainingHullInRun);
+        run.remainingHullInRun = lives;
 
         // Le niveau vient d'être complété avec succès : il n'est plus en cours
         run.levelInProgress = false;
@@ -355,7 +355,7 @@ public class GameFlowController : MonoBehaviour
         {
             var ship = ShipCatalogService.Catalog.ships.Find(s => s.id == shipId);
             if (ship != null)
-                startingLives = Mathf.Max(0, ship.lives);
+                startingLives = Mathf.Max(0, ship.maxHull);
         }
 
         // Nouvelle run
@@ -368,7 +368,7 @@ public class GameFlowController : MonoBehaviour
         run.currentLevelId = "W1-L1";
 
         // Vies de départ et reset de la progression
-        run.remainingLivesInRun = startingLives;
+        run.remainingHullInRun = startingLives;
         run.currentRunScore = 0;
         run.currentWorldScore = 0;
         run.levelsClearedInRun = 0;

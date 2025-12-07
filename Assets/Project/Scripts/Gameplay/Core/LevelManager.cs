@@ -29,7 +29,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private BinCollector collector;                // Gestion des flushs (collecte des billes)
     [SerializeField] private EndSequenceController endSequence;     // Phase d’évacuation et fin de niveau
     [SerializeField] private ObstacleManager obstacleManager;       // Gestion des obstacles
-    [SerializeField] private LevelControlsController controlsController; // Gstion des Inputs
+    [SerializeField] private LevelControlsController controlsController; // Gestion des Inputs
 
     // ----------------------------------------------------------
     // RÉFÉRENCES UI
@@ -41,10 +41,8 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private PauseController pauseController;            // Système de pause
     [SerializeField] private LevelIdUI levelIdUI;                        // Affichage ID du niveau (W1-L1, etc.)
     [SerializeField] private ScoreUI scoreUI;                            // Affichage du score en HUD
-    [SerializeField] private LivesUI livesUI;                            // Affichage des vies restantes
+    [SerializeField] private HullUI hullUI;                            // Affichage des vies restantes
     [SerializeField] private ProgressBarUI progressBarUI;                // Barre de progression des billes
-
-
 
     // ----------------------------------------------------------
     // ENVIRONNEMENT / VAISSEAU DE FOND
@@ -69,7 +67,6 @@ public class LevelManager : MonoBehaviour
 
     [Header("Narration / Intro Sequence")]
     [SerializeField] private LevelIntroSequenceController introSequenceController;
-
 
     // Nom de fichier de l'image du vaisseau sélectionné (pour le décor de fond).
     // Récupéré dans ResolveShipStats à partir du ShipDefinition.
@@ -104,13 +101,12 @@ public class LevelManager : MonoBehaviour
 
         // On écoute les changements de vies pour mettre à jour la UI (RunSessionState -> HUD)
         if (runSession != null)
-            runSession.OnLivesChanged.AddListener(HandleLivesChanged);
+            runSession.OnHullChanged.AddListener(HandleHullChanged);
 
         // On écoute les flushs enregistrés par le ScoreManager
         if (scoreManager != null)
             scoreManager.OnFlushSnapshotRegistered += HandleFlushSnapshotRegistered;
     }
-
 
     private void OnDisable()
     {
@@ -118,12 +114,11 @@ public class LevelManager : MonoBehaviour
             levelTimer.OnTimerEnd -= HandleTimerEnd;
 
         if (runSession != null)
-            runSession.OnLivesChanged.RemoveListener(HandleLivesChanged);
+            runSession.OnHullChanged.RemoveListener(HandleHullChanged);
 
         if (scoreManager != null)
             scoreManager.OnFlushSnapshotRegistered -= HandleFlushSnapshotRegistered;
     }
-
 
     private void Start()
     {
@@ -134,7 +129,7 @@ public class LevelManager : MonoBehaviour
         SetupSecondaryObjectives();
 
         // 3) Configurer le score et la durée (vies déjà gérées par RunSessionBootstrapper)
-        SetupScoreAndLives();
+        SetupScoreAndHull();
 
         // 4) Configurer le timer (durée du niveau)
         SetupTimer();
@@ -142,7 +137,7 @@ public class LevelManager : MonoBehaviour
         // 5) Configurer le spawner + la barre de progression
         SetupSpawnerAndProgress();
 
-        //6) Configurer les obstacles
+        // 6) Configurer les obstacles
         SetupObstacles();
 
         // 7) Configurer la séquence d’évacuation (après la fin du timer)
@@ -202,7 +197,7 @@ public class LevelManager : MonoBehaviour
     /// - déterminer la durée du niveau à partir du vaisseau (et éventuellement MainQuickStart),
     /// - récupérer le fichier image du vaisseau pour le décor de fond.
     /// </summary>
-    private void SetupScoreAndLives()
+    private void SetupScoreAndHull()
     {
         // Branche le ScoreManager sur la UI de score
         if (scoreManager != null && scoreUI != null)
@@ -240,20 +235,16 @@ public class LevelManager : MonoBehaviour
 
             Debug.Log($"[LevelManager] QuickStart active — Timer={runDurationSec}s");
         }
-
-        // Les vies seront gérées par RunSessionBootstrapper et propagées à la HUD
-        // via runSession.OnLivesChanged -> HandleLivesChanged -> livesUI.SetLives(...)
     }
-
 
     /// <summary>
     /// Lit le vaisseau sélectionné dans RunConfig / ShipCatalog,
     /// renvoie le nombre de vies et la durée de bouclier pour ce niveau.
     /// Met aussi à jour currentShipImageFile pour le décor de fond.
     /// </summary>
-    private void ResolveShipStats(out int lives, out float durationSec)
+    private void ResolveShipStats(out int hull, out float durationSec)
     {
-        lives = 0;
+        hull = 0;
         durationSec = 0f;
         currentShipImageFile = null;
 
@@ -276,7 +267,7 @@ public class LevelManager : MonoBehaviour
 
         currentShipImageFile = ship.imageFile;
 
-        lives = Mathf.Max(0, ship.lives);
+        hull = Mathf.Max(0, ship.maxHull);
         durationSec = Mathf.Max(0.1f, ship.shieldSecondsPerLevel);
     }
 
@@ -296,29 +287,38 @@ public class LevelManager : MonoBehaviour
     /// <summary>
     /// Configure le spawner à partir du LevelData et branche la ProgressBar
     /// via les callbacks OnPlannedReady (total prévu) et OnActivated (bille activée).
+    /// 
+    /// Désormais, le "total prévu" utilisé pour la progression et l'objectif
+    /// est le nombre de billes NON NOIRES prévues (BallSpawner.PlannedNonBlackSpawnCount).
     /// </summary>
     private void SetupSpawnerAndProgress()
     {
         if (ballSpawner == null || data == null)
             return;
 
-        ballSpawner.OnPlannedReady += total =>
+        ballSpawner.OnPlannedReady += _ =>
         {
-            // Informe le ScoreManager du nombre de billes prévues
-            scoreManager?.SetPlannedBalls(total);
+            if (scoreManager == null)
+                return;
 
-            // Configure la barre de progression avec total + objectif principal
-            if (progressBarUI != null && data != null)
+            // Nombre de billes prévues HORS NOIRES (plan théorique)
+            int plannedNonBlack = ballSpawner.PlannedNonBlackSpawnCount;
+
+            // Informe le ScoreManager du nombre de billes prévues (hors noires)
+            scoreManager.SetPlannedBalls(plannedNonBlack);
+
+            // Récupère le seuil d'objectif principal (en nombre de billes non noires)
+            int threshold = data.MainObjective != null ? data.MainObjective.ThresholdCount : 0;
+
+            // Configure la barre de progression avec total (hors noires) + objectif principal
+            if (progressBarUI != null)
             {
-                int threshold = data.MainObjective != null ? data.MainObjective.ThresholdCount : 0;
-                progressBarUI.Configure(total, threshold);
+                progressBarUI.Configure(plannedNonBlack, threshold);
                 progressBarUI.Refresh();
-
-                if (scoreManager != null)
-                {
-                    scoreManager.SetObjectiveThreshold(threshold);
-                }
             }
+
+            // Configure l'objectif principal dans le ScoreManager (seuil en non-noires)
+            scoreManager.SetObjectiveThreshold(threshold);
         };
 
         ballSpawner.OnActivated += _ =>
@@ -355,8 +355,8 @@ public class LevelManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Desactive tous les controles de gameplay.
-    /// Si un LevelControlsController est configure, on lui delegue,
+    /// Désactive tous les contrôles de gameplay.
+    /// Si un LevelControlsController est configuré, on lui délègue,
     /// sinon on retombe sur l'ancien comportement direct.
     /// </summary>
     private void DisableGameplayControls()
@@ -367,7 +367,7 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        // Fallback legacy (si jamais controlsController n'est pas assigne)
+        // Fallback legacy (si jamais controlsController n'est pas assigné)
         player?.SetActiveControl(false);
         closeBinController?.SetActiveControl(false);
     }
@@ -410,23 +410,20 @@ public class LevelManager : MonoBehaviour
             tickInterval: 1f,
             onEvacStartCb: () =>
             {
-                // Plus de texte ici. PhaseDialogController est prévenu par l'event OnEvacuationStarted.
                 if (countdownUI != null)
                     StartCoroutine(countdownUI.PlayCountdownSeconds(evacDuration));
             },
             onEvacTickCb: null
         );
-
     }
-
 
     /// <summary>
     /// Gère le flux d'intro :
     /// - affiche le briefing (LevelIntroOverlay) via LevelBriefingController
-    /// - une fois le briefing terminé (Play), lance la sequence de debut de niveau
-    ///   (dialogues d'intro + compte a rebours + StartLevel).
-    /// Le briefing est obligatoire : s'il n'est pas correctement configure, on log une erreur
-    /// et on enchaine directement sur la sequence de debut.
+    /// - une fois le briefing terminé (Play), lance la sequence de début de niveau
+    ///   (dialogues d'intro + compte à rebours + StartLevel).
+    /// Le briefing est obligatoire : s'il n'est pas correctement configuré, on log une erreur
+    /// et on enchaîne directement sur la sequence de début.
     /// </summary>
     private void SetupIntroOrAutoStart()
     {
@@ -437,7 +434,6 @@ public class LevelManager : MonoBehaviour
                 phasePlanInfos,
                 onPlay: () =>
                 {
-                    // Une fois le briefing termine, on lance la sequence d'intro complete
                     if (introSequenceController != null)
                     {
                         introSequenceController.Play(() =>
@@ -447,7 +443,7 @@ public class LevelManager : MonoBehaviour
                     }
                     else
                     {
-                        Debug.LogWarning("[LevelManager] Aucun LevelIntroSequenceController assigne. Demarrage direct du niveau.");
+                        Debug.LogWarning("[LevelManager] Aucun LevelIntroSequenceController assigné. Demarrage direct du niveau.");
                         StartLevel();
                     }
                 },
@@ -456,22 +452,18 @@ public class LevelManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError("[LevelManager] Aucun LevelBriefingController assigne alors que le briefing est obligatoire. Demarrage direct du niveau sans intro.");
+            Debug.LogError("[LevelManager] Aucun LevelBriefingController assigné alors que le briefing est obligatoire. Demarrage direct du niveau sans intro.");
             StartLevel();
         }
     }
 
-
-
-
     /// <summary>
-    /// Active les controles joueur et la pause.
+    /// Active les contrôles joueur et la pause.
     /// </summary>
     private void EnableGameplayControls()
     {
         EnableGameplayControlsInternal();
     }
-
 
     // =====================================================================
     // BOUCLE DE JEU
@@ -497,7 +489,6 @@ public class LevelManager : MonoBehaviour
         ballSpawner?.StartSpawning();
         MarkLevelStartedInSave();
     }
-
 
     /// <summary>
     /// Appelé quand le timer du niveau arrive à 0 :
@@ -562,15 +553,13 @@ public class LevelManager : MonoBehaviour
 
             if (st.collected)
             {
-                // Billes déjà collectées : on les recycle comme collected
                 spawner?.Recycle(go, collected: true);
                 continue;
             }
 
             if (st.inBin)
-                continue; // Sécurité contre les cas limites
+                continue;
 
-            // Tout le reste est considéré comme perdu
             score?.RegisterLost(st.TypeName);
             spawner?.Recycle(go, collected: false);
         }
@@ -580,20 +569,6 @@ public class LevelManager : MonoBehaviour
     // ÉVALUATION FINALE & EVENT
     // =====================================================================
 
-    /// <summary>
-    /// Calcule si l’objectif principal est atteint ou non, construit
-    /// les EndLevelStats et MainObjectiveResult, puis émet OnEndComputed.
-    /// L’UI de fin (EndLevelUI) réagit à cet event.
-    /// Les objectifs secondaires sont évalués ici, mais leur affichage
-    /// sera géré plus tard dans l'UI de fin.
-    /// </summary>
-    /// <summary>
-    /// Calcule si l'objectif principal est atteint ou non, construit
-    /// les EndLevelStats et MainObjectiveResult via LevelResultEvaluator,
-    /// puis emet OnEndComputed.
-    /// Les resultats d'objectifs secondaires sont stockes pour consultation
-    /// par d'autres modules (UI, meta, etc.).
-    /// </summary>
     private void EvaluateLevelResult()
     {
         if (scoreManager == null || data == null)
@@ -617,11 +592,8 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        // On memorise les resultats d'objectifs secondaires (peut etre null s'il n'y en a pas).
         secondaryObjectiveResults = evalResult.SecondaryObjectives;
 
-        // Event central de fin de niveau : tout ce qui gere la ceremonie
-        // se branche sur OnEndComputed, LevelManager ne fait rien de plus ici.
         OnEndComputed.Invoke(evalResult.Stats, data, evalResult.MainObjective);
     }
 
@@ -629,53 +601,34 @@ public class LevelManager : MonoBehaviour
     // CALLBACKS & UTILITAIRES
     // =====================================================================
 
-    /// <summary>
-    /// Réagit aux changements de vies dans RunSessionState.
-    /// Met à jour la HUD de vies.
-    /// </summary>
-    private void HandleLivesChanged(int lives)
+    private void HandleHullChanged(int hull)
     {
-        livesUI?.SetLives(lives);
+        hullUI?.SetHull(hull);
     }
 
-    /// <summary>
-    /// Renvoie l’ID du niveau courant (utilisé ailleurs si besoin).
-    /// </summary>
     public string GetLevelID()
     {
         return data != null ? data.LevelID : levelID;
     }
 
-    /// <summary>
-    /// Renvoie la liste des résultats d'objectifs secondaires calculés en fin de niveau.
-    /// Peut être null si aucun objectif secondaire n'est défini.
-    /// </summary>
     public List<SecondaryObjectiveResult> GetSecondaryObjectiveResults()
     {
         return secondaryObjectiveResults;
     }
 
-    /// <summary>
-    /// Callback lorsqu'un flush est enregistre par le ScoreManager.
-    /// Utilise le snapshot pour mettre a jour les objectifs secondaires
-    /// de type "BallCount".
-    /// </summary>
     private void HandleFlushSnapshotRegistered(BinSnapshot snapshot)
     {
-        // Si aucun objectif secondaire n'est defini, on ne fait rien.
         if (data == null || data.SecondaryObjectives == null || data.SecondaryObjectives.Length == 0)
             return;
 
         if (snapshot == null || snapshot.parType == null)
             return;
 
-        // Pour chaque type de bille collecte dans ce flush
         foreach (var kv in snapshot.parType)
         {
             string ballType = kv.Key;
             int count = kv.Value;
 
-            // Objectifs "BallCount" : on compte chaque bille individuellement.
             for (int i = 0; i < count; i++)
             {
                 secondaryObjectivesManager.OnBallCollected(ballType);
@@ -683,24 +636,14 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Notification externe lorsqu'un combo est déclenché.
-    /// Utilisé par ComboEngine pour informer les objectifs secondaires de type ComboCount.
-    /// </summary>
     public void NotifyComboTriggered(string comboId)
     {
-        // Si aucun objectif secondaire n'est défini, on ne fait rien.
         if (data == null || data.SecondaryObjectives == null || data.SecondaryObjectives.Length == 0)
             return;
 
         secondaryObjectivesManager.OnComboTriggered(comboId);
     }
 
-    /// <summary>
-    /// Marque dans la sauvegarde qu'un level est réellement en cours.
-    /// Cela arme la pénalité d'abandon : si le jeu se ferme sans fin officielle
-    /// (victoire/défaite), une vie sera retirée au prochain boot.
-    /// </summary>
     private void MarkLevelStartedInSave()
     {
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
@@ -710,12 +653,10 @@ public class LevelManager : MonoBehaviour
         if (run == null)
             return;
 
-        // On considère qu'il y a une run en cours si on est dans un niveau jouable.
         run.hasOngoingRun = true;
         run.levelInProgress = true;
         run.abortPenaltyArmed = true;
 
         SaveManager.Instance.Save();
     }
-
 }

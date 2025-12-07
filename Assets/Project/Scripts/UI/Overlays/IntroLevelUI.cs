@@ -464,7 +464,7 @@ public class IntroLevelUI : MonoBehaviour
         // LIVES
         // -------------------------------------------------------------
         if (shipLivesText != null)
-            shipLivesText.text = "x" + ship.lives;
+            shipLivesText.text = "x" + ship.maxHull;
 
         // -------------------------------------------------------------
         // SHIELD (durée de protection par niveau)

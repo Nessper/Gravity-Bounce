@@ -20,7 +20,7 @@ public class ShipSelectController : MonoBehaviour
     [SerializeField] private Button Previous_Button;
     [SerializeField] private Button Next_Button;
     [SerializeField] private TMP_Text Description_Txt;
-    [SerializeField] private TMP_Text Lives_Txt;
+    [SerializeField] private TMP_Text Hull_Txt;
     [SerializeField] private TMP_Text Shield_Txt;
     [SerializeField] private TMP_Text PaddleWidth_Txt;
 
@@ -149,7 +149,7 @@ public class ShipSelectController : MonoBehaviour
             run.currentLevelId = "W1-L1";
 
             // Vies de la campagne = vies de base du vaisseau
-            run.remainingLivesInRun = Mathf.Max(0, ship.lives);
+            run.remainingHullInRun = Mathf.Max(0, ship.maxHull);
 
             // Score de run remis à zéro
             run.currentRunScore = 0;
@@ -190,7 +190,7 @@ public class ShipSelectController : MonoBehaviour
 
         if (ShipName_Txt) ShipName_Txt.text = ship.displayName;
         if (Description_Txt) Description_Txt.text = ship.description;
-        if (Lives_Txt) Lives_Txt.text = "x" + ship.lives;
+        if (Hull_Txt) Hull_Txt.text = "x" + ship.maxHull;
         if (Shield_Txt) Shield_Txt.text = ship.shieldSecondsPerLevel.ToString();
         if (PaddleWidth_Txt) PaddleWidth_Txt.text = ship.paddleWidthMult.ToString();
 

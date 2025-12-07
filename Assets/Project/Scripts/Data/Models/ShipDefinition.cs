@@ -7,7 +7,7 @@ public class ShipDefinition
     public string id;
     public string displayName;
     public string description;    
-    public int lives;
+    public int maxHull;
     public float shieldSecondsPerLevel;
     public float closeBinHoldGrace;
     public float paddleWidthMult;

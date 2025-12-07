@@ -4,47 +4,47 @@ using UnityEngine.Events;
 [CreateAssetMenu(fileName = "RunSessionState", menuName = "Game/Run Session State")]
 public class RunSessionState : ScriptableObject
 {
-    [SerializeField] private int lives;
+    [SerializeField] private int hull;
 
     // Flag interne : si true, le prochain restart de niveau doit conserver les vies actuelles
-    [SerializeField] private bool keepCurrentLivesOnNextRestart;
+    [SerializeField] private bool keepCurrentHullOnNextRestart;
 
-    public UnityEvent<int> OnLivesChanged = new UnityEvent<int>();
+    public UnityEvent<int> OnHullChanged = new UnityEvent<int>();
 
-    public int Lives => lives;
+    public int Hull => hull;
 
-    public void InitLives(int value)
+    public void InitHull(int value)
     {
-        lives = Mathf.Max(0, value);
-        OnLivesChanged.Invoke(lives);
+        hull = Mathf.Max(0, value);
+        OnHullChanged.Invoke(hull);
     }
 
-    public void RemoveLife(int amount = 1)
+    public void RemoveHull(int amount = 1)
     {
-        int prev = lives;
-        lives = Mathf.Max(0, lives - Mathf.Max(1, amount));
-        if (lives != prev)
-            OnLivesChanged.Invoke(lives);
+        int prev = hull;
+        hull = Mathf.Max(0, hull - Mathf.Max(1, amount));
+        if (hull != prev)
+            OnHullChanged.Invoke(hull);
     }
 
-    public void AddLife(int amount = 1)
+    public void AddHull(int amount = 1)
     {
-        lives += Mathf.Max(1, amount);
-        OnLivesChanged.Invoke(lives);
+        hull += Mathf.Max(1, amount);
+        OnHullChanged.Invoke(hull);
     }
 
     // Demande explicite : "au prochain restart, garde les vies actuelles" (true)
     // ou "au prochain restart, réinitialise depuis le vaisseau" (false)
-    public void MarkCarryLivesOnNextRestart(bool keep)
+    public void MarkCarryHullOnNextRestart(bool keep)
     {
-        keepCurrentLivesOnNextRestart = keep;
+        keepCurrentHullOnNextRestart = keep;
     }
 
     // Consomme le flag (il repasse automatiquement à false après l'appel)
     public bool ConsumeKeepFlag()
     {
-        bool v = keepCurrentLivesOnNextRestart;
-        keepCurrentLivesOnNextRestart = false;
+        bool v = keepCurrentHullOnNextRestart;
+        keepCurrentHullOnNextRestart = false;
         return v;
     }
 }

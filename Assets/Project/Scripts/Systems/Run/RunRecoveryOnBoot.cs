@@ -32,14 +32,14 @@ public class RunRecoveryOnBoot : MonoBehaviour
         run.levelInProgress = false;
         run.abortPenaltyArmed = false;
 
-        if (run.remainingLivesInRun > 0)
+        if (run.remainingHullInRun > 0)
         {
-            run.remainingLivesInRun = Mathf.Max(0, run.remainingLivesInRun - 1);
+            run.remainingHullInRun = Mathf.Max(0, run.remainingHullInRun - 1);
         }
 
-        if (run.remainingLivesInRun <= 0)
+        if (run.remainingHullInRun <= 0)
         {
-            run.remainingLivesInRun = 0;
+            run.remainingHullInRun = 0;
             run.hasOngoingRun = false;
 
             Debug.Log("[RunRecoveryOnBoot] Aborted level detected. Life lost -> RUN ENDED (no more lives).");
@@ -47,7 +47,7 @@ public class RunRecoveryOnBoot : MonoBehaviour
         else
         {
             Debug.Log("[RunRecoveryOnBoot] Aborted level detected. Life lost. Remaining lives = "
-                      + run.remainingLivesInRun);
+                      + run.remainingHullInRun);
         }
 
         SaveManager.Instance.Save();
