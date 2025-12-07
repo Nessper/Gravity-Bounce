@@ -5,15 +5,16 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Gère la séquence d'intro de niveau :
-/// - lock des controles
-/// - état visuel initial (overlay + plateau masqué + HUD masqué + ship en bas)
+/// - lock des contrôles
+/// - état visuel initial (overlay + plateau actif mais démonté + HUD masqué + ship en bas)
 /// - animation du vaisseau (en parallèle des dialogues)
 /// - dialogues d'intro
-/// - gros flash plein écran, pendant lequel le plateau est activé
-/// - quand le flash disparaît, le plateau + HUD sont visibles
-/// - petit délai
+/// - animation d'assemblage du plateau via BoardIntroAssembler
+/// - fade de l'overlay à la fin des dialogues
+/// - attente de la fin de l'assemblage du board
+/// - HUD on, petit délai
 /// - compte à rebours "3-2-1"
-/// - unlock des controles, puis callback onComplete (LevelManager.StartLevel)
+/// - unlock des contrôles, puis callback onComplete (LevelManager.StartLevel)
 /// </summary>
 public class LevelIntroSequenceController : MonoBehaviour
 {
@@ -31,12 +32,11 @@ public class LevelIntroSequenceController : MonoBehaviour
     [SerializeField] private int worldIndex = 1;
     [SerializeField] private int levelIndex = 1;
 
-
     [Header("Visual Intro")]
     [Tooltip("Overlay noir (CanvasGroup) désactivé par défaut.")]
     [SerializeField] private CanvasGroup introOverlayCanvasGroup;
 
-    [Tooltip("Racine du plateau (BoardRoot), désactivé au début.")]
+    [Tooltip("Racine du plateau (BoardRoot), active dès le début de l'intro (porte aussi BoardIntroAssembler).")]
     [SerializeField] private GameObject boardRoot;
 
     [Tooltip("Alpha de départ de l'overlay (ex: 0.9).")]
@@ -50,7 +50,7 @@ public class LevelIntroSequenceController : MonoBehaviour
     [SerializeField] private Camera gameplayCamera;
 
     [Tooltip("Durée (secondes) de l'animation d'arrivée du vaisseau.")]
-    [SerializeField] private float shipEnterDuration = 20f;
+    [SerializeField] private float shipEnterDuration = 2f;
 
     [Tooltip("Marge mondiale sous le bas de la caméra pour la position 'extrême bas'.")]
     [SerializeField] private float shipOffscreenMarginWorld = 0.5f;
@@ -63,27 +63,24 @@ public class LevelIntroSequenceController : MonoBehaviour
     private Vector3 shipEndWorldPosition;
     private bool shipIntroEnabled = false;
 
-    [Header("Board Reveal / Flash")]
-    [Tooltip("Délai avant le flash une fois ship + dialogues terminés.")]
-    [SerializeField] private float boardRevealDelay = 0.3f;
+    [Header("Board Intro")]
+    [Tooltip("Script chargé de préparer et d'animer le montage du plateau (bins, murs, fond...).")]
+    [SerializeField] private BoardIntroAssembler boardIntroAssembler;
 
-    [Tooltip("Durée de montée du flash (sec) de 0 à 1.")]
-    [SerializeField] private float flashInDuration = 0.06f;
-
-    [Tooltip("Durée de descente du flash (sec) de 1 à 0.")]
-    [SerializeField] private float flashOutDuration = 0.25f;
-
-    [Tooltip("CanvasGroup utilisé pour le flash plein écran (Image cyan).")]
-    [SerializeField] private CanvasGroup boardFlashCanvasGroup;
+    [Tooltip("Délai après la fin de l'animation du vaisseau avant de lancer l'assemblage du plateau.")]
+    [SerializeField] private float delayBeforeBoardAssembly = 0.3f;
 
     [Header("Gameplay HUD")]
     [Tooltip("HUD du haut (score run, barre de progression, pause, etc.).")]
     [SerializeField] private GameObject topHUDRoot;
 
-
     [Header("Timing")]
-    [Tooltip("Délai entre la fin du flash et le début du compte à rebours.")]
+    [Tooltip("Délai entre la fin du HUD on et le début du compte à rebours.")]
     [SerializeField] private float delayBeforeCountdown = 0.3f;
+
+    [Header("Overlay Fade")]
+    [Tooltip("Durée du fade-out de l'overlay d'intro (alpha -> 0) une fois les dialogues terminés.")]
+    [SerializeField] private float overlayFadeDuration = 0.3f;
 
     [Header("Skip")]
     [Tooltip("Bouton Skip pour passer l'intro.")]
@@ -97,8 +94,6 @@ public class LevelIntroSequenceController : MonoBehaviour
 
     private bool skipRequested = false;
     private Action onCompleteCallback;
-
-
 
     // ============================
     // ENTRY POINT
@@ -130,19 +125,9 @@ public class LevelIntroSequenceController : MonoBehaviour
         StartCoroutine(PlayRoutine());
     }
 
-
-
     // ============================
     // INITIAL SETUP
     // ============================
-    /// <summary>
-    /// Prépare l'état visuel initial :
-    /// - overlay visible
-    /// - plateau désactivé
-    /// - HUD masqué
-    /// - flash alpha = 0
-    /// - ship placé en bas de l'écran selon la caméra ortho
-    /// </summary>
     private void SetupInitialVisualState()
     {
         // Overlay
@@ -150,26 +135,25 @@ public class LevelIntroSequenceController : MonoBehaviour
         {
             introOverlayCanvasGroup.gameObject.SetActive(true);
             introOverlayCanvasGroup.alpha = overlayInitialAlpha;
-            introOverlayCanvasGroup.blocksRaycasts = true;   // bloque le gameplay derrière
-            introOverlayCanvasGroup.interactable = true;     // permet au bouton Skip et aux UI enfants de rester interactifs
+            introOverlayCanvasGroup.blocksRaycasts = true;
+            introOverlayCanvasGroup.interactable = true;
         }
 
-        // HUD du bouton skip activé
+        // HUD intro visible (skip, etc.)
         if (introHUDRoot != null)
             introHUDRoot.SetActive(true);
 
-        // Plateau masqué
+        // Plateau actif (structure en place, mais contenu géré par l'assembleur)
         if (boardRoot != null)
-            boardRoot.SetActive(false);
+            boardRoot.SetActive(true);
 
-        // HUD masqué
+        // HUD gameplay masqué
         if (topHUDRoot != null)
             topHUDRoot.SetActive(false);
-       
 
-        // Flash plateau initialement invisible
-        if (boardFlashCanvasGroup != null)
-            boardFlashCanvasGroup.alpha = 0f;
+        // Préparation du plateau démonté
+        if (boardIntroAssembler != null)
+            boardIntroAssembler.PrepareInitialState();
 
         // Placement du vaisseau (caméra ortho + SpriteRenderer)
         shipIntroEnabled = false;
@@ -184,16 +168,11 @@ public class LevelIntroSequenceController : MonoBehaviour
                 {
                     shipIntroEnabled = true;
 
-                    // Position finale telle que dans la scène
                     shipEndWorldPosition = shipRoot.position;
 
-                    // Bas de la caméra en monde
                     float camBottomY = cam.transform.position.y - cam.orthographicSize;
-
-                    // Demi-hauteur du sprite
                     float halfHeight = sr.bounds.extents.y;
 
-                    // Position "extrême bas" : haut du vaisseau collé au bas de l'écran - marge
                     float targetTopY = camBottomY - shipOffscreenMarginWorld;
                     float extremeStartY = targetTopY - halfHeight;
 
@@ -203,7 +182,6 @@ public class LevelIntroSequenceController : MonoBehaviour
                         shipEndWorldPosition.z
                     );
 
-                    // Position réelle de départ : interpolation entre end et extreme bas
                     shipStartWorldPosition = Vector3.Lerp(
                         shipEndWorldPosition,
                         extremeStartPos,
@@ -226,25 +204,23 @@ public class LevelIntroSequenceController : MonoBehaviour
         }
     }
 
-
-
     // ============================
-    // MAIN ROUTINE (CAS NORMAL)
+    // MAIN ROUTINE
     // ============================
     private IEnumerator PlayRoutine()
     {
-        // 1) Lock des controles
+        // 1) Lock des contrôles
         if (controlsController != null)
             controlsController.DisableGameplayControls();
 
         // 2) Ship + dialogues en parallèle
         bool shipDone = !shipIntroEnabled;
         bool dialogsDone = false;
+        bool boardDone = (boardIntroAssembler == null);
 
         if (shipIntroEnabled)
             StartCoroutine(PlayShipEntranceSequence(() => shipDone = true));
 
-        // Récupération de la séquence d'intro via le DialogManager
         DialogLine[] introLines = null;
         DialogManager dialogManager = UnityEngine.Object.FindFirstObjectByType<DialogManager>();
         if (dialogManager != null)
@@ -254,35 +230,58 @@ public class LevelIntroSequenceController : MonoBehaviour
                 introLines = dialogManager.GetRandomVariantLines(sequence);
         }
 
-        // Lancement des dialogues si possible
         if (dialogSequenceRunner != null && introLines != null && introLines.Length > 0)
         {
             dialogSequenceRunner.Play(introLines, () => dialogsDone = true);
         }
         else
         {
-            // Pas de runner ou pas de lignes : on considère les dialogues comme terminés
             dialogsDone = true;
         }
 
-        // 3) Attendre la fin des deux
-        while (!shipDone || !dialogsDone)
-        {
+        // 3) Attendre que le ship soit à sa position finale
+        while (!shipDone)
             yield return null;
+
+        // 3.5) Petit délai avant de lancer l'assemblage du board
+        if (delayBeforeBoardAssembly > 0f)
+            yield return new WaitForSeconds(delayBeforeBoardAssembly);
+
+        // 4) Lancer l'assemblage du board EN PARALLÈLE, avec callback de fin
+        if (boardIntroAssembler != null)
+        {
+            StartCoroutine(BoardAssemblyRoutine(() => boardDone = true));
         }
 
-        // 4) Gros flash + reveal plateau + HUD
-        yield return StartCoroutine(PlayBoardFlashReveal());
+        // 5) Attendre la fin des dialogues
+        while (!dialogsDone)
+            yield return null;
 
-        // 4.5) Petit délai avant le countdown
+        // 6) Dialogues terminés : fade de l'overlay (mais on ne touche pas encore au HUD)
+        yield return StartCoroutine(FadeIntroOverlayOnly());
+
+        // 7) Attendre la fin de l'assemblage du board
+        while (!boardDone)
+            yield return null;
+
+        // 8) Board terminé : HUD on + introHUD off + sécurité BoardRoot
+        if (topHUDRoot != null)
+            topHUDRoot.SetActive(true);
+
+        if (introHUDRoot != null)
+            introHUDRoot.SetActive(false);
+
+        ActivateAllBoardRootChildren();
+
+        // 9) Petit délai avant le countdown
         if (delayBeforeCountdown > 0f)
             yield return new WaitForSeconds(delayBeforeCountdown);
 
-        // 5) Countdown
+        // 10) Countdown
         if (countdownUI != null)
             yield return StartCoroutine(countdownUI.PlayCountdown(null));
 
-        // 6) Unlock et cleanup
+        // 11) Unlock et cleanup
         if (controlsController != null)
             controlsController.EnableGameplayControls();
 
@@ -292,15 +291,15 @@ public class LevelIntroSequenceController : MonoBehaviour
         onCompleteCallback?.Invoke();
     }
 
-
+    private IEnumerator BoardAssemblyRoutine(Action onComplete)
+    {
+        yield return boardIntroAssembler.PlayAssembly();
+        onComplete?.Invoke();
+    }
 
     // ============================
     // SKIP
     // ============================
-    /// <summary>
-    /// Appelé par le bouton Skip (via listener dans Play).
-    /// Stoppe l'intro et force l'état juste avant le countdown.
-    /// </summary>
     private void OnSkipButtonPressed()
     {
         if (skipRequested)
@@ -309,59 +308,44 @@ public class LevelIntroSequenceController : MonoBehaviour
         skipRequested = true;
         Debug.Log("[LevelIntroSequenceController] Skip pressed");
 
-        // Couper toutes les coroutines d'intro en cours
         StopAllCoroutines();
 
-        // Couper aussi la séquence de dialogue si elle est en cours
         if (dialogSequenceRunner != null)
             dialogSequenceRunner.StopAndHide();
 
-        // Etat visuel comme si l'intro venait de se terminer
         ForceIntroSkippedState();
 
-        // Enchaîner sur délai + countdown + unlock
         StartCoroutine(SkipToCountdownRoutine());
     }
 
-    /// <summary>
-    /// Force l'état "juste avant le countdown" :
-    /// ship en place, plateau actif, overlay/flash off, HUD visible, dialog UI cachée, skip caché.
-    /// </summary>
     private void ForceIntroSkippedState()
     {
-        // Ship à sa position finale
         if (shipIntroEnabled && shipRoot != null)
             shipRoot.position = shipEndWorldPosition;
 
-        // Plateau visible
         if (boardRoot != null)
             boardRoot.SetActive(true);
 
-        // Overlay + flash à 0
+        if (boardIntroAssembler != null)
+            boardIntroAssembler.ForceAssembledState();
+
+        ActivateAllBoardRootChildren();
+
         if (introOverlayCanvasGroup != null)
         {
             introOverlayCanvasGroup.alpha = 0f;
             introOverlayCanvasGroup.blocksRaycasts = false;
         }
 
-        if (boardFlashCanvasGroup != null)
-            boardFlashCanvasGroup.alpha = 0f;
-
-        // HUD visibles
         if (topHUDRoot != null)
             topHUDRoot.SetActive(true);
-       
-        // Masquer HUD d'intro
+
         if (introHUDRoot != null)
             introHUDRoot.SetActive(false);
 
-
-        // Stopper et cacher la séquence de dialogue
         if (dialogSequenceRunner != null)
             dialogSequenceRunner.StopAndHide();
 
-
-        // Cacher le bouton Skip
         if (skipButtonCanvasGroup != null)
         {
             skipButtonCanvasGroup.alpha = 0f;
@@ -370,12 +354,6 @@ public class LevelIntroSequenceController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Routine appelée après un skip :
-    /// - éventuel petit délai
-    /// - countdown
-    /// - unlock + onComplete
-    /// </summary>
     private IEnumerator SkipToCountdownRoutine()
     {
         if (delayBeforeCountdown > 0f)
@@ -393,8 +371,6 @@ public class LevelIntroSequenceController : MonoBehaviour
         onCompleteCallback?.Invoke();
     }
 
-
-
     // ============================
     // REVEAL DU BOUTON SKIP
     // ============================
@@ -406,7 +382,6 @@ public class LevelIntroSequenceController : MonoBehaviour
         if (skipButtonCanvasGroup == null)
             yield break;
 
-        // Fade-in du bouton
         float dur = 0.3f;
         float t = 0f;
 
@@ -426,8 +401,6 @@ public class LevelIntroSequenceController : MonoBehaviour
         skipButtonCanvasGroup.interactable = true;
         skipButtonCanvasGroup.blocksRaycasts = true;
     }
-
-
 
     // ============================
     // SHIP MOVEMENT
@@ -450,7 +423,6 @@ public class LevelIntroSequenceController : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
 
-            // Ease-out cubic : rapide au début, ralentit sur la fin
             float easedT = 1f - Mathf.Pow(1f - t, 3f);
 
             shipRoot.position = Vector3.Lerp(shipStartWorldPosition, shipEndWorldPosition, easedT);
@@ -462,77 +434,56 @@ public class LevelIntroSequenceController : MonoBehaviour
         onComplete?.Invoke();
     }
 
-
-
     // ============================
-    // BOARD FLASH + REVEAL
+    // OVERLAY FADE (SEULEMENT)
     // ============================
-    private IEnumerator PlayBoardFlashReveal()
+    /// <summary>
+    /// Fait disparaître progressivement l'overlay d'intro,
+    /// sans toucher au HUD.
+    /// </summary>
+    private IEnumerator FadeIntroOverlayOnly()
     {
-        if (boardRevealDelay > 0f)
-            yield return new WaitForSeconds(boardRevealDelay);
-
-        float totalFlashDuration = Mathf.Max(0.01f, flashInDuration + flashOutDuration);
+        float duration = Mathf.Max(0.01f, overlayFadeDuration);
         float elapsed = 0f;
 
-        float startOverlayAlpha = introOverlayCanvasGroup != null ? introOverlayCanvasGroup.alpha : 0f;
-        float endOverlayAlpha = 0f;
+        float startAlpha = introOverlayCanvasGroup != null ? introOverlayCanvasGroup.alpha : 0f;
 
-        if (boardFlashCanvasGroup != null)
-            boardFlashCanvasGroup.alpha = 0f;
-
-        if (boardRoot != null)
-            boardRoot.SetActive(true);
-
-        while (elapsed < totalFlashDuration)
+        while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / totalFlashDuration);
+            float t = Mathf.Clamp01(elapsed / duration);
 
-            // Flash plateau (0 -> 1 puis 1 -> 0)
-            if (boardFlashCanvasGroup != null)
-            {
-                float flashAlpha;
-
-                if (elapsed <= flashInDuration)
-                {
-                    float k = Mathf.Clamp01(elapsed / Mathf.Max(0.0001f, flashInDuration));
-                    flashAlpha = Mathf.Lerp(0f, 1f, k);
-                }
-                else
-                {
-                    float outTime = elapsed - flashInDuration;
-                    float k = Mathf.Clamp01(outTime / Mathf.Max(0.0001f, flashOutDuration));
-                    flashAlpha = Mathf.Lerp(1f, 0f, k);
-                }
-
-                boardFlashCanvasGroup.alpha = flashAlpha;
-            }
-
-            // Overlay noir qui fade vers 0 pendant le flash
             if (introOverlayCanvasGroup != null)
             {
-                float overlayAlpha = Mathf.Lerp(startOverlayAlpha, endOverlayAlpha, t);
-                introOverlayCanvasGroup.alpha = overlayAlpha;
+                float a = Mathf.Lerp(startAlpha, 0f, t);
+                introOverlayCanvasGroup.alpha = a;
             }
 
             yield return null;
         }
-
-        if (boardFlashCanvasGroup != null)
-            boardFlashCanvasGroup.alpha = 0f;
 
         if (introOverlayCanvasGroup != null)
         {
             introOverlayCanvasGroup.alpha = 0f;
             introOverlayCanvasGroup.blocksRaycasts = false;
         }
+    }
 
-        if (topHUDRoot != null)
-            topHUDRoot.SetActive(true);
-        
-        if (introHUDRoot != null)
-            introHUDRoot.SetActive(false);
+    // ============================
+    // BOARDROOT SAFETY
+    // ============================
+    private void ActivateAllBoardRootChildren()
+    {
+        if (boardRoot == null)
+            return;
 
+        Transform root = boardRoot.transform;
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform child = root.GetChild(i);
+            if (child != null)
+                child.gameObject.SetActive(true);
+        }
     }
 }

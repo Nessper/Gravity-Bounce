@@ -69,44 +69,45 @@ public class BinCollector : MonoBehaviour
     /// <param name="skipDelay">
     /// Si true, ignore le délai avant flush (utilisé pour les flush forcés).
     /// </param>
-    public void CollectFromBin(Side side, bool force = false, bool skipDelay = false)
+    public void CollectFromBin(Side side, bool force = false, bool skipDelay = false, bool isFinalFlush = false)
     {
         if (side == Side.Left)
-            CollectLeft(force, skipDelay);
+            CollectLeft(force, skipDelay, isFinalFlush);
 
         if (side == Side.Right)
-            CollectRight(force, skipDelay);
+            CollectRight(force, skipDelay, isFinalFlush);
     }
 
     /// <summary>
     /// Demande un flush simultané des deux bacs (gauche et droit).
     /// </summary>
-    public void CollectAll(bool force = false, bool skipDelay = false)
+    public void CollectAll(bool force = false, bool skipDelay = false, bool isFinalFlush = false)
     {
-        CollectLeft(force, skipDelay);
-        CollectRight(force, skipDelay);
+        CollectLeft(force, skipDelay, isFinalFlush);
+        CollectRight(force, skipDelay, isFinalFlush);
     }
+
 
     // ------------------------------------------------------------------------
     // Pipelines internes
     // ------------------------------------------------------------------------
 
-    private void CollectLeft(bool force, bool skipDelay)
+    private void CollectLeft(bool force, bool skipDelay, bool isFinalFlush)
     {
         if (leftBin == null || flushingLeft)
             return;
 
         flushingLeft = true;
-        StartCoroutine(CollectWithOptions(Side.Left, force, skipDelay));
+        StartCoroutine(CollectWithOptions(Side.Left, force, skipDelay, isFinalFlush));
     }
 
-    private void CollectRight(bool force, bool skipDelay)
+    private void CollectRight(bool force, bool skipDelay, bool isFinalFlush)
     {
         if (rightBin == null || flushingRight)
             return;
 
         flushingRight = true;
-        StartCoroutine(CollectWithOptions(Side.Right, force, skipDelay));
+        StartCoroutine(CollectWithOptions(Side.Right, force, skipDelay, isFinalFlush));
     }
 
     /// <summary>
@@ -117,7 +118,7 @@ public class BinCollector : MonoBehaviour
     /// - snapshot logique (score, combos, hull),
     /// - recyclage des billes.
     /// </summary>
-    private IEnumerator CollectWithOptions(Side side, bool force, bool skipDelay)
+    private IEnumerator CollectWithOptions(Side side, bool force, bool skipDelay, bool isFinalFlush)
     {
         try
         {
@@ -150,6 +151,9 @@ public class BinCollector : MonoBehaviour
             // Construction du snapshot et comptage des billes noires
             int blackCount;
             BinSnapshot snapshot = BuildSnapshot(lot, side, out blackCount);
+
+            // marquer le flush final
+            snapshot.isFinalFlush = isFinalFlush;
 
             // Pénalité de coque: 1 point par bille noire dans ce flush
             if (hullSystem != null && blackCount > 0)

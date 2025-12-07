@@ -6,6 +6,7 @@ using UnityEngine;
 /// - Ne modifie QUE le SpriteRenderer interne (BinFlushGlow).
 /// - Pas de shake, pas de scale punch.
 /// - Couleur en fonction de la présence de bille noire + score du flush.
+/// - Gère l'activation/désactivation du GameObject du glow si besoin.
 /// </summary>
 public class BinFlushFX : MonoBehaviour
 {
@@ -35,8 +36,13 @@ public class BinFlushFX : MonoBehaviour
     [System.Serializable]
     public class FlushScoreColorRange
     {
+        [Tooltip("Score minimum inclus pour cette couleur.")]
         public int minScore;
+
+        [Tooltip("Score maximum inclus pour cette couleur.")]
         public int maxScore;
+
+        [Tooltip("Couleur associée à cette plage de score.")]
         public Color color;
     }
 
@@ -49,9 +55,17 @@ public class BinFlushFX : MonoBehaviour
     {
         if (flashRenderer != null)
         {
+            // Etat initial: alpha à 0.
             var c = flashRenderer.color;
             c.a = 0f;
             flashRenderer.color = c;
+
+            // Si tu veux vraiment que le glow soit invisible de base,
+            // on s'assure qu'il est désactivé.
+            if (flashRenderer.gameObject.activeSelf)
+            {
+                flashRenderer.gameObject.SetActive(false);
+            }
         }
     }
 
@@ -64,6 +78,12 @@ public class BinFlushFX : MonoBehaviour
     {
         if (flashRenderer == null)
             return;
+
+        // On réactive l'objet du glow si nécessaire pour que le flash soit visible.
+        if (!flashRenderer.gameObject.activeSelf)
+        {
+            flashRenderer.gameObject.SetActive(true);
+        }
 
         Color baseColor = ResolveFlashColor(hasBlackBall, flushScore);
 
@@ -79,7 +99,7 @@ public class BinFlushFX : MonoBehaviour
     {
         if (hasBlackBall)
         {
-            return blackFlushColor;
+            return ForceAlpha(blackFlushColor, 1f);
         }
 
         Color result = defaultScoreColor;
@@ -97,8 +117,13 @@ public class BinFlushFX : MonoBehaviour
             }
         }
 
-        result.a = 1f;
-        return result;
+        return ForceAlpha(result, 1f);
+    }
+
+    private Color ForceAlpha(Color color, float alpha)
+    {
+        color.a = alpha;
+        return color;
     }
 
     private IEnumerator FlashRoutine(Color baseColor)
@@ -133,11 +158,17 @@ public class BinFlushFX : MonoBehaviour
             yield return null;
         }
 
-        // Sécurité: on coupe l'alpha.
+        // Sécurité: on coupe l'alpha et on désactive le glow.
         {
             Color c = flashRenderer.color;
             c.a = 0f;
             flashRenderer.color = c;
+
+            // On re-désactive l'objet pour revenir à l'état "off" propre.
+            if (flashRenderer.gameObject.activeSelf)
+            {
+                flashRenderer.gameObject.SetActive(false);
+            }
         }
 
         flashRoutine = null;

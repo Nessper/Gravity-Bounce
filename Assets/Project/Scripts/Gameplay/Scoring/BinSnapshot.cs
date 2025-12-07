@@ -19,4 +19,6 @@ public class BinSnapshot
 
     public Dictionary<string, int> parType = new Dictionary<string, int>();
     public Dictionary<string, int> pointsParType = new Dictionary<string, int>();
+
+    public bool isFinalFlush; // flag pour signaler que c'est le flush de fin
 }

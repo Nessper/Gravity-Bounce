@@ -108,14 +108,20 @@ public class ComboEngine : MonoBehaviour
         var batchIds = new List<(string id, int points)>();
 
         // ===== FAST FLUSH (tempo, bonus fixe) =====
+        // Désactivé pour les flushs finaux/forcés (fin de niveau)
         float dt = snapshot.timestamp - _lastFlushTime;
-        if (_lastFlushTime > 0f && dt >= 0f && dt <= FAST_FLUSH_WINDOW && positivePoints > 0)
+        if (!snapshot.isFinalFlush &&
+            _lastFlushTime > 0f &&
+            dt >= 0f &&
+            dt <= FAST_FLUSH_WINDOW &&
+            positivePoints > 0)
         {
             int bonus = FAST_FLUSH_BONUS_POINTS; // +100 fixe
             scoreManager.AddPoints(bonus, "Fast Flush");
             batchIds.Add(("FastFlush", bonus));
-           NotifyCombo("FastFlush", bonus);
+            NotifyCombo("FastFlush", bonus);
         }
+
 
         // ===== COMBOS INTRA-FLUSH COULEURS =====
         if (whiteCount >= WHITE_STREAK_THRESHOLD && whitePointsSum > 0)

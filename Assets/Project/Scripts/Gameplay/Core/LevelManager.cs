@@ -464,7 +464,10 @@ public class LevelManager : MonoBehaviour
 
     private IEnumerator EndOfLevelFinalizeRoutine()
     {
-        collector?.CollectAll(force: true, skipDelay: true);
+        // Le flush final est maintenant géré par EndSequenceController
+        // (evacuation + CollectAll(force: true, skipDelay: true) + attente).
+        // Ici on se contente de faire le balayage final des billes restantes
+        // et d'évaluer le résultat du niveau.
 
         yield return StartCoroutine(FinalSweepMarkLostAndRecycle(ballSpawner, scoreManager));
 
@@ -472,6 +475,7 @@ public class LevelManager : MonoBehaviour
 
         EvaluateLevelResult();
     }
+
 
     private IEnumerator FinalSweepMarkLostAndRecycle(BallSpawner spawner, ScoreManager score)
     {
