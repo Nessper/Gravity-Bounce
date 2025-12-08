@@ -13,20 +13,23 @@ public class EndLevelUI : MonoBehaviour
     // levelManagerRef : utilisé pour s'abonner à l'event OnEndComputed et récupérer les objectifs secondaires.
     // autoBindLevelManager : si true et ref vide, on cherche automatiquement un LevelManager dans la scène.
 
-    [Header("Panels")]
+    [Header("Root")]
     [SerializeField] private GameObject endLevelOverlay;
+
+    [Header("Header")]
+    [SerializeField] private TMP_Text levelIdText;
+    [SerializeField] private TMP_Text worldLevelText;
+    [SerializeField] private TMP_Text titleText;
+
+    [Header("Panels")]
     [SerializeField] private Transform panelContainer;
     // endLevelOverlay : overlay global de fin de niveau (fond + panel stats).
     // panelContainer : conteneur principal des stats (permet de masquer les stats sans éteindre l'overlay complet).
 
-    [Header("Stats (bloc 1)")]
-    [SerializeField] private LineEntryUI timeLine;
-    [SerializeField] private LineEntryUI collectedLine;
-    [SerializeField] private LineEntryUI lostLine;
+    [Header("Stats")]
+    [SerializeField] private GameObject scoreTitlePanel;
+    [SerializeField] private GameObject scoreTitleSeparator;
     [SerializeField] private LineEntryFinalUI rawScoreLine;
-    // timeLine : ligne affichant la durée du niveau (TimeElapsedSec).
-    // collectedLine : ligne affichant le nombre de billes collectées.
-    // lostLine : ligne affichant le nombre de billes perdues.
     // rawScoreLine : panel RawScore_Panel avec label + valeur, basé sur LineEntryFinalUI.
 
     [Header("Animated score")]
@@ -41,6 +44,7 @@ public class EndLevelUI : MonoBehaviour
 
     [Header("Goals")]
     [SerializeField] private GameObject goalsTitlePanel;
+    [SerializeField] private GameObject goalTitleSeparator;
     [SerializeField] private RectTransform goalsContent;
     [SerializeField] private GameObject goalLinePrefab;
     // goalsTitlePanel : panel titre "Objectifs", affiché entre les stats et la liste d'objectifs.
@@ -59,6 +63,7 @@ public class EndLevelUI : MonoBehaviour
 
     [Header("Combos")]
     [SerializeField] private GameObject combosTitlePanel;
+    [SerializeField] private GameObject combosTitleSeparator;
     [SerializeField] private RectTransform combosContent;
     [SerializeField] private GameObject combosLinePrefab;
     // combosTitlePanel : panel titre "Combos cachés", affiché avant la liste des combos.
@@ -72,6 +77,7 @@ public class EndLevelUI : MonoBehaviour
 
     [Header("Final score + ProgressBar")]
     [SerializeField] private LineEntryFinalUI finalScoreLine;
+    //[SerializeField] private GameObject finalScoreTitleSeparator;
     // Ligne "Score final" (label + valeur).
 
     [SerializeField] private AnimatedFillImage finalScoreBarAnimated;
@@ -95,23 +101,14 @@ public class EndLevelUI : MonoBehaviour
     private bool silverPassed = false;
     private bool goldPassed = false;
 
-    [Header("Best score")]
-    [SerializeField] private TMP_Text bestScoreValue;
-    // bestScoreValue : simple TMP_Text affichant le "Meilleur score" pour ce niveau.
-    // Le label "Best" / "Record" sera géré dans l'UI, ici on ne s'occupe que de la valeur.
-
     // Score final calculé à la fin de la séquence (après stats + objectifs + combos).
     private int finalScore = 0;
-
-    // Best score actuel pour ce niveau, fourni par un système externe (GameFlowController / SaveManager).
-    private int initialBestScore = 0;
+ 
     [Header("Sequence")]
     [SerializeField] private float lineDelay = 0.7f;
     [SerializeField] private float failDelaySec = 1f;
     // lineDelay : délai entre l'apparition de chaque bloc (stats, objectifs, etc.).
     // failDelaySec : délai après la révélation de l'objectif principal en cas d'échec avant d'envoyer OnSequenceFailed.
-
-    
 
     [Header("Events")]
     public UnityEvent OnSequenceFailed;
@@ -125,9 +122,7 @@ public class EndLevelUI : MonoBehaviour
     // Résultats d'objectifs secondaires récupérés auprès du LevelManager en fin de niveau.
     private List<SecondaryObjectiveResult> secondaryResults;
 
-   
-
-
+  
     // =====================================================================
     // CYCLE UNITY
     // =====================================================================
@@ -180,6 +175,33 @@ public class EndLevelUI : MonoBehaviour
             endLevelOverlay.SetActive(false);
     }
 
+    private void SetupHeader(LevelData levelData)
+    {
+        if (levelData == null)
+            return;
+
+        // Identifiant du niveau (ex : "W1-L1")
+        if (levelIdText != null)
+        {
+            string id = string.IsNullOrEmpty(levelData.LevelID) ? "-" : levelData.LevelID;
+            levelIdText.text = id;
+        }
+
+        // Monde / secteur (ex : "ASTEROIDS FIELD XF-2B" ou "WORLD 1")
+        if (worldLevelText != null)
+        {
+            string world = string.IsNullOrEmpty(levelData.World) ? "" : levelData.World;
+            worldLevelText.text = world;
+        }
+
+        // Titre lisible du niveau (ex : "FIRST CONTACT")
+        if (titleText != null)
+        {
+            string title = string.IsNullOrEmpty(levelData.Title) ? "" : levelData.Title;
+            titleText.text = title;
+        }
+    }
+
     // =====================================================================
     // SEQUENCE PRINCIPALE (DANS L'ORDRE D'AFFICHAGE)
     // =====================================================================
@@ -205,10 +227,13 @@ public class EndLevelUI : MonoBehaviour
         if (totalCombosLine != null)
             totalCombosLine.gameObject.SetActive(false);
 
+        // Header (ID / Monde / Titre)
+        SetupHeader(levelData);
+
         // ------------------------------------------------------------------
         // Score final + barre : état de base (0 + barre vide)
         // ------------------------------------------------------------------
-        
+
         progressMax = 0;
 
         // Reset des seuils et des flags de milestones
@@ -281,35 +306,17 @@ public class EndLevelUI : MonoBehaviour
         int runningScore = 0;
 
         // ===================================================================================
-        // 1) BLOC STATS : Time, Collected, Lost, Raw Score (séquencé)
+        // 1) BLOC STATS : Raw Score (séquencé)
         // ===================================================================================
 
-        // Ligne 1 : Temps / durée de niveau (TimeElapsedSec)
-        if (timeLine != null && timeLine.value != null)
+        if (scoreTitlePanel != null)
         {
-            int secs = stats.TimeElapsedSec;
-            timeLine.value.text = secs.ToString();
-            timeLine.gameObject.SetActive(true);
+            scoreTitlePanel.SetActive(true);
+            scoreTitleSeparator.SetActive(true);
         }
-        yield return new WaitForSecondsRealtime(lineDelay);
 
-        // Ligne 2 : Billes collectées
-        if (collectedLine != null && collectedLine.value != null)
-        {
-            collectedLine.value.text = stats.BallsCollected.ToString();
-            collectedLine.gameObject.SetActive(true);
-        }
         yield return new WaitForSecondsRealtime(lineDelay);
-
-        // Ligne 3 : Billes perdues
-        if (lostLine != null && lostLine.value != null)
-        {
-            lostLine.value.text = stats.BallsLost.ToString();
-            lostLine.gameObject.SetActive(true);
-        }
-        yield return new WaitForSecondsRealtime(lineDelay);
-
-        // Ligne 4 : Score brut (panel final + affichage 0)
+        // Ligne 1 : Score brut (panel final + affichage 0)
         if (rawScoreLine != null)
         {
             rawScoreLine.gameObject.SetActive(true);
@@ -353,7 +360,11 @@ public class EndLevelUI : MonoBehaviour
         // ===================================================================================
 
         if (goalsTitlePanel != null)
+        {
             goalsTitlePanel.SetActive(true);
+            goalTitleSeparator.SetActive(true);
+        }
+            
 
         yield return new WaitForSecondsRealtime(lineDelay);
 
@@ -446,7 +457,11 @@ public class EndLevelUI : MonoBehaviour
         var combos = stats.Combos;
 
         if (combosTitlePanel != null)
+        {
             combosTitlePanel.SetActive(true);
+            combosTitleSeparator.SetActive(true);
+        }
+            
 
         yield return new WaitForSecondsRealtime(lineDelay);
 
@@ -803,20 +818,6 @@ public class EndLevelUI : MonoBehaviour
         Debug.LogWarning($"[EndLevelUI] Milestone {type} timed out before bar reached targetRatio={targetRatio:0.00}");
     }
 
-    /// <summary>
-    /// Initialise l'affichage du "Meilleur score" pour ce niveau.
-    /// À appeler depuis GameFlowController quand la scène est prête.
-    /// </summary>
-    public void SetupBestScore(int bestScore)
-    {
-        initialBestScore = bestScore < 0 ? 0 : bestScore;
-
-        if (bestScoreValue != null)
-        {
-            bestScoreValue.gameObject.SetActive(true);
-            bestScoreValue.text = initialBestScore.ToString("N0");
-        }
-    }
 
     /// <summary>
     /// Retourne le score final calculé à la fin de la séquence de victoire.

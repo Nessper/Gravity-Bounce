@@ -126,7 +126,6 @@ public class SaveManager : MonoBehaviour
 
         run.remainingHullInRun = 0;
         run.currentRunScore = 0;
-        run.currentWorldScore = 0;
         run.levelsClearedInRun = 0;
 
         run.levelInProgress = false;
@@ -153,8 +152,7 @@ public class SaveManager : MonoBehaviour
         data.runState.levelInProgress = false;
         data.runState.abortPenaltyArmed = false;
 
-        // Best scores par défaut
-        data.levelBestScores = new List<LevelBestScoreEntry>();
+        // Best score par défaut
         data.bestRunScore = 0;
 
         return data;
@@ -180,65 +178,6 @@ public class SaveManager : MonoBehaviour
         {
             Current.selectedShipId = "CORE_SCOUT";
         }
-    }
-
-    /// <summary>
-    /// Retourne le meilleur score enregistré pour un niveau donné,
-    /// ou 0 si aucune entrée n'existe encore.
-    /// </summary>
-    public int GetBestLevelScore(string levelId)
-    {
-        if (Current == null || Current.levelBestScores == null || string.IsNullOrEmpty(levelId))
-            return 0;
-
-        var list = Current.levelBestScores;
-        for (int i = 0; i < list.Count; i++)
-        {
-            if (list[i] != null && list[i].levelId == levelId)
-                return list[i].bestScore;
-        }
-
-        return 0;
-    }
-
-    /// <summary>
-    /// Tente de mettre à jour le meilleur score pour un niveau.
-    /// Retourne true si un nouveau record est établi.
-    /// </summary>
-    public bool TryUpdateBestLevelScore(string levelId, int newScore)
-    {
-        if (Current == null || string.IsNullOrEmpty(levelId))
-            return false;
-
-        if (Current.levelBestScores == null)
-            Current.levelBestScores = new System.Collections.Generic.List<LevelBestScoreEntry>();
-
-        var list = Current.levelBestScores;
-
-        for (int i = 0; i < list.Count; i++)
-        {
-            var entry = list[i];
-            if (entry != null && entry.levelId == levelId)
-            {
-                if (newScore > entry.bestScore)
-                {
-                    entry.bestScore = newScore;
-                    Save();
-                    return true;
-                }
-                return false;
-            }
-        }
-
-        // Pas d'entrée existante : on en crée une
-        var newEntry = new LevelBestScoreEntry
-        {
-            levelId = levelId,
-            bestScore = Mathf.Max(0, newScore)
-        };
-        list.Add(newEntry);
-        Save();
-        return true;
     }
 
     /// <summary>

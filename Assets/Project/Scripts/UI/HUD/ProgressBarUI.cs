@@ -139,11 +139,14 @@ public class ProgressBarUI : MonoBehaviour
             return;
         }
 
-        // Progression globale basée sur le nombre total de billes collectées.
-        // TODO plus tard : remplacer TotalBilles par TotalWhiteBalls pour exclure les noires.
         int collected = scoreManager.TotalBilles;
         float t = Mathf.Clamp01(collected / (float)plannedTotalBalls);
 
+        Debug.Log("[ProgressBarUI] HandleScoreChanged - collected="
+                  + collected + " / plannedTotalBalls=" + plannedTotalBalls
+                  + " => t=" + t);
+
         segmentedBar.SetProgress01(t);
     }
+
 }

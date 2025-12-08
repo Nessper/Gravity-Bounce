@@ -29,70 +29,8 @@ public class GameSaveData
     /// </summary>
     public RunStateData runState = new RunStateData();
 
-    // Nouveau : meilleurs scores
-    public List<LevelBestScoreEntry> levelBestScores = new List<LevelBestScoreEntry>();
-
     // Meilleur score total de run (somme des niveaux avant Game Over)
     public int bestRunScore = 0;
-
-    // --------------------------------------------------------------------
-    // BEST SCORES PAR NIVEAU
-    // --------------------------------------------------------------------
-
-    /// <summary>
-    /// Retourne le best score connu pour ce niveau, ou 0 s'il n'existe pas.
-    /// </summary>
-    public int GetBestScoreForLevel(string levelId)
-    {
-        if (string.IsNullOrEmpty(levelId) || levelBestScores == null)
-            return 0;
-
-        for (int i = 0; i < levelBestScores.Count; i++)
-        {
-            var entry = levelBestScores[i];
-            if (entry != null && entry.levelId == levelId)
-                return entry.bestScore;
-        }
-
-        return 0;
-    }
-
-    /// <summary>
-    /// Met à jour le best score pour un niveau donné.
-    /// Ne remplace la valeur que si newBestScore est supérieur.
-    /// </summary>
-    public void SetBestScoreForLevel(string levelId, int newBestScore)
-    {
-        if (string.IsNullOrEmpty(levelId))
-            return;
-
-        if (newBestScore < 0)
-            newBestScore = 0;
-
-        if (levelBestScores == null)
-            levelBestScores = new List<LevelBestScoreEntry>();
-
-        for (int i = 0; i < levelBestScores.Count; i++)
-        {
-            var entry = levelBestScores[i];
-            if (entry != null && entry.levelId == levelId)
-            {
-                if (newBestScore > entry.bestScore)
-                {
-                    entry.bestScore = newBestScore;
-                }
-                return;
-            }
-        }
-
-        // Si on arrive ici : aucune entrée existante -> on en crée une.
-        var newEntry = new LevelBestScoreEntry
-        {
-            levelId = levelId,
-            bestScore = newBestScore
-        };
-        levelBestScores.Add(newEntry);
-    }
 }
 
 /// <summary>
@@ -136,11 +74,6 @@ public class RunStateData
     public int remainingHullInRun;
 
     /// <summary>
-    /// Score cumulé pour le monde en cours.
-    /// </summary>
-    public int currentWorldScore;
-
-    /// <summary>
     /// Score cumulé pour la campagne en cours.
     /// </summary>
     public int currentRunScore;
@@ -168,11 +101,5 @@ public class RunStateData
     public bool abortPenaltyArmed;
 }
 
-[System.Serializable]
-public class LevelBestScoreEntry
-{
-    public string levelId;
-    public int bestScore;
-}
 
 

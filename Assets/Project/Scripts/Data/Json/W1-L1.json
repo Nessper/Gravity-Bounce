@@ -3,8 +3,8 @@
   "World": "ASTEROIDS FIELD XF-2B",
   "Title": "FIRST CONTACT",
   "MainObjective": { 
-    "Text": "Collect at least 50 nodes.", 
-    "ThresholdCount": 30, 
+    "Text": "Collect at least 4 nodes.", 
+    "ThresholdCount": 4, 
     "Bonus": 300 
   },
   "ScoreGoals": [

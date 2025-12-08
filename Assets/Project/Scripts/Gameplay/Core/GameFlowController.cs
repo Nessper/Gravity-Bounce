@@ -18,15 +18,15 @@ public class GameFlowController : MonoBehaviour
     [SerializeField] private VictoryUI victoryUI;               // Overlay Victory
 
     [Header("Score Summary")]
-    [SerializeField] private LevelScoreSummaryUI victoryScoreSummary;
-    [SerializeField] private LevelScoreSummaryUI defeatScoreSummary;
     [SerializeField] private LevelScoreSummaryUI gameOverRunScoreSummary;
-    // victoryScoreSummary : bloc UI qui affiche le score du level + best / new best sur l'écran de victoire.
-    // defeatScoreSummary : idem pour la defaite
     // gameOverRunScoreSummary : instance de LevelScoreSummaryUI pour afficher le score de la campagne (run).
 
     [Header("Scenes")]
     [SerializeField] private string titleSceneName = "Title";
+
+    [Header("Penalties")]
+    [SerializeField] private int hullLossOnFailure = 4;
+
 
     // Events publics pour brancher d'autres systèmes (sons globaux, analytics, etc.)
     public UnityEvent OnDefeat;   // déclenché en cas de défaite (mais pas de Game Over total)
@@ -35,20 +35,11 @@ public class GameFlowController : MonoBehaviour
 
     private void Start()
     {
-        if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
-            return;
-
-        var save = SaveManager.Instance.Current;
-        if (save.runState == null)
-            return;
-
-        string levelId = save.runState.currentLevelId;
-        if (string.IsNullOrEmpty(levelId))
-            return;
-
-        int best = save.GetBestScoreForLevel(levelId);
-        Debug.Log("[GameFlowController] Best score at level start for " + levelId + " = " + best);
+        // Plus de logique de best score de niveau ici.
+        // On pourrait logguer le score de run actuel si besoin.
     }
+
+
     private void OnEnable()
     {
         if (endLevelUI != null)
@@ -101,14 +92,12 @@ public class GameFlowController : MonoBehaviour
         if (endLevelUI != null)
             endLevelUI.HideStatsPanel();
 
-        // On enlève une vie à la run actuelle (runtime)
-        runSession.RemoveHull(1);
+        // On enlève du Hull à la run actuelle (runtime) selon la config
+        if (hullLossOnFailure > 0)
+            runSession.RemoveHull(hullLossOnFailure);
 
         // Synchronise immédiatement la persistance (RunStateData) avec la nouvelle valeur de vies
         SyncPersistentRunOnDefeat();
-
-        // Résumé du niveau (score de level vs best de level), affiché dans les deux cas
-        SetupScoreSummaryForCurrentLevel(defeatScoreSummary);
 
         if (runSession.Hull <= 0)
         {
@@ -149,8 +138,6 @@ public class GameFlowController : MonoBehaviour
             defeatGameOverUI.HideAll();
 
         SyncPersistentRunOnVictory();
-
-        SetupScoreSummaryForCurrentLevel(victoryScoreSummary);
 
         if (victoryUI != null)
             victoryUI.Show();
@@ -303,21 +290,20 @@ public class GameFlowController : MonoBehaviour
         // On marque qu'un niveau supplémentaire a été complété dans ce run
         run.levelsClearedInRun = Mathf.Max(0, run.levelsClearedInRun) + 1;
 
-        // Mise à jour des scores de monde et de run
+        // Mise à jour du score de run uniquement (plus de score de "monde")
         int levelScore = endLevelUI != null ? endLevelUI.GetFinalScore() : 0;
         if (levelScore > 0)
         {
-            run.currentWorldScore = Mathf.Max(0, run.currentWorldScore) + levelScore;
             run.currentRunScore = Mathf.Max(0, run.currentRunScore) + levelScore;
         }
 
         SaveManager.Instance.Save();
 
-        Debug.Log("[GameFlowController] Persisted victory. Lives=" + lives
+        Debug.Log("[GameFlowController] Persisted victory. Hull=" + lives
                   + ", levelsClearedInRun=" + run.levelsClearedInRun
-                  + ", worldScore=" + run.currentWorldScore
                   + ", runScore=" + run.currentRunScore);
     }
+
 
 
 
@@ -370,7 +356,6 @@ public class GameFlowController : MonoBehaviour
         // Vies de départ et reset de la progression
         run.remainingHullInRun = startingLives;
         run.currentRunScore = 0;
-        run.currentWorldScore = 0;
         run.levelsClearedInRun = 0;
 
         // Le level n'est pas encore en cours : RunSessionBootstrapper marquera levelInProgress = true à l'entrée dans la scène
@@ -401,79 +386,7 @@ public class GameFlowController : MonoBehaviour
         SaveManager.Instance.Save();
     }
 
-    /// <summary>
-    /// Met à jour le best score pour le niveau courant si currentLevelScore le bat.
-    /// Renvoie :
-    /// - bestBefore : best chargé depuis la save avant update
-    /// - bestAfter : best après éventuel update (== bestBefore si pas de record)
-    /// Retourne true si nouveau record.
-    /// </summary>
-    private bool UpdateLevelBestScore(int currentLevelScore, out int bestBefore, out int bestAfter)
-    {
-        bestBefore = 0;
-        bestAfter = 0;
-
-        if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
-            return false;
-
-        var save = SaveManager.Instance.Current;
-        if (save.runState == null)
-            return false;
-
-        string levelId = save.runState.currentLevelId;
-        if (string.IsNullOrEmpty(levelId))
-        {
-            Debug.LogWarning("[GameFlowController] currentLevelId vide, impossible de gérer le best score de level.");
-            return false;
-        }
-
-        // Best avant update (via SaveManager)
-        bestBefore = SaveManager.Instance.GetBestLevelScore(levelId);
-
-        if (currentLevelScore <= 0)
-        {
-            bestAfter = bestBefore;
-            Debug.Log("[GameFlowController] Score <= 0, aucune mise à jour de best score.");
-            return false;
-        }
-
-        // On essaie d'updater via SaveManager (qui fait le Save() lui-même)
-        bool isNewBest = SaveManager.Instance.TryUpdateBestLevelScore(levelId, currentLevelScore);
-
-        // Best après update
-        bestAfter = SaveManager.Instance.GetBestLevelScore(levelId);
-
-        Debug.Log("[GameFlowController] UpdateLevelBestScore level=" + levelId +
-                  " score=" + currentLevelScore +
-                  " bestBefore=" + bestBefore +
-                  " bestAfter=" + bestAfter +
-                  " isNewBest=" + isNewBest);
-
-        return isNewBest;
-    }
-
-    /// <summary>
-    /// Met à jour le LevelScoreSummaryUI passé en paramètre avec :
-    /// - le score final du level (EndLevelUI)
-    /// - le best score persisté avant/après update
-    /// - le flag "new best" si record battu.
-    /// </summary>
-    private void SetupScoreSummaryForCurrentLevel(LevelScoreSummaryUI targetSummary)
-    {
-        if (targetSummary == null)
-            return;
-
-        int levelScore = endLevelUI != null ? endLevelUI.GetFinalScore() : 0;
-
-        int bestBefore;
-        int bestAfter;
-        bool isNewBest = UpdateLevelBestScore(levelScore, out bestBefore, out bestAfter);
-
-        int bestForDisplay = isNewBest ? bestAfter : bestBefore;
-
-        targetSummary.Setup(levelScore, bestForDisplay, isNewBest);
-    }
-
+   
     /// <summary>
     /// Met à jour le LevelScoreSummaryUI pour le score de campagne (run) :
     /// - lit le score total de la run (currentRunScore)
