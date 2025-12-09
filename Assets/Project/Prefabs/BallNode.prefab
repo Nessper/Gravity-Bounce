@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 2800654046810924822}
   - component: {fileID: 5883185003058355378}
   - component: {fileID: 8706953805894826079}
+  - component: {fileID: 3889034282607797190}
   m_Layer: 16
   m_Name: BallNode
   m_TagString: Ball
@@ -128,6 +129,22 @@ MonoBehaviour:
   rb: {fileID: 2800654046810924822}
   radiusOffset: 0.15
   minSpeed: 0.05
+--- !u!114 &3889034282607797190
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 478708050936076225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18a30823c3aae834d94d7f17df91a59b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BallCeilingGrace
+  ballCollider: {fileID: 2524199058531381208}
+  ceilingCollider: {fileID: 0}
+  graceTime: 0.25
+  minDistanceBelowCeiling: 0.2
 --- !u!1 &1573623925021517989
 GameObject:
   m_ObjectHideFlags: 0

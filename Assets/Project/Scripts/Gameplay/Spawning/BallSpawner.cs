@@ -45,6 +45,11 @@ public class BallSpawner : MonoBehaviour
     [SerializeField] private GameObject ballPrefab;
     [SerializeField] private Transform ballsParent;
 
+    [Header("Camera / Ceiling (NEW)")]
+    [SerializeField] private Camera gameplayCamera;        // NEW : caméra ortho qui voit le board
+    [SerializeField] private Collider ceilingCollider;     // NEW : ceiling pour la "grâce"
+    [SerializeField] private float spawnOffsetAboveScreen = 0.3f; // NEW : marge au-dessus de l'écran
+
     [Header("Spawn Area & Cadence (fallbacks)")]
     [SerializeField] private float xRange = 2.18f;
     [SerializeField] private float ySpawn = 6.3f;
@@ -162,15 +167,6 @@ public class BallSpawner : MonoBehaviour
     // CONFIGURATION
     // =====================================================================
 
-    /// <summary>
-    /// Configures the spawner from LevelData and the total run duration (seconds).
-    /// This builds:
-    /// - points per ball type,
-    /// - a phase plan (duration, interval),
-    /// - per-phase type mixes,
-    /// - per-phase type queues with exact quotas.
-    /// Also computes PlannedSpawnCount and resets telemetry/pool.
-    /// </summary>
     public void ConfigureFromLevel(LevelData levelData, float totalRunSec)
     {
         data = levelData;
@@ -210,9 +206,6 @@ public class BallSpawner : MonoBehaviour
 #endif
     }
 
-    /// <summary>
-    /// Builds pointsByType from LevelData.Balls.
-    /// </summary>
     private void BuildPointsByType()
     {
         pointsByType.Clear();
@@ -238,13 +231,6 @@ public class BallSpawner : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Builds the base plan for each phase using weights and total run duration.
-    /// Each phase gets:
-    /// - a duration (based on its weight),
-    /// - an interval (phase.SpawnInterval or Level Spawn.Intervalle or default),
-    /// - quota is left at 0 here and filled later.
-    /// </summary>
     private void BuildPlansFromWeights(float totalRunSec)
     {
         plans.Clear();
@@ -299,10 +285,6 @@ public class BallSpawner : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Builds the type mixes for each phase, based on PhaseData.Mix.
-    /// If a phase has no mix, we create a uniform mix over all known types.
-    /// </summary>
     private void BuildMixes()
     {
         mixes.Clear();
@@ -351,14 +333,6 @@ public class BallSpawner : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Builds:
-    /// - the quota (number of balls) for each phase,
-    /// - the global plannedTotal,
-    /// - the per-phase type queues,
-    /// - the publicPhasePlans snapshot for the UI,
-    /// - PlannedNonBlackSpawnCount and PlannedBlackSpawnCount.
-    /// </summary>
     private void BuildTypeQueues()
     {
         typeQueues.Clear();
@@ -541,10 +515,6 @@ public class BallSpawner : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Returns the default ball type when no mix is defined.
-    /// Priority to White if present.
-    /// </summary>
     private BallType DefaultType()
     {
         if (pointsByType.ContainsKey(BallType.White))
@@ -560,10 +530,6 @@ public class BallSpawner : MonoBehaviour
     // PREWARM
     // =====================================================================
 
-    /// <summary>
-    /// Starts prewarming the pool by instantiating the planned number of balls.
-    /// The work is spread across multiple frames according to budgetPerFrame.
-    /// </summary>
     public void StartPrewarm(int budgetPerFrame = 256)
     {
         if (prewarmCoro != null)
@@ -615,9 +581,6 @@ public class BallSpawner : MonoBehaviour
     // RUNTIME SPAWNING
     // =====================================================================
 
-    /// <summary>
-    /// Starts the spawn loop according to the current plan.
-    /// </summary>
     public void StartSpawning()
     {
         if (ballPrefab == null)
@@ -639,9 +602,6 @@ public class BallSpawner : MonoBehaviour
         loop = StartCoroutine(SpawnLoop());
     }
 
-    /// <summary>
-    /// Stops the spawn loop. Final stats are logged via LogStats() from outside.
-    /// </summary>
     public void StopSpawning()
     {
         running = false;
@@ -653,9 +613,6 @@ public class BallSpawner : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Main coroutine that iterates over phases and spawns balls over time.
-    /// </summary>
     private IEnumerator SpawnLoop()
     {
         // Start at phase 0
@@ -701,6 +658,26 @@ public class BallSpawner : MonoBehaviour
         loop = null;
     }
 
+    // =====================================================================
+    // SPAWN POSITION (NEW)
+    // =====================================================================
+
+    /// <summary>
+    /// Calcule le Y de spawn :
+    /// - si une caméra ortho est fournie, on spawn juste au-dessus du haut de l'écran,
+    /// - sinon on retombe sur ySpawn (ancien comportement).
+    /// </summary>
+    private float ComputeSpawnY()
+    {
+        if (gameplayCamera != null && gameplayCamera.orthographic)
+        {
+            float topWorldY = gameplayCamera.transform.position.y + gameplayCamera.orthographicSize;
+            return topWorldY + spawnOffsetAboveScreen;
+        }
+
+        return ySpawn;
+    }
+
     /// <summary>
     /// Activates a single ball for the given phase index (position, type, score, state).
     /// </summary>
@@ -708,9 +685,13 @@ public class BallSpawner : MonoBehaviour
     {
         GameObject go = (pool.Count > 0) ? pool.Pop() : Instantiate(ballPrefab);
 
-        // Choose random X position in range, Y and Z fixed
+        // Choose random X position in range, Y and Z computed
         float x = UnityEngine.Random.Range(-xRange, xRange);
-        go.transform.position = new Vector3(x, ySpawn, zSpawn);
+        float spawnY = ComputeSpawnY();
+        go.transform.position = new Vector3(x, spawnY, zSpawn);
+
+        // Important : activer AVANT le StartGrace pour que la coroutine puisse démarrer
+        go.SetActive(true);
 
         // Ensure physics are active
         if (go.TryGetComponent(out Collider col))
@@ -719,6 +700,13 @@ public class BallSpawner : MonoBehaviour
         if (go.TryGetComponent(out Rigidbody rb))
         {
             rb.isKinematic = false;
+        }
+
+        // Fenêtre de grâce pour traverser le ceiling une seule fois
+        if (go.TryGetComponent(out BallCeilingGrace grace))
+        {
+            grace.SetCeiling(ceilingCollider);
+            grace.StartGrace();
         }
 
         // Determine ball type from the phase queue
@@ -735,18 +723,12 @@ public class BallSpawner : MonoBehaviour
             st.Initialize(type, pts);
         }
 
-        go.SetActive(true);
-
         // Telemetry and notifications
         activatedCount++;
         OnActivated?.Invoke(activatedCount);
         scoreManager?.RegisterRealSpawn();
     }
 
-    /// <summary>
-    /// Dequeues the next ball type for the given phase index.
-    /// Falls back to DefaultType if anything is wrong.
-    /// </summary>
     private BallType NextTypeForPhase(int phaseIdx)
     {
         if (phaseIdx < 0 || phaseIdx >= typeQueues.Count)
@@ -763,10 +745,6 @@ public class BallSpawner : MonoBehaviour
     // RECYCLE / POOLING
     // =====================================================================
 
-    /// <summary>
-    /// Recycles a ball GameObject back into the pool.
-    /// Resets physics and increments recycle counters.
-    /// </summary>
     public void Recycle(GameObject go, bool collected = false)
     {
         if (go == null)
@@ -799,9 +777,6 @@ public class BallSpawner : MonoBehaviour
     // STATS / PUBLIC PLAN VIEW
     // =====================================================================
 
-    /// <summary>
-    /// Logs final spawn stats (planned vs real / recycled).
-    /// </summary>
     public void LogStats()
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -812,10 +787,6 @@ public class BallSpawner : MonoBehaviour
 #endif
     }
 
-    /// <summary>
-    /// Returns a copy of the phase plan array (Index, Name, Duration, Interval, Quota).
-    /// This is intended for UI usage (IntroLevelUI) and must not be modified externally.
-    /// </summary>
     public PhasePlanInfo[] GetPhasePlans()
     {
         if (publicPhasePlans == null || publicPhasePlans.Length == 0)
