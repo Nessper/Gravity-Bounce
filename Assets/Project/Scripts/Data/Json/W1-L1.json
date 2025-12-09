@@ -8,9 +8,9 @@
     "Bonus": 300 
   },
   "ScoreGoals": [
-    { "Type": "Bronze", "Points": 6000 },
-    { "Type": "Silver", "Points": 8000 },
-    { "Type": "Gold", "Points": 10000 }
+    { "Type": "Bronze", "Points": 1200 },
+    { "Type": "Silver", "Points": 2000 },
+    { "Type": "Gold", "Points": 2500 }
   ],
 
   "SecondaryObjectives": [

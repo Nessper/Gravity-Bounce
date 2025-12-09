@@ -161,7 +161,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Mike, rappel basique : tu renvoies qqzddqzdqzdqdqzdzdzqdqzdqzdqdqzdqzddzqdqzdqzddzqqzddzqqzdzqd'
+  m_text: 'Mike, rappel basique : tu renvoies qqzddqzdqzdqdqzdzdzqdqzdqzdqdqzdqzddzqdqzdqzddzqqzddzqqzdzqdttgfrdsgftrdgtrdgtdgdgdrdrgrdgdgdg'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 557fa0b677526424fbfd32ea2a7079cc, type: 2}
   m_sharedMaterial: {fileID: -2738207293465764787, guid: 557fa0b677526424fbfd32ea2a7079cc, type: 2}
@@ -500,7 +500,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 42, y: -160.48}
+  m_AnchoredPosition: {x: 42, y: -189.28}
   m_SizeDelta: {x: 720, y: 0}
   m_Pivot: {x: 0, y: 0}
 --- !u!114 &6697874072740819648
@@ -888,7 +888,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 420, y: -65.24}
+  m_AnchoredPosition: {x: 420, y: -79.64}
   m_SizeDelta: {x: 600, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2750295044919378401

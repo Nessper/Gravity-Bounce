@@ -190,7 +190,7 @@ public class ShipSelectController : MonoBehaviour
 
         if (ShipName_Txt) ShipName_Txt.text = ship.displayName;
         if (Description_Txt) Description_Txt.text = ship.description;
-        if (Hull_Txt) Hull_Txt.text = "x" + ship.maxHull;
+        if (Hull_Txt) Hull_Txt.text = ship.maxHull.ToString();
         if (Shield_Txt) Shield_Txt.text = ship.shieldSecondsPerLevel.ToString();
         if (PaddleWidth_Txt) PaddleWidth_Txt.text = ship.paddleWidthMult.ToString();
 

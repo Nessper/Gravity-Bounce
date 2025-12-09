@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using static UnityEngine.InputManagerEntry;
 
 /// <summary>
 /// Orchestrateur du niveau :
@@ -31,6 +32,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private ObstacleManager obstacleManager;
     [SerializeField] private LevelControlsController controlsController;
     [SerializeField] private HullSystem hullSystem;
+    [SerializeField] private ContractLivesUI contractLivesUI;
 
     // ----------------------------------------------------------
     // RÉFÉRENCES UI
@@ -97,11 +99,15 @@ public class LevelManager : MonoBehaviour
             levelTimer.OnTimerEnd += HandleTimerEnd;
 
         if (runSession != null)
+        {
             runSession.OnHullChanged.AddListener(HandleHullChanged);
+            runSession.OnContractLivesChanged.AddListener(HandleContractLivesChanged);
+        }
 
         if (scoreManager != null)
             scoreManager.OnFlushSnapshotRegistered += HandleFlushSnapshotRegistered;
     }
+
 
     private void OnDisable()
     {
@@ -109,11 +115,15 @@ public class LevelManager : MonoBehaviour
             levelTimer.OnTimerEnd -= HandleTimerEnd;
 
         if (runSession != null)
+        {
             runSession.OnHullChanged.RemoveListener(HandleHullChanged);
+            runSession.OnContractLivesChanged.RemoveListener(HandleContractLivesChanged);
+        }
 
         if (scoreManager != null)
             scoreManager.OnFlushSnapshotRegistered -= HandleFlushSnapshotRegistered;
     }
+
 
     private void Start()
     {
@@ -143,6 +153,11 @@ public class LevelManager : MonoBehaviour
         {
             HandleHullChanged(runSession.Hull);
         }
+
+        //7ter)  On met a jour les contractLives
+        SetupContractLivesUI();
+
+
 
         // 8) Intro / briefing
         SetupIntroOrAutoStart();
@@ -241,6 +256,14 @@ public class LevelManager : MonoBehaviour
         }
     }
 
+    private void SetupContractLivesUI()
+    {
+        if (contractLivesUI == null || runSession == null)
+            return;
+
+        contractLivesUI.SetContractLives(runSession.ContractLives);
+    }
+
 
 
     private void ResolveShipStats(out int hull, out float durationSec)
@@ -287,13 +310,16 @@ public class LevelManager : MonoBehaviour
         if (ballSpawner == null || data == null)
             return;
 
+        // Sécurité : éviter double-bind en cas de retry futur
+        if (scoreManager != null)
+            scoreManager.OnFlushSnapshotRegistered -= HandleFlushRegistered;
+
         ballSpawner.OnPlannedReady += _ =>
         {
             if (scoreManager == null)
                 return;
 
             int plannedNonBlack = ballSpawner.PlannedNonBlackSpawnCount;
-
             scoreManager.SetPlannedBalls(plannedNonBlack);
 
             int threshold = data.MainObjective != null ? data.MainObjective.ThresholdCount : 0;
@@ -301,21 +327,22 @@ public class LevelManager : MonoBehaviour
             if (progressBarUI != null)
             {
                 progressBarUI.Configure(plannedNonBlack, threshold);
-                progressBarUI.Refresh();
             }
 
             scoreManager.SetObjectiveThreshold(threshold);
-        };
-
-        ballSpawner.OnActivated += _ =>
-        {
-            progressBarUI?.Refresh();
+            scoreManager.OnFlushSnapshotRegistered += HandleFlushRegistered;
         };
 
         ballSpawner.ConfigureFromLevel(data, runDurationSec);
         ballSpawner.StartPrewarm(256);
 
         phasePlanInfos = ballSpawner.GetPhasePlans();
+    }
+
+    private void HandleFlushRegistered(BinSnapshot snapshot)
+    {
+        // Chaque flush met à jour la barre selon TotalNonBlackBilles mis à jour par ScoreManager
+        progressBarUI?.Refresh();
     }
 
     private void SetupObstacles()
@@ -624,4 +651,21 @@ public class LevelManager : MonoBehaviour
 
         SaveManager.Instance.Save();
     }
+
+    private void HandleContractLivesChanged(int lives)
+    {
+        if (contractLivesUI != null)
+        {
+            contractLivesUI.SetContractLives(lives);
+        }
+    }
+
+
+    private void OnDestroy()
+    {
+        if (scoreManager != null)
+            scoreManager.OnFlushSnapshotRegistered -= HandleFlushRegistered;
+    }
+
+
 }

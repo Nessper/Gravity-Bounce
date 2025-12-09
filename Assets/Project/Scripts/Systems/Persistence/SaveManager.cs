@@ -128,12 +128,14 @@ public class SaveManager : MonoBehaviour
         run.currentRunScore = 0;
         run.levelsClearedInRun = 0;
 
+        // Contrat : on repart toujours à 3 vies au début d'une nouvelle run.
+        run.remainingContractLives = 3;
+
         run.levelInProgress = false;
         run.abortPenaltyArmed = false;
 
         Save();
     }
-
 
     /// <summary>
     /// Crée un profil par défaut (vaisseau de base débloqué, aucune progression).
@@ -151,6 +153,9 @@ public class SaveManager : MonoBehaviour
         data.runState.hasOngoingRun = false;
         data.runState.levelInProgress = false;
         data.runState.abortPenaltyArmed = false;
+
+        // Nouveau système : contrat à 3 vies par défaut.
+        data.runState.remainingContractLives = 3;
 
         // Best score par défaut
         data.bestRunScore = 0;

@@ -9,6 +9,7 @@ using UnityEngine.Networking;
 /// Charge la base de dialogues depuis StreamingAssets et
 /// fournit des méthodes pour récupérer les lignes adaptées
 /// au contexte (intro, phases, fin de niveau).
+/// VIT DANS BOOT DONC EN DONTDESTROYONLOAD
 /// </summary>
 public class DialogManager : MonoBehaviour
 {
@@ -252,4 +253,33 @@ public class DialogManager : MonoBehaviour
             Debug.Log("SelfTest [" + line.speakerId + "] " + line.text);
         }
     }
+
+    /// <summary>
+    /// Récupère une séquence directement par son identifiant unique (field "id" dans le JSON).
+    /// Retourne null si aucune séquence ne correspond.
+    /// </summary>
+    public DialogSequence GetSequenceById(string sequenceId)
+    {
+        if (!IsReady || Database == null || Database.sequences == null)
+        {
+            Debug.LogWarning("DialogManager: base non prête, GetSequenceById échoue.");
+            return null;
+        }
+
+        if (string.IsNullOrEmpty(sequenceId))
+            return null;
+
+        for (int i = 0; i < Database.sequences.Length; i++)
+        {
+            DialogSequence seq = Database.sequences[i];
+            if (seq == null || string.IsNullOrEmpty(seq.id))
+                continue;
+
+            if (string.Equals(seq.id, sequenceId, StringComparison.OrdinalIgnoreCase))
+                return seq;
+        }
+
+        return null;
+    }
+
 }

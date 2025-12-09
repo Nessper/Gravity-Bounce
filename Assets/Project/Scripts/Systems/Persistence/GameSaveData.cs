@@ -38,6 +38,7 @@ public class GameSaveData
 /// C'est ce qui permet de savoir si un run est en cours,
 /// sur quel monde/niveau, avec combien de vies, etc.
 /// </summary>
+
 [Serializable]
 public class RunStateData
 {
@@ -69,24 +70,27 @@ public class RunStateData
     public string currentLevelId = "";
 
     /// <summary>
-    /// Nombre de vies restantes dans la campagne.
+    /// Nombre de points de coque restants dans la campagne.
+    /// Hull = vie du vaisseau. Si 0 => Game Over.
     /// </summary>
     public int remainingHullInRun;
+
+    /// <summary>
+    /// Nombre de vies de contrat restantes pour ce run.
+    /// 3 = contrat intact, 0 = contrat rompu (Game Over par échecs d'objectif).
+    /// </summary>
+    public int remainingContractLives;
 
     /// <summary>
     /// Score cumulé pour la campagne en cours.
     /// </summary>
     public int currentRunScore;
- 
+
     /// <summary>
     /// Nombre de niveaux terminés dans ce run.
     /// </summary>
     public int levelsClearedInRun;
 
-    /// <summary>
-    /// Indique si un level est en cours.
-    /// Sert pour la règle "quit en plein level = défaite".
-    /// </summary>
     /// <summary>
     /// Indique si un level est en cours.
     /// Sert pour la règle "quit en plein level = défaite".
@@ -100,6 +104,8 @@ public class RunStateData
     /// </summary>
     public bool abortPenaltyArmed;
 }
+
+
 
 
 

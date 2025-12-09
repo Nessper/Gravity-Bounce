@@ -178,15 +178,12 @@ public class ScoreManager : MonoBehaviour
         if (snapshot == null || snapshot.nombreDeBilles <= 0)
             return;
 
-        // Sauvegarde de l'historique
         historique.Add(snapshot);
 
-        // Incrémente le total de billes collectées (tous types)
         totalBilles += snapshot.nombreDeBilles;
 
         int nonBlackThisFlush = 0;
 
-        // Mise à jour des totaux par type de bille
         if (snapshot.parType != null)
         {
             foreach (var kv in snapshot.parType)
@@ -199,26 +196,18 @@ public class ScoreManager : MonoBehaviour
 
                 totauxParType[typeKey] += count;
 
-                // Comptage des billes NON NOIRES
                 if (!IsBlackType(typeKey))
-                {
                     nonBlackThisFlush += count;
-                }
             }
         }
 
-        // Incrémente le total HORS NOIRES sur ce flush
         totalBillesNonNoires += nonBlackThisFlush;
 
-        // Ajout des points du flush au score courant
         AddPoints(snapshot.totalPointsDuLot);
-
-        // Vérifie si l'objectif principal est atteint ou dépassé
         CheckGoalReached();
-
-        // Notifie l'enregistrement de ce flush à tous les listeners intéressés
         OnFlushSnapshotRegistered?.Invoke(snapshot);
     }
+
 
     /// <summary>
     /// Détermine si une clé de type correspond à une bille noire.

@@ -4,9 +4,12 @@ using UnityEngine.Events;
 [CreateAssetMenu(fileName = "RunSessionState", menuName = "Game/Run Session State")]
 public class RunSessionState : ScriptableObject
 {
-    [SerializeField] private int hull;
+    // ============================================================
+    // HULL (inchangé)
+    // ============================================================
 
-    // Flag interne : si true, le prochain restart de niveau doit conserver les vies actuelles
+    [Header("Hull")]
+    [SerializeField] private int hull;
     [SerializeField] private bool keepCurrentHullOnNextRestart;
 
     public UnityEvent<int> OnHullChanged = new UnityEvent<int>();
@@ -33,18 +36,60 @@ public class RunSessionState : ScriptableObject
         OnHullChanged.Invoke(hull);
     }
 
-    // Demande explicite : "au prochain restart, garde les vies actuelles" (true)
-    // ou "au prochain restart, réinitialise depuis le vaisseau" (false)
     public void MarkCarryHullOnNextRestart(bool keep)
     {
         keepCurrentHullOnNextRestart = keep;
     }
 
-    // Consomme le flag (il repasse automatiquement à false après l'appel)
     public bool ConsumeKeepFlag()
     {
         bool v = keepCurrentHullOnNextRestart;
         keepCurrentHullOnNextRestart = false;
         return v;
+    }
+
+    // ============================================================
+    // CONTRACT STRIKES (nouvelle section)
+    // ============================================================
+
+    [Header("Contract Strikes")]
+    [SerializeField] private int contractLives;
+
+    public UnityEvent<int> OnContractLivesChanged = new UnityEvent<int>();
+
+    /// <summary>
+    /// Nombre de vies de contrat restantes (0..max).
+    /// </summary>
+    public int ContractLives => contractLives;
+
+    /// <summary>
+    /// Initialise les vies de contrat pour la run en cours.
+    /// Appelé au boot du niveau par RunSessionBootstrapper.
+    /// </summary>
+    public void InitContractLives(int value)
+    {
+        contractLives = Mathf.Max(0, value);
+        OnContractLivesChanged.Invoke(contractLives);
+    }
+
+    /// <summary>
+    /// Perdre 1 ou plusieurs vies de contrat (échec mission).
+    /// </summary>
+    public void LoseContractLife(int amount = 1)
+    {
+        int prev = contractLives;
+        contractLives = Mathf.Max(0, contractLives - Mathf.Max(1, amount));
+        if (contractLives != prev)
+            OnContractLivesChanged.Invoke(contractLives);
+    }
+
+    /// <summary>
+    /// Ajouter des vies de contrat (rare, bonus éventuel).
+    /// </summary>
+    public void AddContractLife(int amount = 1)
+    {
+        int prev = contractLives;
+        contractLives = Mathf.Max(0, contractLives + Mathf.Max(1, amount));
+        OnContractLivesChanged.Invoke(contractLives);
     }
 }

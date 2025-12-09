@@ -413,9 +413,4 @@ public class DialogUI : MonoBehaviour
         portraitImage.color = basePortraitColor;
         nameText.color = baseNameColor;
     }
-
-
-
-
-
 }

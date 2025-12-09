@@ -163,27 +163,75 @@
       ]
     },
 
-    {
-      "id": "W1_L1_post_success",
-      "type": "postLevel",
-      "world": 1,
-      "level": 1,
-      "outcome": "success",
+        {
+      "id": "contract_victory",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
       "variants": [
         {
           "weight": 1,
           "lines": [
             {
-              "speakerId": "mike",
-              "text": "Premier secteur nettoyé. J'avoue, c'était presque confortable."
-            },
+              "speakerId": "operator",
+              "text": "Bien joué Rydell!"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contract_defeat_2",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
             {
-              "speakerId": "captain",
-              "text": "Ne prends pas l'habitude du confort. Le prochain secteur ne sera pas aussi gentil."
+              "speakerId": "operator",
+              "text": "Vous avez échoué Rydell, je vous mets un avertissement."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contract_defeat_1",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "operator",
+              "text": "Rydell, Rydell, au prochain échec c'est la porte."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contract_gameover",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            {
+              "speakerId": "operator",
+              "text": "Allez, j'en ai fini avec vous, trouvez vous un autre job Rydell."
             }
           ]
         }
       ]
     }
+
+
   ]
 }

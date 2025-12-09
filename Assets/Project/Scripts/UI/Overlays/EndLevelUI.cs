@@ -80,13 +80,11 @@ public class EndLevelUI : MonoBehaviour
     //[SerializeField] private GameObject finalScoreTitleSeparator;
     // Ligne "Score final" (label + valeur).
 
-    [SerializeField] private AnimatedFillImage finalScoreBarAnimated;
-    // Composant d’animation de la barre de score final (fillAmount).
+    [Header("Medals")]
+    [SerializeField] private EndLevelMedalsUI medalsUI;
 
-    [SerializeField] private RectTransform tickBronze;
-    [SerializeField] private RectTransform tickSilver;
-    [SerializeField] private RectTransform tickGold;
-    // Ticks de repère pour les seuils Bronze / Silver / Gold.
+    [SerializeField] private FinalScoreBarUI finalScoreBar;
+    // Contrôleur logique de la barre finale (wrapp SegmentedFinalScoreBarUI).
 
     private int progressMax = 0;
     // progressMax : valeur de score correspondant à une barre remplie à 100% (Gold + marge, par ex. +20%).
@@ -255,13 +253,9 @@ public class EndLevelUI : MonoBehaviour
             finalScoreLine.value.text = "0";
         }
 
-        // Barre = 0
-        if (finalScoreBarAnimated != null)
-        {
-            finalScoreBarAnimated.SetInstant01(0f);
-        }
-
+        // La barre finale sera remise à zéro après configuration (plus bas)
         finalScore = 0;
+
 
         // ------------------------------------------------------------------
         // Récupération des seuils de médailles depuis le LevelData
@@ -287,18 +281,27 @@ public class EndLevelUI : MonoBehaviour
         {
             progressMax = Mathf.RoundToInt(goldThreshold * 1.2f);
 
-            if (tickBronze != null && bronzeThreshold > 0)
-                PlaceTick(tickBronze, bronzeThreshold);
-
-            if (tickSilver != null && silverThreshold > 0)
-                PlaceTick(tickSilver, silverThreshold);
-
-            if (tickGold != null)
-                PlaceTick(tickGold, goldThreshold);
         }
         else
         {
             progressMax = 0;
+        }
+
+        // Configuration de la barre finale à partir des thresholds.
+        // (ProgressMax = Gold * 1.2f, même logique qu'avant.)
+        if (finalScoreBar != null && progressMax > 0)
+        {
+            finalScoreBar.Configure(bronzeThreshold, silverThreshold, goldThreshold, progressMax);
+        }
+        else if (finalScoreBar != null)
+        {
+            // Cas extrême : pas de Gold configuré, on évite les divisions par zéro.
+            finalScoreBar.Configure(0, 0, 0, 1);
+        }
+
+        if (finalScoreBar != null)
+        {
+            finalScoreBar.ResetInstant();
         }
 
 
@@ -619,23 +622,6 @@ public class EndLevelUI : MonoBehaviour
             Object.Destroy(parent.GetChild(i).gameObject);
     }
 
-    private void PlaceTick(RectTransform tick, int threshold)
-    {
-        if (!tick || progressMax <= 0)
-            return;
-
-        float x = Mathf.Clamp01((float)threshold / progressMax);
-
-        var a = tick.anchorMin;
-        var b = tick.anchorMax;
-        a.x = x;
-        b.x = x;
-        tick.anchorMin = a;
-        tick.anchorMax = b;
-
-        tick.anchoredPosition = Vector2.zero;
-    }
-
     public void HideStatsPanel()
     {
         if (panelContainer != null)
@@ -644,6 +630,7 @@ public class EndLevelUI : MonoBehaviour
 
     private void RefreshFinalScoreUI(int currentScore, bool animate)
     {
+        // Texte du score final
         if (finalScoreAnimated != null)
         {
             if (animate)
@@ -656,14 +643,10 @@ public class EndLevelUI : MonoBehaviour
             finalScoreLine.value.text = currentScore.ToString("N0");
         }
 
-        if (finalScoreBarAnimated != null && progressMax > 0)
+        // Barre finale segmentée (score / progressMax)
+        if (finalScoreBar != null && progressMax > 0)
         {
-            float ratio = Mathf.Clamp01((float)currentScore / progressMax);
-
-            if (animate)
-                finalScoreBarAnimated.AnimateTo01(ratio);
-            else
-                finalScoreBarAnimated.SetInstant01(ratio);
+            finalScoreBar.SetScore(currentScore);
         }
     }
 
@@ -676,8 +659,8 @@ public class EndLevelUI : MonoBehaviour
             if (finalScoreAnimated != null && finalScoreAnimated.IsAnimating)
                 stillAnimating = true;
 
-            if (finalScoreBarAnimated != null && finalScoreBarAnimated.IsAnimating)
-                stillAnimating = true;
+            // On ne bloque plus sur la barre finale : elle a sa propre anim step-by-step,
+            // mais on ne synchronise pas finement sa fin ici.
 
             if (!stillAnimating)
                 break;
@@ -706,7 +689,7 @@ public class EndLevelUI : MonoBehaviour
             previousScore < bronzeThreshold && newScore >= bronzeThreshold)
         {
             bronzePassed = true;
-            OnScoreMilestoneReached("Bronze", bronzeThreshold, tickBronze);
+           // OnScoreMilestoneReached("Bronze", bronzeThreshold, tickBronze);
         }
 
         // Silver
@@ -714,7 +697,7 @@ public class EndLevelUI : MonoBehaviour
             previousScore < silverThreshold && newScore >= silverThreshold)
         {
             silverPassed = true;
-            OnScoreMilestoneReached("Silver", silverThreshold, tickSilver);
+           // OnScoreMilestoneReached("Silver", silverThreshold, tickSilver);
         }
 
         // Gold
@@ -722,102 +705,9 @@ public class EndLevelUI : MonoBehaviour
             previousScore < goldThreshold && newScore >= goldThreshold)
         {
             goldPassed = true;
-            OnScoreMilestoneReached("Gold", goldThreshold, tickGold);
+            //OnScoreMilestoneReached("Gold", goldThreshold, tickGold);
         }
     }
-
-
-    /// <summary>
-    /// Appelé lorsqu'un palier de médaille est franchi.
-    /// Pour l'instant :
-    /// - Log dans la console.
-    /// - Petite animation de "pulse" sur le tick si présent.
-    /// </summary>
-    private void OnScoreMilestoneReached(string type, int threshold, RectTransform tick)
-    {
-        Debug.Log($"[EndLevelUI] Score milestone requested: {type}");
-
-        if (finalScoreBarAnimated == null || progressMax <= 0 || tick == null)
-            return;
-
-        float targetRatio = Mathf.Clamp01((float)threshold / progressMax);
-
-        StartCoroutine(WaitForBarThenPulse(type, targetRatio, tick));
-    }
-
-
-    private IEnumerator PulseTickRoutine(RectTransform tick)
-    {
-        if (tick == null)
-            yield break;
-
-        Vector3 baseScale = tick.localScale;
-        Vector3 targetScale = baseScale * 1.6f; // plus violent pour être bien visible
-
-        float durationUp = 0.15f;
-        float durationDown = 0.15f;
-
-        // Log pour vérifier que la coroutine tourne vraiment
-        Debug.Log($"[EndLevelUI] PulseTickRoutine start on {tick.name}");
-
-        // Phase montée
-        float startTime = Time.unscaledTime;
-        while (true)
-        {
-            float t = (Time.unscaledTime - startTime) / durationUp;
-            if (t >= 1f)
-                break;
-
-            float eased = Mathf.SmoothStep(0f, 1f, t);
-            tick.localScale = Vector3.Lerp(baseScale, targetScale, eased);
-            yield return null;
-        }
-
-        tick.localScale = targetScale;
-
-        // Phase descente
-        startTime = Time.unscaledTime;
-        while (true)
-        {
-            float t = (Time.unscaledTime - startTime) / durationDown;
-            if (t >= 1f)
-                break;
-
-            float eased = Mathf.SmoothStep(0f, 1f, t);
-            tick.localScale = Vector3.Lerp(targetScale, baseScale, eased);
-            yield return null;
-        }
-
-        tick.localScale = baseScale;
-
-        Debug.Log($"[EndLevelUI] PulseTickRoutine end on {tick.name}");
-    }
-
-    private IEnumerator WaitForBarThenPulse(string type, float targetRatio, RectTransform tick)
-    {
-        if (finalScoreBarAnimated == null)
-            yield break;
-
-        // On laisse un timeout de sécurité au cas où
-        float timeout = Time.unscaledTime + 5f;
-
-        while (Time.unscaledTime < timeout)
-        {
-            float current = finalScoreBarAnimated.GetDisplayed01();
-
-            if (current >= targetRatio - 0.001f)
-            {
-                Debug.Log($"[EndLevelUI] Milestone {type} reached on bar at fill={current:0.00}");
-                yield return PulseTickRoutine(tick);
-                yield break;
-            }
-
-            yield return null;
-        }
-
-        Debug.LogWarning($"[EndLevelUI] Milestone {type} timed out before bar reached targetRatio={targetRatio:0.00}");
-    }
-
 
     /// <summary>
     /// Retourne le score final calculé à la fin de la séquence de victoire.
@@ -830,7 +720,6 @@ public class EndLevelUI : MonoBehaviour
 
 
 }
-
 // Résultat de l'objectif principal calculé en fin de niveau.
 [System.Serializable]
 public struct MainObjectiveResult
