@@ -44,9 +44,8 @@ public static class LevelResultEvaluator
 
         int spawnedPlan = scoreManager.TotalBillesPrevues;
         int spawnedReal = scoreManager.GetRealSpawned();
-        int collected = scoreManager.TotalBilles;
-
         int spawnedForEval = spawnedReal > 0 ? spawnedReal : spawnedPlan;
+
         if (spawnedForEval <= 0)
         {
             Debug.LogWarning("[LevelResultEvaluator] Aucune bille, evaluation ignoree.");
@@ -56,20 +55,28 @@ public static class LevelResultEvaluator
         // ------------------------------------------------------------------
         // Objectif principal
         // ------------------------------------------------------------------
-        int required = Mathf.Max(0, levelData.MainObjective?.ThresholdCount ?? 0);
-        bool success = collected >= required;
+
+        // On se cale sur la logique du ScoreManager :
+        // - seuil = ObjectiveThreshold (ThresholdCount configuré au début du niveau)
+        // - progression = TotalNonBlackBilles (billes NON NOIRES seulement)
+        int required = Mathf.Max(0, scoreManager.ObjectiveThreshold);
+        int collectedNonBlack = scoreManager.TotalNonBlackBilles;
+
+        // On recalcule le success avec EXACTEMENT la même règle que CheckGoalReached().
+        bool success = collectedNonBlack >= required;
 
         var mainObj = new MainObjectiveResult
         {
             Text = levelData.MainObjective?.Text ?? string.Empty,
-            ThresholdPct = 0, // on ne travaille plus en pourcentage ici
+            ThresholdPct = 0,
             Required = required,
-            Collected = collected,
+            Collected = collectedNonBlack,
             Achieved = success,
             BonusApplied = (success && levelData.MainObjective != null)
                 ? levelData.MainObjective.Bonus
                 : 0
         };
+
 
         // ------------------------------------------------------------------
         // Stats de fin de niveau

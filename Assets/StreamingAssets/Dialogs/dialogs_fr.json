@@ -12,7 +12,7 @@
           "lines": [
             {
               "speakerId": "captain",
-              "text": "Mike, rappel basique : tu rediriges les billes dans le bac de gauche ou de droite. Les violettes tu les laisses passer."
+              "text": "Mike, rappel basique : tu renvoies les billes vers les récupérateurs gauche et droit. Evite les noires !"
             },
             {
               "speakerId": "mike",
@@ -20,7 +20,7 @@
             },
             {
               "speakerId": "captain",
-              "text": "Leigh, Rye, si une violette se pointe, vous fermez les bacs !"
+              "text": "Leigh, Rye, si une noire se pointe, vous fermez les bacs !"
             },
             {
               "speakerId": "leigh",
@@ -28,7 +28,7 @@
             },
             {
               "speakerId": "rye",
-              "text": "Ouais. Les noires dehors. Simple."
+              "text": "Ouais, on veut pas abîmer les récupérateurs."
             }
           ]
         }
@@ -56,7 +56,7 @@
           "lines": [
             {
               "speakerId": "mike",
-              "text": "Ok, on commence tout doux. Je prends la main sur le rebond."
+              "text": "Allez mon gars, concentration."
             }
           ]
         }
@@ -75,7 +75,7 @@
           "lines": [
             {
               "speakerId": "leigh",
-              "text": "Afflux de billes en hausse. Te laisse pas déborder."
+              "text": "Allez Mike, te relâches pas."
             }
           ]
         },
@@ -83,8 +83,8 @@
           "weight": 1,
           "lines": [
             {
-              "speakerId": "mike",
-              "text": "T'inquiète, je gère."
+              "speakerId": "rye",
+              "text": "On continue comme ça Leigh."
             }
           ]
         }
@@ -103,35 +103,7 @@
           "lines": [
             {
               "speakerId": "captain",
-              "text": "Mike, j'aperçois des violettes, fais gaffe."
-            }
-          ]
-        },
-        {
-          "weight": 1,
-          "lines": [
-            {
-              "speakerId": "rye",
-              "text": "Mike, t'as interêt à assurer."
-            }
-          ]
-        }
-      ]
-    },
-
-    {
-      "id": "W1_L1_phase3",
-      "type": "phase",
-      "world": 1,
-      "level": 1,
-      "phaseIndex": 3,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            {
-              "speakerId": "captain",
-              "text": "Dernière phase. Mike, te relâche pas."
+              "text": "Dernière phase. Mike, reste focus."
             }
           ]
         },
@@ -140,7 +112,7 @@
           "lines": [
             {
               "speakerId": "mike",
-              "text": "Reçu Cap'tain !"
+              "text": "C'est les dernières."
             }
           ]
         }
@@ -148,22 +120,29 @@
     },
 
     {
-      "id": "W1_L1_phase4",
-      "type": "phase",
+      "id": "W1_L1_evac",
+      "type": "evac",
       "world": 1,
       "level": 1,
-      "phaseIndex": 4,
       "variants": [
         {
           "weight": 1,
           "lines": [
-            { "speakerId": "captain", "text": "Evacuation enclenchée. On récupère les dernières et on file." }
+            { "speakerId": "captain", 
+              "text": "Évacuation enclenchée. Récupérons les dernières et on dégage." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", 
+              "text": "Allez on fini proprement et on file." }
           ]
         }
       ]
     },
 
-        {
+    {
       "id": "contract_victory",
       "type": "contract",
       "world": 0,

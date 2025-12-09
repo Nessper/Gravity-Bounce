@@ -20,9 +20,7 @@ public class LevelControlsController : MonoBehaviour
 
     private void Start()
     {
-        // Au demarrage, on s'assure que l'UI mobile est OFF.
-        // - Sur mobile, elle sera reactivee au moment du gameplay.
-        // - Sur PC, elle doit rester OFF tout le temps.
+        // Au démarrage, on s'assure que l'UI mobile est OFF.
         if (mobileControlsRoot != null)
         {
             mobileControlsRoot.SetActive(false);
@@ -57,5 +55,14 @@ public class LevelControlsController : MonoBehaviour
         {
             mobileControlsRoot.SetActive(true);
         }
+    }
+
+    // NOUVEAU : affichage de l'UI mobile sans toucher aux contrôles
+    public void ShowMobileControlsUI(bool visible)
+    {
+        if (!isMobileRuntime || mobileControlsRoot == null)
+            return;
+
+        mobileControlsRoot.SetActive(visible);
     }
 }

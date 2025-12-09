@@ -282,4 +282,10 @@ public class DialogManager : MonoBehaviour
         return null;
     }
 
+    public DialogSequence GetEvacSequence(int world, int level)
+    {
+        return FindSequence("evac", world, level, null, null);
+    }
+
+
 }

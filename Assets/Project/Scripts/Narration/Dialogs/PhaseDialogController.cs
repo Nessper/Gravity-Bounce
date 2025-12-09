@@ -37,14 +37,14 @@ public class PhaseDialogController : MonoBehaviour
 
     private void HandlePhaseChanged(int phaseIndex, string phaseName)
     {
-        // Phases normales (0, 1, 2, 3)
+     
         PlayPhaseDialog(phaseIndex);
     }
 
     private void HandleEvacuationStarted()
     {
-        // Evac = phase 4 dans le dialogs_fr.json
-        PlayPhaseDialog(4);
+
+        PlayEvacDialog();
     }
 
     private void PlayPhaseDialog(int phaseIndex)
@@ -66,6 +66,27 @@ public class PhaseDialogController : MonoBehaviour
 
         dialogSequenceRunner.Play(lines, onComplete: null);
     }
+
+    private void PlayEvacDialog()
+    {
+        if (dialogSequenceRunner == null)
+            return;
+
+        DialogManager dialogManager = UnityEngine.Object.FindFirstObjectByType<DialogManager>();
+        if (dialogManager == null)
+            return;
+
+        DialogSequence seq = dialogManager.GetEvacSequence(worldIndex, levelIndex);
+        if (seq == null)
+            return;
+
+        DialogLine[] lines = dialogManager.GetRandomVariantLines(seq);
+        if (lines == null || lines.Length == 0)
+            return;
+
+        dialogSequenceRunner.Play(lines, onComplete: null);
+    }
+
 
     public void SetWorldAndLevel(int world, int level)
     {

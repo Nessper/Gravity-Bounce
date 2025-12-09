@@ -273,6 +273,12 @@ public class LevelIntroSequenceController : MonoBehaviour
 
         ActivateAllBoardRootChildren();
 
+        // >>> AJOUT ICI : afficher l'UI mobile avant le compte à rebours
+        if (controlsController != null)
+        {
+            controlsController.ShowMobileControlsUI(true);
+        }
+
         // 9) Petit délai avant le countdown
         if (delayBeforeCountdown > 0f)
             yield return new WaitForSeconds(delayBeforeCountdown);
@@ -284,6 +290,7 @@ public class LevelIntroSequenceController : MonoBehaviour
         // 11) Unlock et cleanup
         if (controlsController != null)
             controlsController.EnableGameplayControls();
+
 
         if (skipButton != null)
             skipButton.onClick.RemoveListener(OnSkipButtonPressed);
@@ -343,6 +350,12 @@ public class LevelIntroSequenceController : MonoBehaviour
         if (introHUDRoot != null)
             introHUDRoot.SetActive(false);
 
+        // >>> AJOUT : afficher aussi l’UI mobile quand on skip
+        if (controlsController != null)
+        {
+            controlsController.ShowMobileControlsUI(true);
+        }
+
         if (dialogSequenceRunner != null)
             dialogSequenceRunner.StopAndHide();
 
@@ -353,6 +366,7 @@ public class LevelIntroSequenceController : MonoBehaviour
             skipButtonCanvasGroup.blocksRaycasts = false;
         }
     }
+
 
     private IEnumerator SkipToCountdownRoutine()
     {
