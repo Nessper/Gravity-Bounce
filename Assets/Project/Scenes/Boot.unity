@@ -545,6 +545,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 1110301952}
     m_Modifications:
     - target: {fileID: -1077850866166042245, guid: dd9e42ed273fb3a4b86f055fef8d9e9e, type: 3}
+      propertyPath: SkipTitleIntroOnce
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -1077850866166042245, guid: dd9e42ed273fb3a4b86f055fef8d9e9e, type: 3}
       propertyPath: SimulateMobileInEditor
       value: 0
       objectReference: {fileID: 0}

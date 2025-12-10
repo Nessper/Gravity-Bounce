@@ -1,0 +1,2 @@
+C:\Users\PAUL\Documents\Unity\tuto unity\Gravity Bounce\Library\Bee\Android\Prj\Mono2x\Gradle\unityLibrary\src\main\cpp\CMakeLists.txt
+C:\Users\PAUL\Documents\Unity\tuto unity\Gravity Bounce\Library\Bee\Android\Prj\Mono2x\Gradle\unityLibrary\src\main\cpp\GameActivity\CMakeLists.txt

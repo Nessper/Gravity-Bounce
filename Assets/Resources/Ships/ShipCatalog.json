@@ -1,0 +1,27 @@
+{
+  "schema": "ShipCatalog.v1",
+  "ships": [
+    {
+      "id": "CORE_SCOUT",
+      "displayName": "Core Scout",
+      "description": "A versatile, reliable and well-balanced exploration vessel. Perfect for initial missions in the void.",
+      "maxHull": 10,
+      "shieldSecondsPerLevel": 30,
+      "closeBinHoldGrace": 0.12,
+      "paddleWidthMult": 1.0,
+      "binAutoFlushOnEvac": true,
+      "imageFile": "core_scout.png"
+    },
+    {
+      "id": "AETHER_RUNNER",
+      "displayName": "Aether Runner",
+      "description": "Fast and responsive, designed to navigate between gravitational storms. Less stable but bolder.",
+      "maxHull": 8,
+      "shieldSecondsPerLevel": 20,
+      "closeBinHoldGrace": 0.10,
+      "paddleWidthMult": 1.0,
+      "binAutoFlushOnEvac": true,
+      "imageFile": "aether_runner.png"
+    }
+  ]
+}

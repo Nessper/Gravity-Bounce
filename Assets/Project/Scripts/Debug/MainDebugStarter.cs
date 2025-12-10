@@ -15,6 +15,18 @@ public class MainDebugStarter : MonoBehaviour
 {
     [Header("Debug mode")]
     [SerializeField] private bool debugEnabled = true;
+    [Header("Compat GameFlow")]
+    [SerializeField] private bool ignoreGameFlowPresence =true;
+
+
+    [Header("Debug sur device")]
+    [SerializeField] private bool allowDebugInPlayer = false;
+
+    /// <summary>
+    /// Cle PlayerPrefs utilisee pour activer le mode MainDebug sur device.
+    /// </summary>
+    private const string PlayerPrefKey_DebugMain = "VS_DEBUG_MAIN";
+
 
     [Header("Vaisseau")]
     [SerializeField] private string debugShipId = "CORE_SCOUT";
@@ -39,25 +51,30 @@ public class MainDebugStarter : MonoBehaviour
 
     private void Awake()
     {
-        if (!debugEnabled)
+        // 0) Debug actif ou pas (Editor / device)
+        if (!IsDebugActive())
             return;
 
-        // Flow normal present ? On ne fait rien.
-        if (BootRoot.GameFlow != null)
+        // 1) Flow normal present ?
+        //    - En mode normal, on ne touche a rien si GameFlow existe.
+        //    - En mode debug 'force', on passe outre pour pouvoir utiliser le MainDebugStarter
+        //      meme quand on a lance le jeu depuis le Boot/Title.
+        if (BootRoot.GameFlow != null && !ignoreGameFlowPresence)
             return;
 
-        Debug.Log("[MainDebugStarter] Debug mode actif pour la scene Main (BootRoot.GameFlow null).");
+        Debug.Log("[MainDebugStarter] Debug mode actif pour la scene Main (BootRoot.GameFlow="
+                  + (BootRoot.GameFlow != null ? "present" : "null") + ").");
 
-        // 1) On s assure d avoir un ShipCatalog charge pour le debug
+        // 2) On s assure d avoir un ShipCatalog charge pour le debug
         TryEnsureShipCatalogLoaded();
 
-        // 2) On desactive RunSessionBootstrapper pour eviter le retour auto au Title
+        // 3) On desactive RunSessionBootstrapper pour eviter le retour auto au Title
         if (runSessionBootstrapper != null)
         {
             runSessionBootstrapper.enabled = false;
         }
 
-        // 3) Setup du vaisseau dans RunConfig
+        // 4) Setup du vaisseau dans RunConfig
         var runConfig = RunConfig.Instance;
         if (runConfig != null && !string.IsNullOrEmpty(debugShipId))
         {
@@ -65,24 +82,26 @@ public class MainDebugStarter : MonoBehaviour
             Debug.Log("[MainDebugStarter] RunConfig ship id = " + debugShipId);
         }
 
-        // 4) Init directe de RunSessionState
+        // 5) Init directe de RunSessionState
         SetupRunSessionState();
 
-        // 5) Override JSON de niveau
+        // 6) Override JSON de niveau
         if (levelManager != null && debugLevelJson != null)
         {
             levelManager.DebugOverrideLevelJson(debugLevelJson);
         }
 
-        //6) Ajout des dialogues
+        // 7) Ajout des dialogues
         EnsureDialogManagerForDebug();
 
-        // 7) Flags de skip briefing / intro
+        // 8) Flags de skip briefing / intro
         if (levelManager != null)
         {
             levelManager.SetDebugSkipFlags(debugSkipBriefing, debugSkipIntro);
         }
     }
+
+
 
 
     /// <summary>
@@ -136,22 +155,20 @@ public class MainDebugStarter : MonoBehaviour
             ShipCatalogService.Catalog.ships != null &&
             ShipCatalogService.Catalog.ships.Count > 0)
         {
-            // Deja charge par un autre flow
             return;
         }
 
-        string path = Path.Combine(Application.streamingAssetsPath, "Ships", "ShipCatalog.json");
-
-        if (!File.Exists(path))
+        // Chargement via Resources, compatible mobile
+        TextAsset jsonAsset = Resources.Load<TextAsset>("Ships/ShipCatalog");
+        if (jsonAsset == null)
         {
-            Debug.LogWarning("[MainDebugStarter] ShipCatalog introuvable a ce chemin: " + path);
+            Debug.LogWarning("[MainDebugStarter] ShipCatalog introuvable dans Resources/Ships/ShipCatalog.");
             return;
         }
 
         try
         {
-            string json = File.ReadAllText(path);
-            var catalog = JsonUtility.FromJson<ShipCatalog>(json);
+            var catalog = JsonUtility.FromJson<ShipCatalog>(jsonAsset.text);
 
             if (catalog == null || catalog.ships == null || catalog.ships.Count == 0)
             {
@@ -167,6 +184,7 @@ public class MainDebugStarter : MonoBehaviour
             Debug.LogError("[MainDebugStarter] Exception lors du chargement du ShipCatalog: " + ex.Message);
         }
     }
+
 
     /// <summary>
     /// En mode debug Main, s assure qu un DialogManager existe dans la scene.
@@ -196,6 +214,25 @@ public class MainDebugStarter : MonoBehaviour
         // c est ici qu il faut l appeler.
         // Exemple fictif :
         // dm.Initialize();
+    }
+
+    /// <summary>
+    /// Determine si le debug doit etre actif sur cette plateforme / build.
+    /// - En Editor : on utilise simplement debugEnabled.
+    /// - En player (mobile, PC build) : il faut que allowDebugInPlayer soit vrai
+    ///   ET que le flag PlayerPrefs soit positionne.
+    /// </summary>
+    private bool IsDebugActive()
+    {
+#if UNITY_EDITOR
+        return debugEnabled;
+#else
+    if (!allowDebugInPlayer)
+        return false;
+
+    // 0 par defaut = debug off
+    return PlayerPrefs.GetInt(PlayerPrefKey_DebugMain, 0) == 1;
+#endif
     }
 
 }
