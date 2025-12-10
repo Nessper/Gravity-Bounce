@@ -119,6 +119,50 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &4523181
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4523182}
+  - component: {fileID: 4523183}
+  m_Layer: 0
+  m_Name: LevelRunState
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4523182
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4523181}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1650690410}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4523183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4523181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d8b9af6337ab854f9ba6621831d6efe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelRunStateController
 --- !u!1 &5814250
 GameObject:
   m_ObjectHideFlags: 0
@@ -2961,6 +3005,34 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1846919557}
     m_Modifications:
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 603873192}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: OnStartClicked
+      objectReference: {fileID: 0}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: IntroLevelUI, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
+      objectReference: {fileID: 0}
     - target: {fileID: 6899633396850326679, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_Name
       value: Button_Start
@@ -3131,10 +3203,14 @@ MonoBehaviour:
   shipBackgroundLoader: {fileID: 1646446896}
   levelJson: {fileID: 4900000, guid: 00853a88421a0274486657374537de6c, type: 3}
   runSession: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
+  runStateController: {fileID: 4523183}
   introSequenceController: {fileID: 1863902293}
+  secondaryObjectivesController: {fileID: 454216870}
   OnEndComputed:
     m_PersistentCalls:
       m_Calls: []
+  debugSkipBriefing: 0
+  debugSkipIntro: 0
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -3471,7 +3547,7 @@ PrefabInstance:
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 1850992640}
+      objectReference: {fileID: 970597010}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -3482,7 +3558,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: EndLevelButtonsUI, Assembly-CSharp
+      value: LevelEndFlowController, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
@@ -4279,6 +4355,51 @@ MonoBehaviour:
   defaultDuration: 0.2
   defaultAmplitude: 0.1
   defaultFrequency: 25
+--- !u!1 &454216869
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 454216871}
+  - component: {fileID: 454216870}
+  m_Layer: 0
+  m_Name: 'LevelSecondaryObjectivesController '
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &454216870
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 454216869}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf83310488ff8af4898cd446ac3805cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelSecondaryObjectivesController
+  scoreManager: {fileID: 975156268}
+--- !u!4 &454216871
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 454216869}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 874433117}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &456149153
 GameObject:
   m_ObjectHideFlags: 0
@@ -6310,8 +6431,8 @@ MonoBehaviour:
   shipNameText: {fileID: 1283238780}
   shipHullText: {fileID: 169744878}
   shipShieldText: {fileID: 2011085909}
-  playButton: {fileID: 319481963}
-  backButton: {fileID: 1632826701}
+  startButton: {fileID: 319481963}
+  menuButton: {fileID: 1632826701}
 --- !u!114 &603873193
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6325,7 +6446,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelBriefingController
   introLevelUI: {fileID: 603873192}
-  titleSceneName: Title
 --- !u!1 &613850161
 GameObject:
   m_ObjectHideFlags: 0
@@ -9056,6 +9176,7 @@ Transform:
   - {fileID: 428569277}
   - {fileID: 1863902294}
   - {fileID: 970597009}
+  - {fileID: 454216871}
   m_Father: {fileID: 1215621184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &874546551
@@ -9420,7 +9541,7 @@ PrefabInstance:
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 1850992640}
+      objectReference: {fileID: 970597010}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -9431,7 +9552,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: EndLevelButtonsUI, Assembly-CSharp
+      value: LevelEndFlowController, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
@@ -10976,7 +11097,7 @@ PrefabInstance:
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 1850992640}
+      objectReference: {fileID: 970597010}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -10987,7 +11108,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: EndLevelButtonsUI, Assembly-CSharp
+      value: LevelEndFlowController, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
@@ -11634,7 +11755,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1005362328}
   m_CullTransparentMesh: 1
---- !u!1 &1026296082
+--- !u!1 &1011984855
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -11642,46 +11763,51 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1026296084}
-  - component: {fileID: 1026296083}
+  - component: {fileID: 1011984856}
+  - component: {fileID: 1011984857}
   m_Layer: 0
-  m_Name: MainQuickStart
+  m_Name: MainDebugRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!114 &1026296083
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1026296082}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7b0d92c8bd2b4564d9eab1eb6643573f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MainQuickStart
-  forcedShipId: CORE_SCOUT
-  forcedLives: 3
-  forcedTimerSec: 90
-  disableInBuild: 1
---- !u!4 &1026296084
+  m_IsActive: 1
+--- !u!4 &1011984856
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1026296082}
+  m_GameObject: {fileID: 1011984855}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1379.8691, y: -945.39294, z: 3187.3818}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1901384765}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1011984857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1011984855}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1afaabbcb08ab424ca560dc83855cc28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MainDebugStarter
+  debugEnabled: 1
+  debugShipId: CORE_SCOUT
+  defaultContractLives: 3
+  debugLevelJson: {fileID: 4900000, guid: 00853a88421a0274486657374537de6c, type: 3}
+  debugSkipBriefing: 1
+  debugSkipIntro: 1
+  runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
+  levelManager: {fileID: 326384405}
+  runSessionBootstrapper: {fileID: 1847546870}
 --- !u!1 &1034245500
 GameObject:
   m_ObjectHideFlags: 0
@@ -13617,9 +13743,9 @@ Transform:
   - {fileID: 874433117}
   - {fileID: 207393966}
   - {fileID: 326384404}
-  - {fileID: 1847546869}
   - {fileID: 613850162}
   - {fileID: 1901384765}
+  - {fileID: 1650690410}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1233270836
@@ -16454,6 +16580,34 @@ PrefabInstance:
       propertyPath: m_text
       value: MENU
       objectReference: {fileID: 0}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 603873192}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: OnMenuClicked
+      objectReference: {fileID: 0}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: IntroLevelUI, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
+      objectReference: {fileID: 0}
     - target: {fileID: 6899633396850326679, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_Name
       value: Button_Menu
@@ -16809,6 +16963,39 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1529241366}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1650690409
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1650690410}
+  m_Layer: 0
+  m_Name: Core
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1650690410
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1650690409}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1847546869}
+  - {fileID: 4523182}
+  m_Father: {fileID: 1215621184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1652938058
 GameObject:
@@ -19590,12 +19777,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1847546868}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1215621184}
+  m_Father: {fileID: 1650690410}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1847546870
 MonoBehaviour:
@@ -19657,8 +19844,6 @@ MonoBehaviour:
   buttonMenuRoot: {fileID: 991676119}
   buttonRetryRoot: {fileID: 372678447}
   buttonNextRoot: {fileID: 912288705}
-  titleSceneName: Title
-  mainSceneName: Main
 --- !u!1 &1860133840
 GameObject:
   m_ObjectHideFlags: 0
@@ -20421,7 +20606,7 @@ Transform:
   - {fileID: 1112332527}
   - {fileID: 1386215160}
   - {fileID: 294737042}
-  - {fileID: 1026296084}
+  - {fileID: 1011984856}
   m_Father: {fileID: 1215621184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1934073752
@@ -21509,14 +21694,14 @@ PrefabInstance:
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1863902293}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: 
+      value: OnSkipButtonPressed
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName

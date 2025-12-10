@@ -7,6 +7,18 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 
+/// <summary>
+/// Ecran d intro de niveau (briefing).
+/// - Affiche les informations du niveau (id, titre, monde).
+/// - Affiche le detail des phases (duree, nodes, mix, vitesse de spawn).
+/// - Affiche l objectif principal et les objectifs secondaires.
+/// - Affiche les objectifs de score (bronze, argent, or).
+/// - Affiche les infos du vaisseau (image, nom, hull, shield).
+/// - Expose deux callbacks:
+///   - Start (bouton "Start") -> demarrage du niveau.
+///   - Menu (bouton "Menu") -> retour vers le menu titre (gere par un autre script).
+/// Ce script ne fait aucun changement de scene, il ne fait que l affichage.
+/// </summary>
 public class IntroLevelUI : MonoBehaviour
 {
     [Header("Root")]
@@ -42,34 +54,50 @@ public class IntroLevelUI : MonoBehaviour
     [SerializeField] private TMP_Text shipShieldText;
 
     [Header("Buttons")]
-    [SerializeField] private Button playButton;
-    [SerializeField] private Button backButton;
+    [SerializeField] private Button startButton;  // bouton "Start"
+    [SerializeField] private Button menuButton;   // bouton "Menu" (retour vers Title)
 
-    private System.Action onPlayCallback;
-    private System.Action onBackCallback;
+    /// <summary>
+    /// Callback appele quand le joueur clique sur Start.
+    /// </summary>
+    private System.Action onStartCallback;
 
-    // Valeurs runtime de hull (injectées par le briefing)
+    /// <summary>
+    /// Callback appele quand le joueur clique sur Menu.
+    /// </summary>
+    private System.Action onMenuCallback;
+
+    /// <summary>
+    /// Valeur runtime du hull (injectee par l orchestrateur du niveau).
+    /// Permet d afficher la valeur courante dans le briefing.
+    /// </summary>
     private int runtimeHull = -1;
+
+    /// <summary>
+    /// Valeur runtime du hull max (injectee par l orchestrateur du niveau).
+    /// </summary>
     private int runtimeMaxHull = -1;
 
     private void Awake()
     {
+        // L overlay d intro est cache par defaut.
         if (overlayIntro != null)
             overlayIntro.SetActive(false);
 
-        if (playButton != null)
-            playButton.onClick.AddListener(OnPlayClicked);
-
-        if (backButton != null)
-            backButton.onClick.AddListener(OnBackClicked);
+        // Les boutons sont cables dans l inspector vers OnStartClicked et OnMenuClicked.
+        // Ce script ne fait pas de AddListener en code.
     }
 
+    /// <summary>
+    /// Met a jour les valeurs runtime de hull, utilisees pour afficher "hull courant / hull max"
+    /// dans l UI du vaisseau.
+    /// </summary>
     public void SetShipRuntimeHull(int currentHull, int maxHull)
     {
         runtimeHull = Mathf.Max(-1, currentHull);
         runtimeMaxHull = Mathf.Max(-1, maxHull);
 
-        // Si l'overlay est déjà visible, on met à jour le texte tout de suite
+        // Si l overlay est deja visible, on met a jour le texte immediatement.
         if (shipHullText != null && overlayIntro != null && overlayIntro.activeInHierarchy)
         {
             if (runtimeHull >= 0 && runtimeMaxHull > 0)
@@ -78,20 +106,23 @@ public class IntroLevelUI : MonoBehaviour
             }
             else
             {
-                // Fallback au cas où, mais normalement on ne devrait pas passer ici
                 shipHullText.text = "x" + runtimeMaxHull.ToString();
             }
         }
     }
 
-
-    public void Show(LevelData data, PhasePlanInfo[] phasePlans, System.Action onPlay, System.Action onBack)
+    /// <summary>
+    /// Affiche le briefing avec les donnees de niveau, les phases et les callbacks.
+    /// - onStart est appele quand le joueur clique sur le bouton Start.
+    /// - onMenu est appele quand le joueur clique sur le bouton Menu.
+    /// </summary>
+    public void Show(LevelData data, PhasePlanInfo[] phasePlans, System.Action onStart, System.Action onMenu)
     {
         if (data == null)
             return;
 
-        onPlayCallback = onPlay;
-        onBackCallback = onBack;
+        onStartCallback = onStart;
+        onMenuCallback = onMenu;
 
         // HEADER
         if (levelIdText != null)
@@ -211,7 +242,7 @@ public class IntroLevelUI : MonoBehaviour
             }
         }
 
-        // MAIN OBJECTIVE
+        // OBJECTIF PRINCIPAL
         if (mainObjectiveText != null)
         {
             if (data.MainObjective != null && !string.IsNullOrEmpty(data.MainObjective.Text))
@@ -220,7 +251,7 @@ public class IntroLevelUI : MonoBehaviour
                 mainObjectiveText.text = "-";
         }
 
-        // SECONDARY OBJECTIVES
+        // OBJECTIFS SECONDAIRES
         if (optionalDirectiveTexts != null)
         {
             for (int i = 0; i < optionalDirectiveTexts.Length; i++)
@@ -265,13 +296,16 @@ public class IntroLevelUI : MonoBehaviour
             if (goldGoalText != null) goldGoalText.text = "-";
         }
 
-        // SHIP INFO
+        // INFOS VAISSEAU
         FillShipInfo();
 
         if (overlayIntro != null)
             overlayIntro.SetActive(true);
     }
 
+    /// <summary>
+    /// Remet les zones de texte des phases avec des placeholders "-".
+    /// </summary>
     private void ResetPhaseBriefingPlaceholders()
     {
         if (phaseNameTexts != null)
@@ -305,22 +339,34 @@ public class IntroLevelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Cache l overlay de briefing.
+    /// </summary>
     public void Hide()
     {
         if (overlayIntro != null)
             overlayIntro.SetActive(false);
     }
 
-    private void OnPlayClicked()
+    /// <summary>
+    /// Callback appele par le bouton Start (via l inspector).
+    /// </summary>
+    public void OnStartClicked()
     {
-        onPlayCallback?.Invoke();
+        onStartCallback?.Invoke();
     }
 
-    private void OnBackClicked()
+    /// <summary>
+    /// Callback appele par le bouton Menu (via l inspector).
+    /// </summary>
+    public void OnMenuClicked()
     {
-        onBackCallback?.Invoke();
+        onMenuCallback?.Invoke();
     }
 
+    /// <summary>
+    /// Remplit les infos du vaisseau (image, nom, hull, shield) a partir de RunConfig et du ShipCatalog.
+    /// </summary>
     private void FillShipInfo()
     {
         if (RunConfig.Instance == null || ShipCatalogService.Catalog == null)
@@ -364,6 +410,9 @@ public class IntroLevelUI : MonoBehaviour
             shipShieldText.text = ship.shieldSecondsPerLevel.ToString("0") + "s";
     }
 
+    /// <summary>
+    /// Charge une texture depuis StreamingAssets et la convertit en Sprite pour l UI.
+    /// </summary>
     private IEnumerator LoadSpriteFromStreamingAssets(string fileName, Image target)
     {
         if (target == null || string.IsNullOrEmpty(fileName))

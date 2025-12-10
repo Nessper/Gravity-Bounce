@@ -1,8 +1,12 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+/// <summary>
+/// Controls the Title scene.
+/// Handles UI fade in and out, New Game, Continue and Quit actions.
+/// Scene transitions are delegated to the GameFlowController through BootRoot.
+/// </summary>
 public class TitleController : MonoBehaviour
 {
     [Header("UI")]
@@ -22,29 +26,37 @@ public class TitleController : MonoBehaviour
     [SerializeField] private float fadeInDelay = 5f;
     [SerializeField] private float fadeInTime = 1f;
     [SerializeField] private float fadeOutTime = 1f;
-    [SerializeField] private string shipSelectScene = "ShipSelect";
-    [SerializeField] private string mainScene = "Main";
 
     private void Start()
     {
-        SetupInitialFadeState();
-        WireButtons();
+        // The Title scene should always be loaded from Boot
+        // so that BootRoot and GameFlowController are correctly set up.
+        if (BootRoot.GameFlow == null)
+        {
+            Debug.LogError("[TitleController] BootRoot.GameFlow is null. Title scene must be started from Boot scene.");
+        }
+
+        SetupInitialState();
         SetupContinueButtonVisibility();
 
+        // Optional skip of the intro fade once, controlled by RunConfig.
         if (RunConfig.Instance != null && RunConfig.Instance.SkipTitleIntroOnce)
         {
             SkipIntroFade();
             return;
         }
 
-        StartCoroutine(FadeIn());
+        StartCoroutine(FadeInRoutine());
     }
 
     // ---------------------------------------------------------
-    // Init / wiring
+    // Initial UI setup
     // ---------------------------------------------------------
 
-    private void SetupInitialFadeState()
+    /// <summary>
+    /// Prepares the initial state of the canvas and hides the New Game warning panel.
+    /// </summary>
+    private void SetupInitialState()
     {
         if (canvasGroup != null)
         {
@@ -57,20 +69,11 @@ public class TitleController : MonoBehaviour
             warningNewGamePanel.SetActive(false);
     }
 
-    private void WireButtons()
-    {
-        if (newGameButton != null) newGameButton.onClick.AddListener(OnNewGamePressed);
-        if (continueButton != null) continueButton.onClick.AddListener(OnContinuePressed);
-        if (quitButton != null) quitButton.onClick.AddListener(OnQuitPressed);
-
-        // Popup warning buttons
-        if (warningNewGame_BackButton != null) warningNewGame_BackButton.onClick.AddListener(OnNewGameWarningBack);
-        if (warningNewGame_OkButton != null) warningNewGame_OkButton.onClick.AddListener(OnNewGameWarningOk);
-    }
-
+    /// <summary>
+    /// Shows or hides the Continue button depending on saved run data.
+    /// </summary>
     private void SetupContinueButtonVisibility()
     {
-        // Continue only if an ongoing run exists
         var save = SaveManager.Instance != null ? SaveManager.Instance.Current : null;
 
         bool hasRun = save != null
@@ -81,6 +84,9 @@ public class TitleController : MonoBehaviour
             continueButton.gameObject.SetActive(hasRun);
     }
 
+    /// <summary>
+    /// Immediately skips the intro fade and enables all UI.
+    /// </summary>
     private void SkipIntroFade()
     {
         if (canvasGroup != null)
@@ -90,14 +96,19 @@ public class TitleController : MonoBehaviour
             canvasGroup.blocksRaycasts = true;
         }
 
-        RunConfig.Instance.SkipTitleIntroOnce = false;
+        if (RunConfig.Instance != null)
+            RunConfig.Instance.SkipTitleIntroOnce = false;
     }
 
     // ---------------------------------------------------------
     // Fade logic
     // ---------------------------------------------------------
 
-    private IEnumerator FadeIn()
+    /// <summary>
+    /// Fades the UI canvas in after an optional delay.
+    /// Uses unscaled time for consistent appearance.
+    /// </summary>
+    private IEnumerator FadeInRoutine()
     {
         if (fadeInDelay > 0f)
             yield return new WaitForSecondsRealtime(fadeInDelay);
@@ -115,7 +126,10 @@ public class TitleController : MonoBehaviour
         canvasGroup.blocksRaycasts = true;
     }
 
-    private IEnumerator FadeOutCanvas()
+    /// <summary>
+    /// Fades the UI canvas out before leaving the Title scene.
+    /// </summary>
+    private IEnumerator FadeOutRoutine()
     {
         float startAlpha = canvasGroup.alpha;
         float t = 0f;
@@ -128,14 +142,21 @@ public class TitleController : MonoBehaviour
         }
 
         canvasGroup.alpha = 0f;
+
+        // Small pause to ensure the fade completes visually.
         yield return new WaitForSecondsRealtime(0.2f);
     }
 
     // ---------------------------------------------------------
-    // Button actions
+    // Button callbacks
+    // These methods are meant to be hooked from the Inspector.
     // ---------------------------------------------------------
 
-    private void OnNewGamePressed()
+    /// <summary>
+    /// Called when the New Game button is pressed.
+    /// Shows a confirmation popup if a run is already in progress.
+    /// </summary>
+    public void OnNewGamePressed()
     {
         var save = SaveManager.Instance != null ? SaveManager.Instance.Current : null;
 
@@ -154,37 +175,58 @@ public class TitleController : MonoBehaviour
         StartNewGame();
     }
 
-    private void OnNewGameWarningBack()
+    /// <summary>
+    /// Called when the Back button of the New Game warning popup is pressed.
+    /// </summary>
+    public void OnNewGameWarningBack()
     {
         if (warningNewGamePanel != null)
             warningNewGamePanel.SetActive(false);
     }
 
-    private void OnNewGameWarningOk()
+    /// <summary>
+    /// Called when the OK button of the New Game warning popup is pressed.
+    /// Resets run data then starts a new game.
+    /// </summary>
+    public void OnNewGameWarningOk()
     {
         if (warningNewGamePanel != null)
             warningNewGamePanel.SetActive(false);
 
-        SaveManager.Instance.ResetRunState();
+        if (SaveManager.Instance != null)
+            SaveManager.Instance.ResetRunState();
+
         StartNewGame();
     }
 
+    /// <summary>
+    /// Resets the run state and starts a new game by moving to the ShipSelect scene.
+    /// </summary>
     private void StartNewGame()
     {
-        StartCoroutine(StartGameAfterFade());
+        // Explicit reset to guarantee a clean state.
+        if (SaveManager.Instance != null)
+            SaveManager.Instance.ResetRunState();
+
+        StartCoroutine(StartNewGameRoutine());
     }
 
-    private IEnumerator StartGameAfterFade()
+    private IEnumerator StartNewGameRoutine()
     {
         canvasGroup.interactable = false;
         canvasGroup.blocksRaycasts = false;
 
-        yield return FadeOutCanvas();
+        yield return FadeOutRoutine();
 
-        SceneManager.LoadScene(shipSelectScene);
+        // New game always leads to ShipSelect.
+        BootRoot.GameFlow.GoToShipSelect();
     }
 
-    private void OnContinuePressed()
+    /// <summary>
+    /// Called when the Continue button is pressed.
+    /// Resumes the run in progress by loading the main level scene.
+    /// </summary>
+    public void OnContinuePressed()
     {
         if (canvasGroup != null)
         {
@@ -192,27 +234,21 @@ public class TitleController : MonoBehaviour
             canvasGroup.blocksRaycasts = false;
         }
 
-        StartCoroutine(ContinueAfterFade());
+        StartCoroutine(ContinueRoutine());
     }
 
-    private IEnumerator ContinueAfterFade()
+    private IEnumerator ContinueRoutine()
     {
-        yield return FadeOutCanvas();
+        yield return FadeOutRoutine();
 
-        // Continue doit envoyer vers la scène Main
-        if (!string.IsNullOrEmpty(mainScene))
-        {
-            SceneManager.LoadScene(mainScene);
-        }
-        else
-        {
-            Debug.LogWarning("[TitleController] mainScene non défini, fallback sur ShipSelect.");
-            SceneManager.LoadScene(shipSelectScene);
-        }
+        BootRoot.GameFlow.StartLevel();
     }
 
-
-    private void OnQuitPressed()
+    /// <summary>
+    /// Called when the Quit button is pressed.
+    /// Exits the application or stops play mode in the editor.
+    /// </summary>
+    public void OnQuitPressed()
     {
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;

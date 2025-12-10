@@ -274,4 +274,75 @@ public class LevelEndFlowController : MonoBehaviour
         Debug.Log("[LevelEndFlowController] Persisted contract lives = " + clamped
                   + ", hasOngoingRun=" + run.hasOngoingRun);
     }
+
+    // =====================================================================
+    // CALLBACKS BOUTONS (MENU / RETRY / NEXT)
+    // =====================================================================
+
+    /// <summary>
+    /// Appelle par le bouton MENU en fin de niveau.
+    /// Retourne au Title via GameFlow.
+    /// </summary>
+    public void OnClickMenu()
+    {
+        if (BootRoot.GameFlow == null)
+        {
+            Debug.LogError("[LevelEndFlowController] GameFlow est null, impossible de retourner au menu.");
+            return;
+        }
+
+        // Option : on evite de rejouer l intro du Title a chaque retour.
+        if (RunConfig.Instance != null)
+        {
+            RunConfig.Instance.SkipTitleIntroOnce = true;
+        }
+
+        BootRoot.GameFlow.GoToTitle();
+    }
+
+    /// <summary>
+    /// Appelle par le bouton RETRY.
+    /// Redemarre le niveau courant en conservant le hull runtime.
+    /// </summary>
+    public void OnClickRetry()
+    {
+        if (BootRoot.GameFlow == null)
+        {
+            Debug.LogError("[LevelEndFlowController] GameFlow est null, impossible de relancer le niveau.");
+            return;
+        }
+
+        if (runSessionState != null)
+        {
+            // On arme le flag pour que RunSessionBootstrapper reutilise le hull courant.
+            runSessionState.MarkCarryHullOnNextRestart(true);
+        }
+        else
+        {
+            Debug.LogWarning("[LevelEndFlowController] RunSessionState manquant, retry sans conservation de hull.");
+        }
+
+        // On redemarre le niveau via GameFlow (Main sera relance).
+        BootRoot.GameFlow.StartLevel();
+    }
+
+    /// <summary>
+    /// Appelle par le bouton NEXT (victoire).
+    /// Pour l instant: relance le meme niveau via GameFlow.
+    /// Plus tard: logique de campagne (niveau suivant).
+    /// </summary>
+    public void OnClickNext()
+    {
+        if (BootRoot.GameFlow == null)
+        {
+            Debug.LogError("[LevelEndFlowController] GameFlow est null, impossible de passer au niveau suivant.");
+            return;
+        }
+
+        // Placeholder : on redemarre le niveau courant.
+        // Quand la campagne sera en place, ce sera:
+        // BootRoot.GameFlow.GoToNextLevel();
+        BootRoot.GameFlow.StartLevel();
+    }
+
 }

@@ -60,6 +60,9 @@ public class LevelManager : MonoBehaviour
     [Header("Config / State")]
     [SerializeField] private TextAsset levelJson;
     [SerializeField] private RunSessionState runSession;
+    [Header("Run / Persistance")]
+    [SerializeField] private LevelRunStateController runStateController;
+
 
     private PhasePlanInfo[] phasePlanInfos;
     private LevelData data;
@@ -79,14 +82,20 @@ public class LevelManager : MonoBehaviour
     // Nom de fichier de l'image du vaisseau sélectionné (pour le décor de fond).
     private string currentShipImageFile;
 
-    // --- Objectifs secondaires ---
-    private SecondaryObjectivesManager secondaryObjectivesManager =
-        new SecondaryObjectivesManager();
+    [Header("Objectifs secondaires")]
+    [SerializeField] private LevelSecondaryObjectivesController secondaryObjectivesController;
 
-    private List<SecondaryObjectiveResult> secondaryObjectiveResults;
 
     public UnityEvent<EndLevelStats, LevelData, MainObjectiveResult> OnEndComputed
         = new UnityEvent<EndLevelStats, LevelData, MainObjectiveResult>();
+
+    // =====================================================================
+    // DEBUG
+    // =====================================================================
+    [Header("Debug Main scene")]
+    [SerializeField] private bool debugSkipBriefing;
+    [SerializeField]
+    private bool debugSkipIntro;
 
     // =====================================================================
     // CYCLE UNITY
@@ -102,11 +111,7 @@ public class LevelManager : MonoBehaviour
             runSession.OnHullChanged.AddListener(HandleHullChanged);
             runSession.OnContractLivesChanged.AddListener(HandleContractLivesChanged);
         }
-
-        if (scoreManager != null)
-            scoreManager.OnFlushSnapshotRegistered += HandleFlushSnapshotRegistered;
     }
-
 
     private void OnDisable()
     {
@@ -118,14 +123,23 @@ public class LevelManager : MonoBehaviour
             runSession.OnHullChanged.RemoveListener(HandleHullChanged);
             runSession.OnContractLivesChanged.RemoveListener(HandleContractLivesChanged);
         }
-
-        if (scoreManager != null)
-            scoreManager.OnFlushSnapshotRegistered -= HandleFlushSnapshotRegistered;
     }
 
+    private void Awake()
+    {
+        // RunSessionState doit etre assigne dans l Inspector.
+        if (runSession == null)
+        {
+            Debug.LogError("[LevelManager] RunSessionState non assigne. La scene Main doit toujours disposer d un RunSessionState.");
+            enabled = false;
+        }
+    }
 
     private void Start()
     {
+        if (!enabled)
+            return;
+
         // 1) JSON
         LoadLevelConfig();
 
@@ -187,49 +201,34 @@ public class LevelManager : MonoBehaviour
 
     private void SetupSecondaryObjectives()
     {
-        secondaryObjectiveResults = null;
-
-        if (data == null || data.SecondaryObjectives == null || data.SecondaryObjectives.Length == 0)
+        if (secondaryObjectivesController == null)
             return;
 
-        secondaryObjectivesManager.Setup(data.SecondaryObjectives);
+        secondaryObjectivesController.SetupFromLevel(data);
     }
+
 
     private void SetupScoreAndHull()
     {
+        // Score -> UI
         if (scoreManager != null && scoreUI != null)
             scoreManager.onScoreChanged.AddListener(scoreUI.UpdateScoreText);
 
         scoreManager?.ResetScore(0);
 
-        // Pas de RunSession : on fait ce qu'on peut avec le ship catalog
+        // RunSession obligatoire pour Main (controle en Awake).
         if (runSession == null)
         {
-            Debug.LogError("[LevelManager] RunSessionState non assigné.");
-
-            ResolveShipStats(out maxHull, out runDurationSec);
-
-            // Même sans runSession, on peut au moins afficher le maxHull
-            if (hullSystem != null)
-            {
-                // On initialise avec hull = maxHull (valeur "pleine" par défaut)
-                hullSystem.Initialize(maxHull, maxHull);
-            }
-            else
-            {
-                hullUI?.SetMaxHull(maxHull);
-                hullUI?.SetHull(maxHull);
-            }
-
+            Debug.LogError("[LevelManager] RunSessionState null dans SetupScoreAndHull. Cette scene doit passer par le flow complet.");
             return;
         }
 
-        // Récupère maxHull et durée depuis le vaisseau
+        // Recupere maxHull et duree depuis le vaisseau
         ResolveShipStats(out maxHull, out runDurationSec);
 
-        int hullForHud = runSession.Hull; // ex : 9 après RunRecoveryOnBoot
+        int hullForHud = runSession.Hull;
 
-        // Initialise le système de coque (qui mettra la UI à jour)
+        // Initialise le systeme de coque (qui mettra la UI a jour)
         if (hullSystem != null)
         {
             hullSystem.Initialize(hullForHud, maxHull);
@@ -240,19 +239,12 @@ public class LevelManager : MonoBehaviour
             hullUI.SetHull(hullForHud);
         }
 
+        // Fond de vaisseau
         if (shipBackgroundLoader != null && !string.IsNullOrEmpty(currentShipImageFile))
         {
             shipBackgroundLoader.Init(currentShipImageFile);
         }
 
-        var quick = Object.FindFirstObjectByType<MainQuickStart>();
-        if (quick != null && quick.enabled && quick.gameObject.activeInHierarchy)
-        {
-            if (quick.forcedTimerSec > 0f)
-                runDurationSec = quick.forcedTimerSec;
-
-            Debug.Log($"[LevelManager] QuickStart active — Timer={runDurationSec}s");
-        }
     }
 
     private void SetupContractLivesUI()
@@ -263,8 +255,6 @@ public class LevelManager : MonoBehaviour
         contractLivesUI.SetContractLives(runSession.ContractLives);
     }
 
-
-
     private void ResolveShipStats(out int hull, out float durationSec)
     {
         hull = 0;
@@ -274,13 +264,21 @@ public class LevelManager : MonoBehaviour
         var run = RunConfig.Instance;
         var catalog = ShipCatalogService.Catalog;
 
-        if (run == null || catalog == null || catalog.ships == null || catalog.ships.Count == 0)
+        // On ne bloque que si le catalog est vraiment absent ou vide.
+        if (catalog == null || catalog.ships == null || catalog.ships.Count == 0)
         {
-            Debug.LogWarning("[LevelManager] ShipCatalog manquant, valeurs par défaut (0).");
+            Debug.LogWarning("[LevelManager] ShipCatalog manquant ou vide, valeurs par defaut (0).");
             return;
         }
 
-        var shipId = string.IsNullOrEmpty(run.SelectedShipId) ? "CORE_SCOUT" : run.SelectedShipId;
+        // Si RunConfig est absent ou SelectedShipId vide, on tombe sur CORE_SCOUT.
+        string shipId = "CORE_SCOUT";
+
+        if (run != null && !string.IsNullOrEmpty(run.SelectedShipId))
+        {
+            shipId = run.SelectedShipId;
+        }
+
         var ship = catalog.ships.Find(s => s.id == shipId);
         if (ship == null)
         {
@@ -355,6 +353,10 @@ public class LevelManager : MonoBehaviour
         obstacleManager.BuildObstacles(data.Obstacles);
     }
 
+    /// <summary>
+    /// Desactive les controles gameplay (paddle, close bin, etc.).
+    /// Utilise LevelControlsController si present, sinon fallback direct sur Player / CloseBinController.
+    /// </summary>
     private void DisableGameplayControls()
     {
         if (controlsController != null)
@@ -363,11 +365,18 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        player?.SetActiveControl(false);
-        closeBinController?.SetActiveControl(false);
+        if (player != null)
+            player.SetActiveControl(false);
+
+        if (closeBinController != null)
+            closeBinController.SetActiveControl(false);
     }
 
-    private void EnableGameplayControlsInternal()
+    /// <summary>
+    /// Active les controles gameplay (paddle, close bin, etc.).
+    /// Utilise LevelControlsController si present, sinon fallback direct sur Player / CloseBinController.
+    /// </summary>
+    private void EnableGameplayControls()
     {
         if (controlsController != null)
         {
@@ -375,9 +384,13 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        player?.SetActiveControl(true);
-        closeBinController?.SetActiveControl(true);
+        if (player != null)
+            player.SetActiveControl(true);
+
+        if (closeBinController != null)
+            closeBinController.SetActiveControl(true);
     }
+
 
     private void SetupEvacuationSequence()
     {
@@ -406,8 +419,54 @@ public class LevelManager : MonoBehaviour
     /// <summary>
     /// Injecte le hull courant dans le briefing, puis affiche le briefing.
     /// </summary>
+    /// <summary>
+    /// Prepare et affiche le briefing de debut de niveau.
+    /// - Injecte le hull courant pour affichage.
+    /// - Configure le bouton Start pour lancer l intro puis le niveau.
+    /// - Configure le bouton Menu pour retourner au Title via GameFlow.
+    /// </summary>
+    /// <summary>
+    /// Prepare et affiche le briefing de debut de niveau.
+    /// - Injecte le hull courant pour affichage.
+    /// - Configure le bouton Start pour lancer l intro puis le niveau.
+    /// - Configure le bouton Menu pour retourner au Title via GameFlow.
+    /// </summary>
+    /// <summary>
+    /// Injecte le hull courant dans le briefing, puis affiche le briefing.
+    /// En mode debug, peut skip le briefing et / ou l intro.
+    /// </summary>
     private void SetupIntroOrAutoStart()
     {
+        // Mode debug : skip briefing et intro -> demarrage direct du niveau
+        if (debugSkipBriefing && debugSkipIntro)
+        {
+            Debug.Log("[LevelManager] Debug: skip briefing + intro, demarrage direct du niveau.");
+            StartLevel();
+            return;
+        }
+
+        // Mode debug : skip briefing mais garder l intro
+        if (debugSkipBriefing && !debugSkipIntro)
+        {
+            Debug.Log("[LevelManager] Debug: skip briefing, intro uniquement.");
+
+            if (introSequenceController != null)
+            {
+                introSequenceController.Play(() =>
+                {
+                    StartLevel();
+                });
+            }
+            else
+            {
+                Debug.LogWarning("[LevelManager] Debug: introSequenceController manquant, demarrage direct du niveau.");
+                StartLevel();
+            }
+
+            return;
+        }
+
+        // Comportement normal avec briefing
         if (briefingController != null && data != null)
         {
             int hullForIntro = lastKnownHull;
@@ -437,24 +496,20 @@ public class LevelManager : MonoBehaviour
                     }
                     else
                     {
-                        Debug.LogWarning("[LevelManager] Aucun LevelIntroSequenceController assigné. Demarrage direct du niveau.");
+                        Debug.LogWarning("[LevelManager] Aucun LevelIntroSequenceController assigne. Demarrage direct du niveau.");
                         StartLevel();
                     }
                 },
-                onBack: null
+                onMenu: null
             );
         }
         else
         {
-            Debug.LogError("[LevelManager] Aucun LevelBriefingController assigné alors que le briefing est obligatoire. Demarrage direct du niveau sans intro.");
+            Debug.LogError("[LevelManager] Aucun LevelBriefingController assigne alors que le briefing est obligatoire. Demarrage direct du niveau sans intro.");
             StartLevel();
         }
     }
 
-    private void EnableGameplayControls()
-    {
-        EnableGameplayControlsInternal();
-    }
 
     // =====================================================================
     // BOUCLE DE JEU
@@ -465,14 +520,21 @@ public class LevelManager : MonoBehaviour
         Time.timeScale = 1f;
         endSequenceRunning = false;
 
-        endSequence?.ResetState();
+        if (endSequence != null)
+            endSequence.ResetState();
 
         if (levelTimer != null)
             levelTimer.enabled = true;
 
-        ballSpawner?.StartSpawning();
-        MarkLevelStartedInSave();
+        // Tres important pour le debug Main et le skip intro
+        EnableGameplayControls();
+
+        if (ballSpawner != null)
+            ballSpawner.StartSpawning();
+
     }
+
+
 
     private void HandleTimerEnd()
     {
@@ -501,7 +563,6 @@ public class LevelManager : MonoBehaviour
 
         EvaluateLevelResult();
     }
-
 
     private IEnumerator FinalSweepMarkLostAndRecycle(BallSpawner spawner, ScoreManager score)
     {
@@ -540,7 +601,6 @@ public class LevelManager : MonoBehaviour
     // =====================================================================
     // ÉVALUATION FINALE & EVENT
     // =====================================================================
-
     private void EvaluateLevelResult()
     {
         if (scoreManager == null || data == null)
@@ -551,10 +611,16 @@ public class LevelManager : MonoBehaviour
 
         int elapsed = Mathf.RoundToInt(levelTimer != null ? levelTimer.GetElapsedTime() : 0f);
 
+        SecondaryObjectivesManager secManager = null;
+        if (secondaryObjectivesController != null)
+        {
+            secManager = secondaryObjectivesController.Manager;
+        }
+
         var evalResult = LevelResultEvaluator.Evaluate(
             scoreManager,
             data,
-            secondaryObjectivesManager,
+            secManager,
             elapsed
         );
 
@@ -564,7 +630,14 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        secondaryObjectiveResults = evalResult.SecondaryObjectives;
+        // On pousse les resultats secondaires dans le controleur dedie
+        if (secondaryObjectivesController != null)
+        {
+            secondaryObjectivesController.SetResults(evalResult.SecondaryObjectives);
+        }
+
+        OnEndComputed.Invoke(evalResult.Stats, data, evalResult.MainObjective);
+
 
         OnEndComputed.Invoke(evalResult.Stats, data, evalResult.MainObjective);
     }
@@ -596,7 +669,6 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-
     public string GetLevelID()
     {
         return data != null ? data.LevelID : levelID;
@@ -604,51 +676,18 @@ public class LevelManager : MonoBehaviour
 
     public List<SecondaryObjectiveResult> GetSecondaryObjectiveResults()
     {
-        return secondaryObjectiveResults;
-    }
+        if (secondaryObjectivesController == null)
+            return null;
 
-    private void HandleFlushSnapshotRegistered(BinSnapshot snapshot)
-    {
-        if (data == null || data.SecondaryObjectives == null || data.SecondaryObjectives.Length == 0)
-            return;
-
-        if (snapshot == null || snapshot.parType == null)
-            return;
-
-        foreach (var kv in snapshot.parType)
-        {
-            string ballType = kv.Key;
-            int count = kv.Value;
-
-            for (int i = 0; i < count; i++)
-            {
-                secondaryObjectivesManager.OnBallCollected(ballType);
-            }
-        }
+        return secondaryObjectivesController.GetLastResults();
     }
 
     public void NotifyComboTriggered(string comboId)
     {
-        if (data == null || data.SecondaryObjectives == null || data.SecondaryObjectives.Length == 0)
+        if (secondaryObjectivesController == null)
             return;
 
-        secondaryObjectivesManager.OnComboTriggered(comboId);
-    }
-
-    private void MarkLevelStartedInSave()
-    {
-        if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
-            return;
-
-        var run = SaveManager.Instance.Current.runState;
-        if (run == null)
-            return;
-
-        run.hasOngoingRun = true;
-        run.levelInProgress = true;
-        run.abortPenaltyArmed = true;
-
-        SaveManager.Instance.Save();
+        secondaryObjectivesController.NotifyComboTriggered(comboId);
     }
 
     private void HandleContractLivesChanged(int lives)
@@ -658,13 +697,33 @@ public class LevelManager : MonoBehaviour
             contractLivesUI.SetContractLives(lives);
         }
     }
-
-
     private void OnDestroy()
     {
         if (scoreManager != null)
             scoreManager.OnFlushSnapshotRegistered -= HandleFlushRegistered;
     }
 
+
+    /// <summary>
+    /// Configure les flags de debug pour skip briefing / intro.
+    /// Utilise par MainDebugStarter quand la scene Main est lancee seule.
+    /// </summary>
+    public void SetDebugSkipFlags(bool skipBriefing, bool skipIntro)
+    {
+        debugSkipBriefing = skipBriefing;
+        debugSkipIntro = skipIntro;
+    }
+
+    /// <summary>
+    /// Permet a l outil de debug de remplacer le JSON de niveau a runtime.
+    /// </summary>
+    public void DebugOverrideLevelJson(TextAsset json)
+    {
+        if (json == null)
+            return;
+
+        levelJson = json;
+        Debug.Log("[LevelManager] DebugOverrideLevelJson -> " + json.name);
+    }
 
 }

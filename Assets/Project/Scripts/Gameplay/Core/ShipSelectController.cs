@@ -2,42 +2,41 @@ using System.Collections;
 using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// Contrôle l'écran de sélection de vaisseau : navigation entre les vaisseaux,
-/// affichage des stats, choix du vaisseau et lancement de la scène principale.
+/// Controls the Ship Select scene.
+/// Handles ship navigation, data display, ship choice and run initialization.
+/// Scene transitions are delegated to GameFlowController through BootRoot.
 /// </summary>
 public class ShipSelectController : MonoBehaviour
 {
     [Header("UI Refs")]
-    [SerializeField] private TMP_Text ShipName_Txt;
-    [SerializeField] private Image Ship_Img;
-    [SerializeField] private Button Start_Button;
-    [SerializeField] private Button Back_Button;
-    [SerializeField] private Button Previous_Button;
-    [SerializeField] private Button Next_Button;
-    [SerializeField] private TMP_Text Description_Txt;
-    [SerializeField] private TMP_Text Hull_Txt;
-    [SerializeField] private TMP_Text Shield_Txt;
-    [SerializeField] private TMP_Text PaddleWidth_Txt;
-
-    [Header("Config")]
-    [SerializeField] private string mainSceneName = "Main";
+    [SerializeField] private TMP_Text shipNameText;
+    [SerializeField] private Image shipImage;
+    [SerializeField] private Button startButton;
+    [SerializeField] private Button backButton;
+    [SerializeField] private Button previousButton;
+    [SerializeField] private Button nextButton;
+    [SerializeField] private TMP_Text descriptionText;
+    [SerializeField] private TMP_Text hullText;
+    [SerializeField] private TMP_Text shieldText;
+    [SerializeField] private TMP_Text paddleWidthText;
 
     /// <summary>
-    /// Index du vaisseau actuellement sélectionné dans le catalogue.
+    /// Index of the currently selected ship in the catalog.
     /// </summary>
     private int index = 0;
 
     private void Awake()
     {
-        // Sécurité : vérifie que le catalogue de vaisseaux est bien chargé et non vide.
-        if (ShipCatalogService.Catalog == null || ShipCatalogService.Catalog.ships == null || ShipCatalogService.Catalog.ships.Count == 0)
+        // Safety: make sure the ship catalog is loaded and not empty.
+        if (ShipCatalogService.Catalog == null ||
+            ShipCatalogService.Catalog.ships == null ||
+            ShipCatalogService.Catalog.ships.Count == 0)
         {
-            Debug.LogError("[ShipSelect] Ship catalog not loaded or empty.");
+            Debug.LogError("[ShipSelectController] Ship catalog not loaded or empty.");
             enabled = false;
             return;
         }
@@ -45,37 +44,41 @@ public class ShipSelectController : MonoBehaviour
 
     private void Start()
     {
-        // Assure un volume plein sur l'écran ShipSelect (pas de fade entre Title et ShipSelect)
+        // Safety: ShipSelect should be reached through the normal game flow.
+        if (BootRoot.GameFlow == null)
+        {
+            Debug.LogError("[ShipSelectController] BootRoot.GameFlow is null. ShipSelect must be loaded from Boot and Title flow.");
+        }
+
+        // Ensure title music is at full volume when entering ShipSelect.
         if (TitleMusicPlayer.Instance != null)
             TitleMusicPlayer.Instance.SnapToTargetVolume();
 
-        // Wiring des boutons vers les callbacks
-        if (Start_Button) Start_Button.onClick.AddListener(OnStart);
-        if (Back_Button) Back_Button.onClick.AddListener(OnBack);
-        if (Previous_Button) Previous_Button.onClick.AddListener(OnPrev);
-        if (Next_Button) Next_Button.onClick.AddListener(OnNext);
-
-        // Récupère le vaisseau sauvegardé (persistance via RunConfig / SaveManager)
+        // Restore previously selected ship id from RunConfig if available.
         string savedId = RunConfig.Instance != null
             ? RunConfig.Instance.SelectedShipId
-            : "CORE_SCOUT";
+            : "CORE_SCOUT"; // default fallback for now
 
-        // Trouve l'index correspondant dans le catalogue
         var ships = ShipCatalogService.Catalog.ships;
         int found = ships.FindIndex(s => s.id == savedId);
 
-        // Si on trouve le vaisseau sauvegardé, on se positionne dessus, sinon on tombe sur le premier
+        // If we find the saved ship id, start from that index, otherwise fallback to first ship.
         index = (found >= 0) ? found : 0;
 
-        // Met à jour l'affichage pour le vaisseau courant
+        // Initial UI refresh for the current ship.
         RefreshUI();
     }
 
+    // ---------------------------------------------------------
+    // Navigation callbacks
+    // These are meant to be wired through the Inspector.
+    // ---------------------------------------------------------
+
     /// <summary>
-    /// Callback pour le bouton de sélection du vaisseau précédent.
-    /// Tourne dans la liste avec wrap-around.
+    /// Called by the Previous button.
+    /// Cycles to the previous ship with wrap-around.
     /// </summary>
-    private void OnPrev()
+    public void OnPreviousPressed()
     {
         int count = ShipCatalogService.Catalog.ships.Count;
         index = (index - 1 + count) % count;
@@ -83,51 +86,58 @@ public class ShipSelectController : MonoBehaviour
     }
 
     /// <summary>
-    /// Callback pour le bouton de sélection du vaisseau suivant.
-    /// Tourne dans la liste avec wrap-around.
+    /// Called by the Next button.
+    /// Cycles to the next ship with wrap-around.
     /// </summary>
-    private void OnNext()
+    public void OnNextPressed()
     {
         int count = ShipCatalogService.Catalog.ships.Count;
         index = (index + 1) % count;
         RefreshUI();
     }
 
+    // ---------------------------------------------------------
+    // Back button callback
+    // ---------------------------------------------------------
+
     /// <summary>
-    /// Retour à l'écran Title.
-    /// Marque SkipTitleIntroOnce pour ne pas rejouer l'intro immédiatement.
+    /// Called by the Back button.
+    /// Sets SkipTitleIntroOnce to true and returns to the Title scene through GameFlow.
     /// </summary>
-    private void OnBack()
+    public void OnBackPressed()
     {
         if (RunConfig.Instance != null)
             RunConfig.Instance.SkipTitleIntroOnce = true;
 
-        SceneManager.LoadScene("Title");
+        BootRoot.GameFlow.GoToTitle();
     }
 
+    // ---------------------------------------------------------
+    // Start button callback and run initialization
+    // ---------------------------------------------------------
+
     /// <summary>
-    /// Callback du bouton Start.
-    /// 1) Mémorise le vaisseau choisi (RunConfig + sauvegarde persistante),
-    /// 2) Initialise une nouvelle "run" dans GameSaveData.runState,
-    /// 3) Lance la scène principale après le fade-out de la musique.
+    /// Called by the Start button.
+    /// 1) Stores the selected ship in RunConfig and persistent save data.
+    /// 2) Initializes a new run in GameSaveData.runState.
+    /// 3) Starts the level after a music fade out using GameFlow.
     /// </summary>
-    private void OnStart()
+    public void OnStartPressed()
     {
-        // Vaisseau actuellement sélectionné dans le catalogue
         var ship = ShipCatalogService.Catalog.ships[index];
 
-        // 1) Met à jour la config de run ET la sauvegarde persistante (selectedShipId + unlockedShips)
+        // 1) Update run configuration and persistent selected ship.
         if (RunConfig.Instance != null)
         {
             RunConfig.Instance.SetSelectedShip(ship.id);
         }
 
-        // 2) Initialise l'état de la campagne (run) dans la sauvegarde persistante
+        // 2) Initialize run state in the persistent save.
         if (SaveManager.Instance != null && SaveManager.Instance.Current != null)
         {
             GameSaveData save = SaveManager.Instance.Current;
 
-            // Sécurité : si runState est null, on en crée un
+            // Ensure runState is not null.
             if (save.runState == null)
             {
                 save.runState = new RunStateData();
@@ -135,74 +145,89 @@ public class ShipSelectController : MonoBehaviour
 
             RunStateData run = save.runState;
 
-            // Nouvelle run : on marque qu'il y a un run en cours
+            // Mark that there is an ongoing run.
             run.hasOngoingRun = true;
 
-            // Vaisseau utilisé pour cette run
+            // Set ship used for this run.
             run.currentShipId = ship.id;
 
-            // Pour l'instant : monde 1, niveau index 0 en dur
+            // For now, we hardcode world and level.
+            // TODO: replace with CampaignPlan when available.
             run.currentWorld = 1;
             run.currentLevelIndex = 0;
-
-            // Identifiant exact du niveau à jouer (LevelID du JSON)
             run.currentLevelId = "W1-L1";
 
-            // Vies de la campagne = vies de base du vaisseau
+            // Hull for the run equals the ship base hull.
             run.remainingHullInRun = Mathf.Max(0, ship.maxHull);
 
-            // Score de run remis à zéro
+            // Reset run score.
             run.currentRunScore = 0;
 
-            // Aucun niveau encore terminé dans ce run
+            // No level cleared at the start of the run.
             run.levelsClearedInRun = 0;
 
-            // Au moment où on quitte ShipSelect, aucun level n'est encore en cours
+            // No level is in progress when leaving ShipSelect.
             run.levelInProgress = false;
 
-            // On sauvegarde immédiatement l'état de la run
+            // Save the updated run state immediately.
             SaveManager.Instance.Save();
         }
 
-        // 3) Lance la scène principale après un fade-out de la musique de titre
-        StartCoroutine(StartAfterMusicFade());
+        // 3) Start the level after fading out the title music.
+        StartCoroutine(StartAfterMusicFadeRoutine());
     }
 
-
     /// <summary>
-    /// Coroutine qui attend le fade-out de la musique de titre
-    /// avant de charger la scène principale.
+    /// Waits for title music fade out, then uses GameFlow to start the level.
     /// </summary>
-    private IEnumerator StartAfterMusicFade()
+    private IEnumerator StartAfterMusicFadeRoutine()
     {
         if (TitleMusicPlayer.Instance != null)
             yield return TitleMusicPlayer.Instance.FadeOut();
 
-        SceneManager.LoadScene(mainSceneName);
+        // Scene change is done through GameFlow.
+        BootRoot.GameFlow.StartLevel();
     }
 
+    // ---------------------------------------------------------
+    // UI refresh
+    // ---------------------------------------------------------
+
     /// <summary>
-    /// Met à jour tous les éléments UI pour refléter le vaisseau actuellement sélectionné.
+    /// Updates all UI elements to reflect the currently selected ship.
     /// </summary>
     private void RefreshUI()
     {
         var ship = ShipCatalogService.Catalog.ships[index];
 
-        if (ShipName_Txt) ShipName_Txt.text = ship.displayName;
-        if (Description_Txt) Description_Txt.text = ship.description;
-        if (Hull_Txt) Hull_Txt.text = ship.maxHull.ToString();
-        if (Shield_Txt) Shield_Txt.text = ship.shieldSecondsPerLevel.ToString();
-        if (PaddleWidth_Txt) PaddleWidth_Txt.text = ship.paddleWidthMult.ToString();
+        if (shipNameText != null)
+            shipNameText.text = ship.displayName;
 
-        // Charge l'image depuis StreamingAssets
-        if (!string.IsNullOrEmpty(ship.imageFile) && Ship_Img != null)
-            StartCoroutine(LoadSpriteFromStreamingAssets(ship.imageFile, Ship_Img));
+        if (descriptionText != null)
+            descriptionText.text = ship.description;
+
+        if (hullText != null)
+            hullText.text = ship.maxHull.ToString();
+
+        if (shieldText != null)
+            shieldText.text = ship.shieldSecondsPerLevel.ToString();
+
+        if (paddleWidthText != null)
+            paddleWidthText.text = ship.paddleWidthMult.ToString();
+
+        // Load ship image from StreamingAssets if an image file is defined.
+        if (!string.IsNullOrEmpty(ship.imageFile) && shipImage != null)
+            StartCoroutine(LoadSpriteFromStreamingAssetsRoutine(ship.imageFile, shipImage));
     }
 
+    // ---------------------------------------------------------
+    // Image loading from StreamingAssets
+    // ---------------------------------------------------------
+
     /// <summary>
-    /// Charge une texture depuis StreamingAssets et la convertit en Sprite pour l'UI.
+    /// Loads a texture from StreamingAssets and converts it to a Sprite for UI.
     /// </summary>
-    private IEnumerator LoadSpriteFromStreamingAssets(string fileName, Image target)
+    private IEnumerator LoadSpriteFromStreamingAssetsRoutine(string fileName, Image target)
     {
         string url = Path.Combine(Application.streamingAssetsPath, "Ships/Images", fileName);
 
@@ -212,18 +237,23 @@ public class ShipSelectController : MonoBehaviour
 
             if (req.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError("[ShipSelect] Failed to load texture: " + req.error + " (" + url + ")");
+                Debug.LogError("[ShipSelectController] Failed to load texture: " + req.error + " (" + url + ")");
                 yield break;
             }
 
             Texture2D tex = DownloadHandlerTexture.GetContent(req);
-            if (tex == null) yield break;
+            if (tex == null)
+            {
+                Debug.LogError("[ShipSelectController] Downloaded texture is null: " + url);
+                yield break;
+            }
 
-            var sprite = Sprite.Create(
+            Sprite sprite = Sprite.Create(
                 tex,
                 new Rect(0, 0, tex.width, tex.height),
                 new Vector2(0.5f, 0.5f),
-                100f);
+                100f
+            );
 
             target.sprite = sprite;
             target.preserveAspect = true;
