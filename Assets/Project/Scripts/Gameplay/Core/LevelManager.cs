@@ -85,6 +85,13 @@ public class LevelManager : MonoBehaviour
     [Header("Objectifs secondaires")]
     [SerializeField] private LevelSecondaryObjectivesController secondaryObjectivesController;
 
+    [Header("FinalComboConfig")]
+    [SerializeField] private FinalComboConfig finalComboConfig;
+
+    // Temps (en secondes) auquel l'objectif principal a ete atteint.
+    // -1 signifie "jamais atteint".
+    private int mainGoalReachedTimeSec = -1;
+
 
     public UnityEvent<EndLevelStats, LevelData, MainObjectiveResult> OnEndComputed
         = new UnityEvent<EndLevelStats, LevelData, MainObjectiveResult>();
@@ -111,6 +118,11 @@ public class LevelManager : MonoBehaviour
             runSession.OnHullChanged.AddListener(HandleHullChanged);
             runSession.OnContractLivesChanged.AddListener(HandleContractLivesChanged);
         }
+
+        if (scoreManager != null)
+        {
+            scoreManager.onGoalReached.AddListener(HandleMainGoalReached);
+        }
     }
 
     private void OnDisable()
@@ -122,6 +134,11 @@ public class LevelManager : MonoBehaviour
         {
             runSession.OnHullChanged.RemoveListener(HandleHullChanged);
             runSession.OnContractLivesChanged.RemoveListener(HandleContractLivesChanged);
+        }
+
+        if (scoreManager != null)
+        {
+            scoreManager.onGoalReached.RemoveListener(HandleMainGoalReached);
         }
     }
 
@@ -621,7 +638,8 @@ public class LevelManager : MonoBehaviour
             scoreManager,
             data,
             secManager,
-            elapsed
+            elapsed,
+            finalComboConfig // nouveau parametre
         );
 
         if (evalResult.Stats == null)
@@ -630,17 +648,15 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        // On pousse les resultats secondaires dans le controleur dedie
+        // Pousse les resultats secondaires dans le controleur dedie
         if (secondaryObjectivesController != null)
         {
             secondaryObjectivesController.SetResults(evalResult.SecondaryObjectives);
         }
 
         OnEndComputed.Invoke(evalResult.Stats, data, evalResult.MainObjective);
-
-
-        OnEndComputed.Invoke(evalResult.Stats, data, evalResult.MainObjective);
     }
+
 
     // =====================================================================
     // CALLBACKS & UTILITAIRES
@@ -725,5 +741,22 @@ public class LevelManager : MonoBehaviour
         levelJson = json;
         Debug.Log("[LevelManager] DebugOverrideLevelJson -> " + json.name);
     }
+
+    /// <summary>
+    /// Appelé lorsque le ScoreManager detecte que l'objectif principal est atteint.
+    /// On enregistre le temps courant du timer de niveau, et on pousse cette
+    /// information dans le ScoreManager pour les combos de fin (Fast / Clutch).
+    /// </summary>
+    private void HandleMainGoalReached()
+    {
+        if (levelTimer == null || scoreManager == null)
+            return;
+
+        int elapsedSec = Mathf.RoundToInt(levelTimer.GetElapsedTime());
+
+        mainGoalReachedTimeSec = elapsedSec;
+        scoreManager.SetMainGoalReachedTime(elapsedSec);
+    }
+
 
 }

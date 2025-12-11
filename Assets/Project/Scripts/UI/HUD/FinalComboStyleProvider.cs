@@ -39,8 +39,26 @@ public class FinalComboStyleProvider : ScriptableObject
             case "CombosCollector":
                 return "Combos collector";
 
-            case "WhiteMaster":
-                return "White master";
+            case "NoBlackCollected":
+                return "No black collected";
+
+            case "MaxChainBonus":
+                return "Max chain bonus";
+
+            case "ComboDiversity":
+                return "Combo diversity";
+
+            case "ColorTrinity":
+                return "Color trinity";
+
+            case "ChainDuo":
+                return "Chain duo";
+
+            case "FastFinisher":
+                return "Fast finisher";
+
+            case "ClutchFinisher":
+                return "Clutch finisher";
 
             default:
                 // Fallback : id brut pour faciliter le debug

@@ -56,6 +56,14 @@ public class ScoreManager : MonoBehaviour
     // Nombre de billes réellement spawnees (runtime).
     private int realSpawned;
 
+    // Instant (en secondes depuis le debut du niveau) auquel
+    // l'objectif principal a ete atteint. -1 si jamais atteint.
+    private int mainGoalReachedTimeSec = -1;
+    public int MainGoalReachedTimeSec => mainGoalReachedTimeSec;
+    // Indique si l'objectif principal a ete atteint au moins une fois.
+    public bool MainGoalAchieved => goalReached;
+
+
     public int TotalBilles => totalBilles;
     public int TotalNonBlackBilles => totalBillesNonNoires;
     public int TotalPertes => totalPertes;
@@ -69,6 +77,9 @@ public class ScoreManager : MonoBehaviour
 
     // Historique des flushs (snapshots de bacs).
     private readonly List<BinSnapshot> historique = new List<BinSnapshot>();
+
+    // Historique des ids de combos declenches pendant le niveau.
+    private readonly HashSet<string> combosTriggered = new HashSet<string>();
 
     // =====================================================
     //  EVENTS PUBLICS
@@ -134,10 +145,12 @@ public class ScoreManager : MonoBehaviour
         totalPertes = 0;
         realSpawned = 0;
         goalReached = false;
+        mainGoalReachedTimeSec = -1;
 
         totauxParType.Clear();
         pertesParType.Clear();
         historique.Clear();
+        combosTriggered.Clear();
 
         onScoreChanged?.Invoke(currentScore);
     }
@@ -245,6 +258,22 @@ public class ScoreManager : MonoBehaviour
         }
     }
 
+    // Enregistre un id de combo declenche pendant le niveau.
+    public void RegisterComboId(string comboId)
+    {
+        if (string.IsNullOrEmpty(comboId))
+            return;
+
+        combosTriggered.Add(comboId);
+    }
+
+    // Retourne un snapshot des ids de combos declenches.
+    public IReadOnlyCollection<string> GetCombosTriggeredSnapshot()
+    {
+        return new List<string>(combosTriggered);
+    }
+
+
     // =====================================================
     //  PERTE DE BILLE (VOID TRIGGER)
     // =====================================================
@@ -288,4 +317,29 @@ public class ScoreManager : MonoBehaviour
             FinalScore = currentScore
         };
     }
+
+
+    /// <summary>
+    /// Permet d'enregistrer le temps (en secondes) auquel
+    /// l'objectif principal a ete atteint sur le niveau.
+    /// La valeur n'est definie qu'une seule fois (premiere atteinte).
+    /// </summary>
+    public void SetMainGoalReachedTime(int elapsedTimeSec)
+    {
+        if (elapsedTimeSec < 0)
+            elapsedTimeSec = 0;
+
+        if (mainGoalReachedTimeSec < 0)
+            mainGoalReachedTimeSec = elapsedTimeSec;
+    }
+
+
+
+
+    // Debug only: permet au testeur de forcer le nombre de billes non noires prevues.
+    public void Debug_SetPlannedNonBlack(int count)
+    {
+        totalBillesPrevues = count;
+    }
+
 }

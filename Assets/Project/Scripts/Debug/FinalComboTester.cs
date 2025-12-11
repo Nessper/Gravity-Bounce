@@ -7,6 +7,8 @@ public class FinalComboSessionTester : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private ScoreManager scoreManager;
+    [SerializeField] private ComboEngine comboEngine;
+    [SerializeField] private FinalComboConfig finalComboConfig;
 
     [Header("Sequence de test (meme format que ComboSessionTester)")]
     public List<TestAction> actions = new List<TestAction>();
@@ -20,7 +22,6 @@ public class FinalComboSessionTester : MonoBehaviour
     [Header("Contexte (pour combos de fin)")]
     public int fakeTimerSec = 60;
     public int fakeTotalBilles = 40;
-
 
     [Header("Options")]
     public bool autoStart = false;
@@ -36,12 +37,17 @@ public class FinalComboSessionTester : MonoBehaviour
 
     private void Awake()
     {
-        if (scoreManager == null) scoreManager = Object.FindFirstObjectByType<ScoreManager>();
+        if (scoreManager == null)
+            scoreManager = Object.FindFirstObjectByType<ScoreManager>();
+
+        if (comboEngine == null)
+            comboEngine = Object.FindFirstObjectByType<ComboEngine>();
     }
 
     private void Start()
     {
-        if (autoStart) StartCoroutine(RunSessionAndEvaluate());
+        if (autoStart)
+            StartCoroutine(RunSessionAndEvaluate());
     }
 
     private IEnumerator RunSessionAndEvaluate()
@@ -52,22 +58,30 @@ public class FinalComboSessionTester : MonoBehaviour
             yield break;
         }
 
+        if (finalComboConfig == null)
+        {
+            Debug.LogWarning("[FinalComboSessionTester] Missing FinalComboConfig ref.");
+        }
+
         if (resetScoreAtStart)
             scoreManager.ResetScore(0);
 
         if (startDelay > 0f)
             yield return new WaitForSeconds(startDelay);
 
-        Debug.Log($"[FinalComboSessionTester] Starting final-combo test with {actions.Count} steps.");
+        Debug.Log("[FinalComboSessionTester] Starting final-combo test with " + actions.Count + " steps.");
+        Debug.Log("[FinalComboSessionTester] ComboEngine = " + (comboEngine != null ? comboEngine.name : "null"));
 
-        // 1) Rejoue une session simulée (comme ComboSessionTester, mais sans ComboEngine)
+        int plannedNonBlack = 0;
+
         foreach (var act in actions)
         {
             if (act.registerLoss)
             {
-                // Perte simulée: utilise le type que tu veux pour tester (ici "Black" si tu veux casser NoBlackStreak)
+                // Perte simulee : ici on considere que la bille perdue est noire
                 scoreManager.RegisterLost("Black");
-                if (logEachStep) Debug.Log($"[FinalComboSessionTester] Loss: {act.label}");
+                if (logEachStep)
+                    Debug.Log("[FinalComboSessionTester] Loss: " + act.label);
             }
             else
             {
@@ -75,42 +89,65 @@ public class FinalComboSessionTester : MonoBehaviour
 
                 if (logEachStep)
                 {
-                    Debug.Log($"[FinalComboSessionTester] Flush: {act.label} " +
-                              $"Side={snap.binSide} " +
-                              $"W={act.white} B={act.blue} R={act.red} K={act.black} " +
-                              $"base={snap.totalPointsDuLot}");
+                    Debug.Log(
+                        "[FinalComboSessionTester] Flush: " + act.label +
+                        " Side=" + snap.binSide +
+                        " W=" + act.white +
+                        " B=" + act.blue +
+                        " R=" + act.red +
+                        " K=" + act.black +
+                        " base=" + snap.totalPointsDuLot
+                    );
                 }
 
-                // Enregistre exactement comme le BinCollector le ferait
+                // Partie ScoreManager (comme BinCollector)
                 scoreManager.GetSnapshot(snap);
+
+                // Partie ComboEngine (live combos, FlushChain, etc.)
+                if (comboEngine != null)
+                {
+                    comboEngine.OnFlush(snap);
+                }
+
+                // Comptage des non-noires prevues (debug)
+                plannedNonBlack += act.white + act.blue + act.red;
             }
 
             if (act.delayAfter > 0f)
                 yield return new WaitForSeconds(act.delayAfter);
         }
 
+        Debug.Log("[FinalComboSessionTester] Planned non black (from actions) = " + plannedNonBlack);
         Debug.Log("[FinalComboSessionTester] Session finished. Evaluating finals...");
 
-        // 2) Evaluation fin de level
+        // Debug: etat du ScoreManager avant evaluation
+        Debug.Log(
+            "[FinalComboSessionTester] ScoreManager state before finals: " +
+            "TotalBilles=" + scoreManager.TotalBilles +
+            " TotalNonBlackBilles=" + scoreManager.TotalNonBlackBilles +
+            " TotalBillesPrevues=" + scoreManager.TotalBillesPrevues +
+            " TotalPertes=" + scoreManager.TotalPertes
+        );
+
+        // Contexte pour l evaluator
         var ctx = new FinalComboContext
         {
             timeElapsedSec = fakeTimerSec,
             totalBilles = fakeTotalBilles
         };
 
-        var finals = FinalComboEvaluator.Evaluate(scoreManager, ctx);
+        var finals = FinalComboEvaluator.Evaluate(scoreManager, ctx, finalComboConfig);
 
-        // 3) Application des points finaux (comme le ferait EndSequenceController)
         int finalsPoints = 0;
         foreach (var r in finals)
         {
             scoreManager.AddPoints(r.points, r.id);
             finalsPoints += r.points;
-            Debug.Log($"[FINAL COMBO] {r.id} +{r.points}");
+            Debug.Log("[FINAL COMBO] " + r.id + " +" + r.points);
         }
 
-        Debug.Log($"[FinalComboSessionTester] Finals applied: +{finalsPoints} points");
-        Debug.Log($"[FinalComboSessionTester] FinalScore = {scoreManager.CurrentScore}");
+        Debug.Log("[FinalComboSessionTester] Finals applied: +" + finalsPoints + " points");
+        Debug.Log("[FinalComboSessionTester] FinalScore = " + scoreManager.CurrentScore);
     }
 
     private BinSnapshot BuildSnapshot(TestAction act)
@@ -122,20 +159,33 @@ public class FinalComboSessionTester : MonoBehaviour
             parType = new Dictionary<string, int>(),
             pointsParType = new Dictionary<string, int>(),
             nombreDeBilles = act.white + act.blue + act.red + act.black,
-            totalPointsDuLot = (act.white * ptsWhite) + (act.blue * ptsBlue) +
-                               (act.red * ptsRed) + (act.black * ptsBlack)
+            totalPointsDuLot =
+                (act.white * ptsWhite) +
+                (act.blue * ptsBlue) +
+                (act.red * ptsRed) +
+                (act.black * ptsBlack)
         };
 
-        // On stocke aussi les counts dans le snapshot pour debug
-        s.parType["White"] = act.white;
-        s.parType["Blue"] = act.blue;
-        s.parType["Red"] = act.red;
-        s.parType["Black"] = act.black;
-
-        if (act.white > 0) s.pointsParType["White"] = act.white * ptsWhite;
-        if (act.blue > 0) s.pointsParType["Blue"] = act.blue * ptsBlue;
-        if (act.red > 0) s.pointsParType["Red"] = act.red * ptsRed;
-        if (act.black < 0) s.pointsParType["Black"] = act.black * ptsBlack; // si tu veux garder cohérent/negatif
+        if (act.white > 0)
+        {
+            s.parType["White"] = act.white;
+            s.pointsParType["White"] = act.white * ptsWhite;
+        }
+        if (act.blue > 0)
+        {
+            s.parType["Blue"] = act.blue;
+            s.pointsParType["Blue"] = act.blue * ptsBlue;
+        }
+        if (act.red > 0)
+        {
+            s.parType["Red"] = act.red;
+            s.pointsParType["Red"] = act.red * ptsRed;
+        }
+        if (act.black > 0)
+        {
+            s.parType["Black"] = act.black;
+            s.pointsParType["Black"] = act.black * ptsBlack;
+        }
 
         return s;
     }

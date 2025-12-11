@@ -272,6 +272,10 @@ public class ComboEngine : MonoBehaviour
     /// </summary>
     private void NotifyCombo(string id, int bonus)
     {
+        // Historique global des combos (pour les combos finaux)
+        if (scoreManager != null)
+            scoreManager.RegisterComboId(id);
+
         // HUD / toasts
         OnComboIdTriggered?.Invoke(id, bonus);
 
@@ -279,5 +283,6 @@ public class ComboEngine : MonoBehaviour
         if (levelManager != null)
             levelManager.NotifyComboTriggered(id);
     }
+
 
 }

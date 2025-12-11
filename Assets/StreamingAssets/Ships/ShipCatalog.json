@@ -6,7 +6,7 @@
       "displayName": "Core Scout",
       "description": "A versatile, reliable and well-balanced exploration vessel. Perfect for initial missions in the void.",
       "maxHull": 10,
-      "shieldSecondsPerLevel": 30,
+      "shieldSecondsPerLevel": 60,
       "closeBinHoldGrace": 0.12,
       "paddleWidthMult": 1.0,
       "binAutoFlushOnEvac": true,

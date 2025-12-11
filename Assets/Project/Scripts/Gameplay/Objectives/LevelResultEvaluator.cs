@@ -27,7 +27,7 @@ public static class LevelResultEvaluator
         ScoreManager scoreManager,
         LevelData levelData,
         SecondaryObjectivesManager secondaryObjectivesManager,
-        int elapsedTimeSec)
+        int elapsedTimeSec, FinalComboConfig comboConfig)
     {
         Result result = new Result
         {
@@ -118,7 +118,7 @@ public static class LevelResultEvaluator
             totalBilles = stats.BallsCollected + stats.BallsLost
         };
 
-        var finalCombos = FinalComboEvaluator.Evaluate(scoreManager, finalCtx);
+        var finalCombos = FinalComboEvaluator.Evaluate(scoreManager, finalCtx, comboConfig);
 
         if (finalCombos != null && finalCombos.Count > 0)
         {
