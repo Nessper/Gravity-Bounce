@@ -3,8 +3,9 @@ using TMPro;
 using UnityEngine;
 
 /// <summary>
-/// Affichage du Hull : current / max, avec feedback visuel en cas de dégâts
-/// (couleur rouge, gras, punch-scale).
+/// Affichage du Hull : current / max.
+/// - Couleur dynamique selon le pourcentage de Hull.
+/// - Feedback visuel en cas de dégâts (flash rouge + punch-scale).
 /// </summary>
 public class HullUI : MonoBehaviour
 {
@@ -12,9 +13,24 @@ public class HullUI : MonoBehaviour
     [SerializeField] private TMP_Text hullText;
     [SerializeField] private string separator = "/";
 
-    [Header("Feedback couleur / style")]
+    [Header("Couleurs d'état")]
+    [Tooltip("Couleur normale (> 50%).")]
     [SerializeField] private Color normalColor = Color.white;
-    [SerializeField] private Color damageColor = Color.red;
+
+    [Tooltip("Couleur warning (<= 50%).")]
+    [SerializeField] private Color warningColor = new Color(1f, 0.6f, 0.1f); // orange
+
+    [Tooltip("Couleur critique (<= 20%).")]
+    [SerializeField] private Color criticalColor = Color.red;
+
+    [Header("Seuils (en %)")]
+    [Range(0f, 1f)]
+    [SerializeField] private float warningThreshold = 0.5f;
+
+    [Range(0f, 1f)]
+    [SerializeField] private float criticalThreshold = 0.2f;
+
+    [Header("Feedback dégâts")]
     [SerializeField] private float damageFeedbackDuration = 0.25f;
 
     [Header("Feedback scale")]
@@ -32,22 +48,28 @@ public class HullUI : MonoBehaviour
         if (hullText == null)
             Debug.LogError("[HullUI] hullText non assigné.", this);
 
-        // On mémorise le scale de base une fois pour toutes
-        baseScale = hullText != null ? hullText.rectTransform.localScale : Vector3.one;
+        baseScale = hullText != null
+            ? hullText.rectTransform.localScale
+            : Vector3.one;
     }
 
+    // --------------------------------------------------------------------
+    // API PUBLIQUE
+    // --------------------------------------------------------------------
+
     /// <summary>
-    /// Définit la valeur maximale de Hull (maxHull) et met à jour l'affichage.
+    /// Définit la valeur maximale de Hull.
     /// </summary>
     public void SetMaxHull(int max)
     {
         maxHull = Mathf.Max(0, max);
         RefreshText();
+        RefreshStateColor();
     }
 
     /// <summary>
-    /// Met à jour la valeur courante de Hull (currentHull) et déclenche le
-    /// feedback visuel si la valeur diminue (prise de dégâts).
+    /// Met à jour la valeur courante de Hull.
+    /// Déclenche le feedback visuel si dégâts.
     /// </summary>
     public void SetCurrentHull(int newHull)
     {
@@ -60,6 +82,7 @@ public class HullUI : MonoBehaviour
 
         currentHull = newHull;
         RefreshText();
+        RefreshStateColor();
 
         if (tookDamage)
             PlayDamageFeedback();
@@ -73,9 +96,10 @@ public class HullUI : MonoBehaviour
         SetCurrentHull(value);
     }
 
-    /// <summary>
-    /// Met à jour le texte affiché : current/max ou juste current si max <= 0.
-    /// </summary>
+    // --------------------------------------------------------------------
+    // AFFICHAGE
+    // --------------------------------------------------------------------
+
     private void RefreshText()
     {
         if (hullText == null)
@@ -88,8 +112,44 @@ public class HullUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Lance la routine de feedback visuel en cas de dégâts.
+    /// Applique la couleur d'état en fonction du pourcentage de Hull.
+    /// Ignoré si un feedback dégâts est en cours.
     /// </summary>
+    private void RefreshStateColor()
+    {
+        if (hullText == null)
+            return;
+
+        // Si un feedback dégâts est actif, on ne touche pas à la couleur
+        if (feedbackRoutine != null)
+            return;
+
+        hullText.color = GetStateColor();
+        var c = GetStateColor();
+        hullText.color = c;
+
+    }
+
+    private Color GetStateColor()
+    {
+        if (maxHull <= 0)
+            return normalColor;
+
+        float ratio = (float)currentHull / maxHull;
+
+        if (ratio <= criticalThreshold)
+            return criticalColor;
+
+        if (ratio <= warningThreshold)
+            return warningColor;
+
+        return normalColor;
+    }
+
+    // --------------------------------------------------------------------
+    // FEEDBACK DÉGÂTS
+    // --------------------------------------------------------------------
+
     private void PlayDamageFeedback()
     {
         if (feedbackRoutine != null)
@@ -98,19 +158,13 @@ public class HullUI : MonoBehaviour
         feedbackRoutine = StartCoroutine(DamageFeedbackRoutine());
     }
 
-    /// <summary>
-    /// Routine qui gère :
-    /// - passage en rouge + gras,
-    /// - punch-scale du texte,
-    /// - retour progressif au style et scale normaux.
-    /// </summary>
     private IEnumerator DamageFeedbackRoutine()
     {
         if (hullText == null)
             yield break;
 
         // Style dégâts immédiat
-        hullText.color = damageColor;
+        hullText.color = criticalColor;
         hullText.fontStyle = FontStyles.Bold;
 
         RectTransform rt = hullText.rectTransform;
@@ -124,12 +178,8 @@ public class HullUI : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
 
-            // Curve type "punch" rapide :
-            // - fort au début,
-            // - retour progressif vers 1.
-            // On utilise un sin pour le punch (0 -> pi) et un damper pour calmer la fin.
-            float punchT = Mathf.Sin(t * Mathf.PI);        // 0 -> 1 -> 0
-            float damper = 1f - t;                         // décroissance linéaire
+            float punchT = Mathf.Sin(t * Mathf.PI); // 0 -> 1 -> 0
+            float damper = 1f - t;
             float scaleFactor = 1f + punchScaleAmount * punchT * damper;
 
             rt.localScale = baseScale * scaleFactor;
@@ -137,11 +187,11 @@ public class HullUI : MonoBehaviour
             yield return null;
         }
 
-        // Retour au style normal
-        hullText.color = normalColor;
+        // Fin du feedback : retour au style normal + couleur d'état
         hullText.fontStyle = FontStyles.Normal;
         rt.localScale = baseScale;
 
         feedbackRoutine = null;
+        RefreshStateColor();
     }
 }

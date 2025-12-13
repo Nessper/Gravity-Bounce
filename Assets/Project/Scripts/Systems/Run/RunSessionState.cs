@@ -5,7 +5,7 @@ using UnityEngine.Events;
 public class RunSessionState : ScriptableObject
 {
     // ============================================================
-    // HULL (inchangé)
+    // HULL
     // ============================================================
 
     [Header("Hull")]
@@ -16,23 +16,41 @@ public class RunSessionState : ScriptableObject
 
     public int Hull => hull;
 
+    /// <summary>
+    /// Initialise le hull de la run en cours.
+    /// Persiste dans la sauvegarde si SaveManager est present.
+    /// </summary>
     public void InitHull(int value)
     {
         hull = Mathf.Max(0, value);
+        PersistHull();
         OnHullChanged.Invoke(hull);
     }
 
+    /// <summary>
+    /// Retire du hull (degats).
+    /// Persiste uniquement si la valeur change.
+    /// </summary>
     public void RemoveHull(int amount = 1)
     {
         int prev = hull;
         hull = Mathf.Max(0, hull - Mathf.Max(1, amount));
+
         if (hull != prev)
+        {
+            PersistHull();
             OnHullChanged.Invoke(hull);
+        }
     }
 
+    /// <summary>
+    /// Ajoute du hull (reparation / bonus).
+    /// Persiste systematiquement.
+    /// </summary>
     public void AddHull(int amount = 1)
     {
         hull += Mathf.Max(1, amount);
+        PersistHull();
         OnHullChanged.Invoke(hull);
     }
 
@@ -48,8 +66,17 @@ public class RunSessionState : ScriptableObject
         return v;
     }
 
+    private void PersistHull()
+    {
+        if (SaveManager.Instance == null)
+            return;
+
+        // Ecrit dans la run persistante
+        SaveManager.Instance.SetRemainingHullInRun(hull);
+    }
+
     // ============================================================
-    // CONTRACT STRIKES (nouvelle section)
+    // CONTRACT STRIKES
     // ============================================================
 
     [Header("Contract Strikes")]
@@ -57,39 +84,44 @@ public class RunSessionState : ScriptableObject
 
     public UnityEvent<int> OnContractLivesChanged = new UnityEvent<int>();
 
-    /// <summary>
-    /// Nombre de vies de contrat restantes (0..max).
-    /// </summary>
     public int ContractLives => contractLives;
 
-    /// <summary>
-    /// Initialise les vies de contrat pour la run en cours.
-    /// Appelé au boot du niveau par RunSessionBootstrapper.
-    /// </summary>
     public void InitContractLives(int value)
     {
         contractLives = Mathf.Max(0, value);
+        PersistContractLives();
         OnContractLivesChanged.Invoke(contractLives);
     }
 
-    /// <summary>
-    /// Perdre 1 ou plusieurs vies de contrat (échec mission).
-    /// </summary>
     public void LoseContractLife(int amount = 1)
     {
         int prev = contractLives;
         contractLives = Mathf.Max(0, contractLives - Mathf.Max(1, amount));
+
         if (contractLives != prev)
+        {
+            PersistContractLives();
             OnContractLivesChanged.Invoke(contractLives);
+        }
     }
 
-    /// <summary>
-    /// Ajouter des vies de contrat (rare, bonus éventuel).
-    /// </summary>
     public void AddContractLife(int amount = 1)
     {
         int prev = contractLives;
         contractLives = Mathf.Max(0, contractLives + Mathf.Max(1, amount));
-        OnContractLivesChanged.Invoke(contractLives);
+
+        if (contractLives != prev)
+        {
+            PersistContractLives();
+            OnContractLivesChanged.Invoke(contractLives);
+        }
+    }
+
+    private void PersistContractLives()
+    {
+        if (SaveManager.Instance == null)
+            return;
+
+        SaveManager.Instance.SetRemainingContractLives(contractLives);
     }
 }

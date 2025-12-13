@@ -15,6 +15,8 @@ public class HullSystem : MonoBehaviour
     [Header("Feedback")]
     [SerializeField] private HullDamageFeedbackController feedbackController;
 
+    [SerializeField] private RunSessionState runSessionState;
+
 
     private int currentHull;
     private int maxHull;
@@ -58,23 +60,24 @@ public class HullSystem : MonoBehaviour
         if (blackCount <= 0)
             return;
 
-        int previousHull = currentHull;
+        // Feedback visuel (avant la maj)
+        if (feedbackController != null)
+            feedbackController.PlayHullDamageFeedback(blackCount);
 
+        // Source de vérité : RunSessionState
+        if (runSessionState != null)
+        {
+            runSessionState.RemoveHull(blackCount);
+            return;
+        }
+
+        // Fallback si RunSessionState manquant (dev only)
         currentHull -= blackCount;
         if (currentHull < 0)
             currentHull = 0;
 
-        // Mise à jour UI
         if (hullUI != null)
             hullUI.SetCurrentHull(currentHull);
-
-        // Feedback visuels
-        if (feedbackController != null && currentHull < previousHull)
-        {
-            feedbackController.PlayHullDamageFeedback(blackCount);
-        }
-
-        // Ici tu peux aussi notifier RunSession / sauvegarde si besoin
     }
 
 

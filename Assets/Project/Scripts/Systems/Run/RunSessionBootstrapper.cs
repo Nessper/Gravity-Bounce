@@ -1,13 +1,15 @@
 using UnityEngine;
 
 /// <summary>
-/// Initialise l etat de run pour la scene Main a partir des donnees persistantes
-/// et de la configuration actuelle.
-/// - Synchronise le Hull du vaisseau (remainingHullInRun -> RunSessionState)
-/// - Synchronise les vies de contrat (remainingContractLives -> RunSessionState)
-/// - Gere le flag "keepCurrentHullOnNextRestart" (Retry apres DEFEAT)
-/// - Marque le level comme "en cours" (levelInProgress = true) pour la regle "quit = defaite".
-/// - Si aucune run valide n est disponible, renvoie vers la scene Title via GameFlow.
+/// Initialise l'etat de run pour la scene Main a partir des donnees persistantes.
+/// - Synchronise Hull (remainingHullInRun -> RunSessionState)
+/// - Synchronise vies de contrat (remainingContractLives -> RunSessionState)
+/// - Gere le flag keepCurrentHullOnNextRestart (Retry apres DEFEAT)
+/// - Si run invalide, retour au Title via GameFlow
+///
+/// IMPORTANT :
+/// - Ce composant NE marque PLUS levelInProgress.
+///   C'est LevelRunStateController (au vrai debut du gameplay) qui doit appeler MarkLevelStarted().
 /// </summary>
 public class RunSessionBootstrapper : MonoBehaviour
 {
@@ -18,7 +20,7 @@ public class RunSessionBootstrapper : MonoBehaviour
     {
         if (runSessionState == null)
         {
-            Debug.LogError("[RunSessionBootstrapper] Missing RunSessionState reference.");
+            Debug.LogError("[RunSessionBootstrapper] RunSessionState manquant.");
             enabled = false;
         }
     }
@@ -28,7 +30,6 @@ public class RunSessionBootstrapper : MonoBehaviour
         if (!enabled)
             return;
 
-        // Verification basique de la presence de SaveManager et de la save courante.
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
         {
             Debug.LogError("[RunSessionBootstrapper] SaveManager ou GameSaveData introuvable. Retour au Title.");
@@ -36,28 +37,26 @@ public class RunSessionBootstrapper : MonoBehaviour
             return;
         }
 
-        GameSaveData save = SaveManager.Instance.Current;
-        RunStateData run = save.runState;
+        RunStateData run = SaveManager.Instance.GetRunState();
 
-        // On refuse de lancer Main sans run persistante valide.
         if (!IsRunStateValid(run))
         {
-            Debug.LogError("[RunSessionBootstrapper] RunState invalide ou aucune run en cours. Retour au Title.");
+            Debug.LogError("[RunSessionBootstrapper] RunState invalide ou pas de run en cours. Retour au Title.");
             SafeReturnToTitle();
             return;
         }
 
-        // A partir d ici, on sait que run != null, hasOngoingRun == true, et que les ids sont renseignes.
+        // Vies de contrat (avec correction auto si valeur invalide)
         int contractLives = ResolveContractLivesFromRun(run);
 
         // CAS 1 : retry avec conservation du hull (flag consomme ici).
         if (runSessionState.ConsumeKeepFlag())
         {
             int currentHull = Mathf.Max(0, runSessionState.Hull);
+
+            // IMPORTANT : InitHull persiste (via PersistHull -> SaveManager.SetRemainingHullInRun)
             runSessionState.InitHull(currentHull);
             runSessionState.InitContractLives(contractLives);
-
-            MarkLevelInProgress(run);
 
             Debug.Log("[RunSessionBootstrapper] Retry avec hull conserve: hull=" + currentHull
                       + " | contractLives=" + contractLives);
@@ -66,12 +65,11 @@ public class RunSessionBootstrapper : MonoBehaviour
 
         // CAS 2 : run persistante classique -> hull depuis la save.
         int hullFromSave = Mathf.Max(0, run.remainingHullInRun);
+
         runSessionState.InitHull(hullFromSave);
         runSessionState.InitContractLives(contractLives);
 
-        MarkLevelInProgress(run);
-
-        Debug.Log("[RunSessionBootstrapper] Hull depuis la run persistante: " + hullFromSave
+        Debug.Log("[RunSessionBootstrapper] Hull depuis save: " + hullFromSave
                   + " | contractLives=" + contractLives
                   + " (LevelId=" + run.currentLevelId + ")");
     }
@@ -90,7 +88,7 @@ public class RunSessionBootstrapper : MonoBehaviour
 
         if (!run.hasOngoingRun)
         {
-            Debug.LogWarning("[RunSessionBootstrapper] hasOngoingRun est false, pas de run en cours.");
+            Debug.LogWarning("[RunSessionBootstrapper] hasOngoingRun est false.");
             return false;
         }
 
@@ -110,25 +108,10 @@ public class RunSessionBootstrapper : MonoBehaviour
     }
 
     /// <summary>
-    /// Marque le level comme "en cours" dans la run et sauvegarde.
-    /// Utilise pour la regle "quit = defaite".
-    /// </summary>
-    private void MarkLevelInProgress(RunStateData run)
-    {
-        if (run == null)
-            return;
-
-        run.levelInProgress = true;
-
-        if (SaveManager.Instance != null)
-            SaveManager.Instance.Save();
-    }
-
-    /// <summary>
     /// Lit les vies de contrat depuis la run.
-    /// Comportement :
-    /// - Si remainingContractLives <= 0 -> force 3, ecrit en save et clamp
-    /// - Sinon -> clamp entre 0 et 3
+    /// Regle :
+    /// - Si valeur invalide (<= 0), force 3 et sauvegarde.
+    /// - Sinon clamp 0..3.
     /// </summary>
     private int ResolveContractLivesFromRun(RunStateData run)
     {
@@ -137,8 +120,6 @@ public class RunSessionBootstrapper : MonoBehaviour
 
         int lives = run.remainingContractLives;
 
-        // Si la valeur n a jamais ete initialisee ou est invalide,
-        // on force 3 comme valeur par defaut pour le contrat.
         if (lives <= 0)
         {
             lives = 3;
@@ -153,7 +134,6 @@ public class RunSessionBootstrapper : MonoBehaviour
 
     /// <summary>
     /// Retourne proprement vers la scene Title en passant par GameFlow.
-    /// Si GameFlow est indisponible, loggue simplement une erreur.
     /// </summary>
     private void SafeReturnToTitle()
     {

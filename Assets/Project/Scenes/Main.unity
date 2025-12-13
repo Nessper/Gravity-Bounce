@@ -4473,6 +4473,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HullSystem
   hullUI: {fileID: 1205546066}
   feedbackController: {fileID: 2003993416}
+  runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
 --- !u!4 &428569277
 Transform:
   m_ObjectHideFlags: 0
@@ -10153,7 +10154,10 @@ MonoBehaviour:
   hullText: {fileID: 163053536}
   separator: /
   normalColor: {r: 1, g: 1, b: 1, a: 1}
-  damageColor: {r: 1, g: 0, b: 0, a: 1}
+  warningColor: {r: 1, g: 0.6, b: 0.1, a: 1}
+  criticalColor: {r: 1, g: 0, b: 0, a: 1}
+  warningThreshold: 0.5
+  criticalThreshold: 0.2
   damageFeedbackDuration: 0.25
   punchScaleAmount: 0.35
 --- !u!1 &845719444
@@ -15965,7 +15969,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.15294118, g: 0.36862746, b: 0.21960786, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -16005,7 +16009,10 @@ MonoBehaviour:
   hullText: {fileID: 163053536}
   separator: /
   normalColor: {r: 1, g: 1, b: 1, a: 1}
-  damageColor: {r: 1, g: 0, b: 0, a: 1}
+  warningColor: {r: 0.9811321, g: 0.8232381, b: 0.0509078, a: 1}
+  criticalColor: {r: 1, g: 0, b: 0, a: 1}
+  warningThreshold: 0.5
+  criticalThreshold: 0.2
   damageFeedbackDuration: 0.25
   punchScaleAmount: 0.35
 --- !u!114 &1205546067
@@ -16169,9 +16176,10 @@ MonoBehaviour:
   player: {fileID: 1330354634}
   closeBinController: {fileID: 2049829430}
   pauseController: {fileID: 794936362}
-  scoreManager: {fileID: 975156268}
   evacDurationSec: 10
   tickIntervalSec: 0.1
+  progressBarUI: {fileID: 892579293}
+  progressAnimTimeoutSec: 2
   boardRoot: {fileID: 1529241366}
   outroStartDelaySec: 0.4
   gameplayHudRoot: {fileID: 876886472}
@@ -16902,7 +16910,6 @@ MonoBehaviour:
   ySpawn: 6.3
   zSpawn: -0.2
   intervalDefault: 1
-  spawnAtT0: 0
 --- !u!1 &1348991518
 GameObject:
   m_ObjectHideFlags: 0
@@ -26689,6 +26696,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1611308663}
     m_Modifications:
+    - target: {fileID: 203514830691836149, guid: 5057ccfb547c4554491e0460fe7a0f70, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 279737077586876310, guid: 5057ccfb547c4554491e0460fe7a0f70, type: 3}
       propertyPath: m_Name
       value: ProgressBar

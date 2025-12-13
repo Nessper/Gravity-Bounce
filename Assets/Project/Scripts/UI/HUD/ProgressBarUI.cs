@@ -1,9 +1,11 @@
+using System.Collections;
 using UnityEngine;
 
-
-// Cette barre NE se met à jour que sur les flushs.
-// Elle ne réagit plus aux changements de score.
-
+/// <summary>
+/// Barre de progression (wrapper) basée sur une barre segmentée.
+/// IMPORTANT : cette barre ne se met à jour que sur les flushs.
+/// Elle ne réagit plus aux changements de score.
+/// </summary>
 public class ProgressBarUI : MonoBehaviour
 {
     [Header("Références")]
@@ -16,11 +18,21 @@ public class ProgressBarUI : MonoBehaviour
 
     private bool isConfigured;
 
+    /// <summary>
+    /// Vrai si la barre segmentée est en cours d'animation step-by-step.
+    /// </summary>
+    public bool IsAnimating => segmentedBar != null && segmentedBar.IsAnimating;
+
     private void OnDisable()
     {
-        // plus rien à désabonner, on ne touche plus au ScoreManager ici
+        // Plus rien à désabonner, on ne touche plus au ScoreManager ici.
     }
 
+    /// <summary>
+    /// Configure la barre pour un niveau :
+    /// - plannedTotalBalls : nombre total prévu (planned) sur lequel on base la progression
+    /// - objectiveThreshold : seuil d'objectif (pour placer le marqueur/segment objectif)
+    /// </summary>
     public void Configure(int plannedTotalBalls, int objectiveThreshold)
     {
         this.plannedTotalBalls = Mathf.Max(1, plannedTotalBalls);
@@ -42,6 +54,10 @@ public class ProgressBarUI : MonoBehaviour
         Refresh();
     }
 
+    /// <summary>
+    /// Recalcule la progression à partir des stats ScoreManager et l'envoie à la barre segmentée.
+    /// Cette méthode peut déclencher une animation step-by-step (si activée).
+    /// </summary>
     public void Refresh()
     {
         if (!isConfigured || scoreManager == null || segmentedBar == null)
@@ -61,5 +77,16 @@ public class ProgressBarUI : MonoBehaviour
         float t = Mathf.Clamp01(collected / (float)plannedTotalBalls);
 
         segmentedBar.SetProgress01(t);
+    }
+
+    /// <summary>
+    /// Permet à un système externe (fin de niveau) d'attendre que la barre ait terminé son animation.
+    /// </summary>
+    public IEnumerator WaitForProgressAnimationComplete(float timeoutSec = 2f)
+    {
+        if (segmentedBar == null)
+            yield break;
+
+        yield return segmentedBar.WaitForAnimationComplete(timeoutSec);
     }
 }

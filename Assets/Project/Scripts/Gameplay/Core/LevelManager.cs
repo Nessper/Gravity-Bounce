@@ -429,9 +429,11 @@ public class LevelManager : MonoBehaviour
                 if (countdownUI != null)
                     StartCoroutine(countdownUI.PlayCountdownSeconds(evacDuration));
             },
-            onEvacTickCb: null
+            onEvacTickCb: null,
+            progressBar: progressBarUI
         );
     }
+
 
     /// <summary>
     /// Injecte le hull courant dans le briefing, puis affiche le briefing.
@@ -543,6 +545,9 @@ public class LevelManager : MonoBehaviour
 
         if (levelTimer != null)
             levelTimer.enabled = true;
+
+        runStateController?.MarkLevelStarted();
+
 
         // Tres important pour le debug Main et le skip intro
         EnableGameplayControls();
