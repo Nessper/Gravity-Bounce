@@ -179,65 +179,7 @@ public class IntroLevelUI : MonoBehaviour
 
                 if (phaseMixTexts != null && phaseMixTexts[i] != null)
                 {
-                    var phase = data.Phases[i];
-                    var mixEntries = phase.Mix;
-
-                    if (mixEntries == null || mixEntries.Length == 0)
-                    {
-                        phaseMixTexts[i].text = "-";
-                    }
-                    else
-                    {
-                        float totalPoids = 0f;
-                        for (int k = 0; k < mixEntries.Length; k++)
-                        {
-                            var m = mixEntries[k];
-                            if (m == null || m.Poids <= 0f)
-                                continue;
-
-                            totalPoids += m.Poids;
-                        }
-
-                        if (totalPoids <= 0f || plan.Quota <= 0)
-                        {
-                            phaseMixTexts[i].text = "-";
-                        }
-                        else
-                        {
-                            var parts = new List<string>();
-
-                            for (int k = 0; k < mixEntries.Length; k++)
-                            {
-                                var m = mixEntries[k];
-                                if (m == null || m.Poids <= 0f)
-                                    continue;
-
-                                string type = m.Type ?? string.Empty;
-                                string letter = null;
-
-                                switch (type)
-                                {
-                                    case "White": letter = "W"; break;
-                                    case "Blue": letter = "B"; break;
-                                    case "Red": letter = "R"; break;
-                                    case "Black": letter = "V"; break;
-                                }
-
-                                if (letter != null)
-                                {
-                                    float ratio = m.Poids / totalPoids;
-                                    int count = Mathf.RoundToInt(ratio * plan.Quota);
-
-                                    if (count > 0)
-                                        parts.Add(letter + count);
-                                }
-                            }
-
-                            phaseMixTexts[i].text = (parts.Count > 0)
-                                ? "Mix : " + string.Join(" / ", parts)
-                                : "-";
-                        }
-                    }
+                    phaseMixTexts[i].text = BuildMixDisplay(data, i, plan.Quota);
                 }
             }
         }
@@ -301,6 +243,108 @@ public class IntroLevelUI : MonoBehaviour
 
         if (overlayIntro != null)
             overlayIntro.SetActive(true);
+    }
+
+    /// <summary>
+    /// Construit un texte de mix "Mix : W4 / B1" en garantissant que la somme des comptes
+    /// est exactement egale a quota (pas de +1 / -1 a cause d arrondis independants).
+    /// </summary>
+    private string BuildMixDisplay(LevelData data, int phaseIndex, int quota)
+    {
+        if (data == null || data.Phases == null)
+            return "-";
+
+        if (phaseIndex < 0 || phaseIndex >= data.Phases.Length)
+            return "-";
+
+        if (quota <= 0)
+            return "-";
+
+        var phase = data.Phases[phaseIndex];
+        var mix = phase.Mix;
+
+        if (mix == null || mix.Length == 0)
+            return "-";
+
+        // Collecte des poids valides (letter + poids)
+        List<string> letters = new List<string>();
+        List<float> weights = new List<float>();
+
+        float totalW = 0f;
+
+        for (int i = 0; i < mix.Length; i++)
+        {
+            var m = mix[i];
+            if (m == null || m.Poids <= 0f)
+                continue;
+
+            string letter = null;
+
+            switch (m.Type)
+            {
+                case "White": letter = "W"; break;
+                case "Blue": letter = "B"; break;
+                case "Red": letter = "R"; break;
+                case "Black": letter = "V"; break;
+            }
+
+            if (letter == null)
+                continue;
+
+            letters.Add(letter);
+            weights.Add(m.Poids);
+            totalW += m.Poids;
+        }
+
+        if (letters.Count == 0 || totalW <= 0f)
+            return "-";
+
+        int n = letters.Count;
+        int[] alloc = new int[n];
+        float[] residuals = new float[n];
+
+        int sum = 0;
+
+        // 1) Base: floor des cibles
+        for (int i = 0; i < n; i++)
+        {
+            float target = (weights[i] / totalW) * quota;
+            int baseInt = Mathf.FloorToInt(target);
+
+            alloc[i] = baseInt;
+            residuals[i] = target - baseInt;
+            sum += baseInt;
+        }
+
+        // 2) Distribution des restes par plus grands residus
+        int remain = quota - sum;
+        if (remain > 0)
+        {
+            List<int> idx = new List<int>();
+            for (int i = 0; i < n; i++)
+                idx.Add(i);
+
+            idx.Sort((a, b) => residuals[b].CompareTo(residuals[a]));
+
+            for (int r = 0; r < remain; r++)
+            {
+                int slot = idx[r % n];
+                alloc[slot]++;
+            }
+        }
+
+        // 3) Construction du texte
+        List<string> parts = new List<string>();
+        for (int i = 0; i < n; i++)
+        {
+            if (alloc[i] > 0)
+                parts.Add(letters[i] + alloc[i]);
+        }
+
+        if (parts.Count == 0)
+            return "-";
+
+        return "Mix : " + string.Join(" / ", parts);
     }
 
     /// <summary>

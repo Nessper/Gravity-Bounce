@@ -80,7 +80,7 @@ public class LevelBriefingController : MonoBehaviour
             },
             onMenu: () =>
             {
-                BootRoot.GameFlow.GoToTitle();
+                onMenu?.Invoke();
             }
         );
     }

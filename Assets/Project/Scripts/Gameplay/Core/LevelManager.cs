@@ -517,7 +517,8 @@ public class LevelManager : MonoBehaviour
                         StartLevel();
                     }
                 },
-                onMenu: null
+                onMenu: () => BootRoot.GameFlow.GoToTitle()
+
             );
         }
         else
