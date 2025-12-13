@@ -28,5 +28,8 @@ public class FinalComboConfig : ScriptableObject
     public float clutchFinisherMarginSec = 3f;
     [Tooltip("Points accordes pour ClutchFinisher.")]
     public int clutchFinisherPoints = 100;
+    [Tooltip("Points accordes pour JustInTime")]
+    public int ptsJustInTime = 80;
+
 
 }

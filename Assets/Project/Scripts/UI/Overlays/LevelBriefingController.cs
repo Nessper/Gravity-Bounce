@@ -80,9 +80,7 @@ public class LevelBriefingController : MonoBehaviour
             },
             onMenu: () =>
             {
-                // On masque l overlay avant de repartir vers le menu.
-                introLevelUI.Hide();
-                onMenu?.Invoke();
+                BootRoot.GameFlow.GoToTitle();
             }
         );
     }

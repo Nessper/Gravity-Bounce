@@ -60,6 +60,9 @@ public class FinalComboStyleProvider : ScriptableObject
             case "ClutchFinisher":
                 return "Clutch finisher";
 
+            case "JustInTime":
+                return "Just in time";
+
             default:
                 // Fallback : id brut pour faciliter le debug
                 return comboId;

@@ -353,6 +353,7 @@ public class IntroLevelUI : MonoBehaviour
     /// </summary>
     public void OnStartClicked()
     {
+        Debug.Log("[IntroLevelUI] OnStartClicked");
         onStartCallback?.Invoke();
     }
 
@@ -361,6 +362,7 @@ public class IntroLevelUI : MonoBehaviour
     /// </summary>
     public void OnMenuClicked()
     {
+        Debug.Log("[IntroLevelUI] OnMenuClicked");
         onMenuCallback?.Invoke();
     }
 

@@ -13310,14 +13310,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1afaabbcb08ab424ca560dc83855cc28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainDebugStarter
-  debugEnabled: 1
+  debugEnabled: 0
   ignoreGameFlowPresence: 1
   allowDebugInPlayer: 0
   debugShipId: CORE_SCOUT
   defaultContractLives: 3
   debugLevelJson: {fileID: 4900000, guid: 00853a88421a0274486657374537de6c, type: 3}
-  debugSkipBriefing: 0
-  debugSkipIntro: 0
+  debugSkipBriefing: 1
+  debugSkipIntro: 1
   runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
   levelManager: {fileID: 326384405}
   runSessionBootstrapper: {fileID: 1847546870}

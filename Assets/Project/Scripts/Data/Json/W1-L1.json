@@ -1,9 +1,9 @@
-﻿{
+{
   "LevelID": "W1-L1",
   "World": "ASTEROIDS FIELD XF-2B",
   "Title": "FIRST CONTACT",
   "MainObjective": { 
-    "Text": "Collect at least 4 nodes.", 
+    "Text": "Collect at least 25 nodes.", 
     "ThresholdCount": 4, 
     "Bonus": 300 
   },

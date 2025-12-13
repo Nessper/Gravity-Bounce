@@ -63,6 +63,10 @@ public class ScoreManager : MonoBehaviour
     // Indique si l'objectif principal a ete atteint au moins une fois.
     public bool MainGoalAchieved => goalReached;
 
+    // True si l'objectif principal a été atteint pendant un flush marqué "final".
+    private bool goalReachedInFinalFlush = false;
+    public bool GoalReachedInFinalFlush => goalReachedInFinalFlush;
+
 
     public int TotalBilles => totalBilles;
     public int TotalNonBlackBilles => totalBillesNonNoires;
@@ -145,7 +149,9 @@ public class ScoreManager : MonoBehaviour
         totalPertes = 0;
         realSpawned = 0;
         goalReached = false;
+        goalReachedInFinalFlush = false;
         mainGoalReachedTimeSec = -1;
+
 
         totauxParType.Clear();
         pertesParType.Clear();
@@ -215,6 +221,17 @@ public class ScoreManager : MonoBehaviour
         }
 
         totalBillesNonNoires += nonBlackThisFlush;
+
+        // Si l'objectif n'était pas encore atteint, et que CE snapshot est un final flush,
+        // alors si on dépasse le seuil maintenant -> JustInTime.
+        if (!goalReached &&
+            snapshot.isFinalFlush &&
+            objectiveThreshold > 0 &&
+            totalBillesNonNoires >= objectiveThreshold)
+        {
+            goalReachedInFinalFlush = true;
+        }
+
 
         AddPoints(snapshot.totalPointsDuLot);
         CheckGoalReached();

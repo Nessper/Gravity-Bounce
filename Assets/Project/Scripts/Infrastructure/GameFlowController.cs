@@ -58,7 +58,7 @@ public class GameFlowController : MonoBehaviour
     {
         if (isLoadingScene)
             return;
-
+        Debug.Log("[GameFlow] GoToTitle appelé");
         StartSceneTransition(titleSceneName, GameFlowPhase.Title);
     }
 

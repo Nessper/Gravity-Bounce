@@ -197,7 +197,7 @@ public class ShipSelectController : MonoBehaviour
     /// Updates all UI elements to reflect the currently selected ship.
     /// </summary>
     private void RefreshUI()
-    {
+    {     
         var ship = ShipCatalogService.Catalog.ships[index];
 
         if (shipNameText != null)

@@ -38,6 +38,12 @@ public static class FinalComboEvaluator
         int ptsComboDiversity = config != null ? config.ptsComboDiversity : 250;
         int ptsColorTrinity = config != null ? config.ptsColorTrinity : 200;
         int ptsChainDuo = config != null ? config.ptsChainDuo : 400;
+        float fastMargin = config != null ? config.fastFinisherMarginSec : 10f;
+        int fastPoints = config != null ? config.fastFinisherPoints : 250;
+        float clutchMargin = config != null ? config.clutchFinisherMarginSec : 3f;
+        int clutchPoints = config != null ? config.clutchFinisherPoints : 100;
+        int ptsJustInTime = config != null ? config.ptsJustInTime : 80;
+
 
         var totals = score.GetTotalsByTypeSnapshot();
         var losses = score.GetLossesByTypeSnapshot();
@@ -166,39 +172,36 @@ public static class FinalComboEvaluator
         }
 
         // ============================================================
-        // === FAST / CLUTCH FINISHER (timing de validation de l objectif) ===
+        // === FAST / CLUTCH FINISHER ===
         // ============================================================
         {
-            // Temps auquel l objectif principal a ete atteint (en secondes depuis le debut du niveau).
-            // -1 signifie "jamais atteint".
-            float goalTime = score.MainGoalReachedTimeSec;
-
-            // On ne fait rien si l objectif n a jamais ete atteint
-            // ou si la duree totale est invalide.
-            if (goalTime >= 0f && ctx.timeElapsedSec > 0)
+            // IMPORTANT : si l'objectif est atteint pendant le flush final,
+            // on ne doit pas valider Fast/Clutch.
+            if (!score.GoalReachedInFinalFlush)
             {
-                // Marge entre la validation et la fin du timer.
-                // Exemple: timer 60s, objectif atteint a 45s -> margin = 15.
-                float margin = ctx.timeElapsedSec - goalTime;
+                float goalTime = score.MainGoalReachedTimeSec;
 
-                // FastFinisher : objectif atteint avec une marge confortable.
-                if (margin >= config.fastFinisherMarginSec)
+                if (goalTime >= 0f && ctx.timeElapsedSec > 0)
                 {
-                    results.Add(new FinalComboResult(
-                        "FastFinisher",
-                        config.fastFinisherPoints
-                    ));
-                }
-                // ClutchFinisher : objectif atteint dans les dernieres secondes.
-                else if (margin >= 0f && margin <= config.clutchFinisherMarginSec)
-                {
-                    results.Add(new FinalComboResult(
-                        "ClutchFinisher",
-                        config.clutchFinisherPoints
-                    ));
+                    float margin = ctx.timeElapsedSec - goalTime;
+
+                    if (margin >= fastMargin)
+                        results.Add(new FinalComboResult("FastFinisher", fastPoints));
+                    else if (margin >= 0f && margin <= clutchMargin)
+                        results.Add(new FinalComboResult("ClutchFinisher", clutchPoints));
                 }
             }
         }
+
+
+        // ============================================================
+        // JUST IN TIME (objectif atteint pendant le flush final)
+        // ============================================================
+        {
+            if (score.GoalReachedInFinalFlush)
+                results.Add(new FinalComboResult("JustInTime", ptsJustInTime));
+        }
+
 
         return results;
     }
