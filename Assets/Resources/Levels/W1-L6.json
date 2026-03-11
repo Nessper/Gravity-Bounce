@@ -1,0 +1,108 @@
+{
+  "LevelID": "W1-L6",
+
+  "MainObjective": {
+    "Text": "Collect at least 8 nodes.",
+    "ThresholdCount": 8,
+    "Bonus": 1500
+  },
+
+  "ScoreGoals": [
+    { "Type": "Bronze", "Points": 2300 },
+    { "Type": "Silver", "Points": 2650 },
+    { "Type": "Gold",   "Points": 3050 }
+  ],
+
+  "SecondaryObjectives": [
+    {
+      "Id": "W1L6_SO_MAXBLACK_2",
+      "Type": "MaxCount",
+      "TargetId": "Black",
+      "Threshold": 2,
+      "RewardScore": 400,
+      "UiText": "Collect at most 2 black nodes."
+    },
+    {
+      "Id": "W1L6_SO_RED_1",
+      "Type": "BallCount",
+      "TargetId": "Red",
+      "Threshold": 1,
+      "RewardScore": 450,
+      "UiText": "Collect the red node."
+    }
+  ],
+
+  "Balls": [
+    { "Type": "White", "Points": 100 },
+    { "Type": "Blue",  "Points": 150 },
+    { "Type": "Red",   "Points": 200 },
+    { "Type": "Black", "Points": -120 }
+  ],
+
+  "Phases": [
+    {
+      "Name": "PHASE 1",
+      "Weight": 2,
+      "Intervalle": 1.25,
+      "AngleMin": -10,
+      "AngleMax": 10,
+      "Mix": [
+        { "Type": "Black", "Poids": 0.85 },
+        { "Type": "Blue",  "Poids": 0.10 },
+        { "Type": "White", "Poids": 0.05 }
+      ]
+    },
+    {
+      "Name": "PHASE 2",
+      "Weight": 1,
+      "Intervalle": 1.20,
+      "AngleMin": -12,
+      "AngleMax": 12,
+
+      "ForcedSpawns": [
+        { "Type": "Red", "Count": 1, "AtPercent": 0.55 }
+      ],
+
+      "Mix": [
+        { "Type": "Black", "Poids": 0.50 },
+        { "Type": "Blue",  "Poids": 0.35 },
+        { "Type": "White", "Poids": 0.15 }
+      ]
+    },
+    {
+      "Name": "PHASE 3",
+      "Weight": 2,
+      "Intervalle": 1.00,
+      "AngleMin": -16,
+      "AngleMax": 16,
+      "Mix": [
+        { "Type": "Black", "Poids": 0.85 },
+        { "Type": "Blue",  "Poids": 0.12 },
+        { "Type": "White", "Poids": 0.03 }
+      ]
+    }
+  ],
+
+  "Evacuation": { "Name": "Evacuation", "DurationSec": 10 },
+
+  "Obstacles": [
+    {
+      "obstacleId": "Obstacle1",
+      "localPosition": { "x": -1.0, "y": 0.2, "z": 0.0 },
+      "localEulerAngles": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "phaseIndex": 0
+    },
+    {
+      "obstacleId": "Obstacle1",
+      "localPosition": { "x": 1.0, "y": 0.2, "z": 0.0 },
+      "localEulerAngles": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "phaseIndex": 0
+    },
+    {
+      "obstacleId": "Obstacle1",
+      "localPosition": { "x": 0.0, "y": -0.8, "z": 0.0 },
+      "localEulerAngles": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "phaseIndex": 0
+    }
+  ]
+}

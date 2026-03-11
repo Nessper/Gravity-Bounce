@@ -1,0 +1,104 @@
+# =========================
+# UNITY CORE
+# =========================
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+UserSettings/
+MemoryCaptures/
+Recordings/
+CrashReports/
+
+# =========================
+# UNITY AUTO-GENERATED
+# =========================
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.tmp
+*.suo
+*.user
+*.userprefs
+*.unityproj
+
+# =========================
+# IDE / EDITORS
+# =========================
+.vs/
+.vscode/
+.idea/
+.vsconfig
+*.csproj
+*.sln
+*.sln.iml
+*.DotSettings.user
+
+# =========================
+# UNITY BURST / IL2CPP
+# =========================
+**/BurstDebugInformation_DoNotShip*/
+VoidScrappers_BurstDebugInformation_DoNotShip/
+**/BurstCache/
+**/il2cppOutput/
+**/MonoBleedingEdge/
+**/Symbols/
+
+# =========================
+# ANDROID / BUILD EXPORT
+# =========================
+*.apk
+*.aab
+*.keystore
+*.jks
+.gradle/
+gradle/
+**/exported_project/
+**/Android/
+**/launcher/
+**/unityLibrary/
+
+# =========================
+# TEMP BUILD ARTIFACTS
+# =========================
+.utmp/
+**/.cmake/
+**/CMakeFiles/
+**/.ninja*
+
+# =========================
+# OS FILES
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# LOCAL / REFERENCES / TRASH
+# =========================
+bordel/
+sounds_ref/
+Art/
+croquis.jpg
+firstview.jpg
+secondview.jpg
+kenney_digital-audio.zip
+
+# =========================
+# BACKUPS
+# =========================
+Backups/
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+**/BackUpThisFolder*
+
+# =========================
+# OPTIONAL ARCHIVES
+# =========================
+*.zip
+*.rar
+*.7z

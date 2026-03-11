@@ -1,0 +1,14 @@
+{
+  "endings": [
+    {
+      "endingId": "W1",
+      "sceneName": "CreditsScene",
+      "texts": {
+        "mainText": "Developed by Paul Bertrand\nAlpha Version 0.1\n\nThanks for surviving.\n404 is just getting started.\n\nIf you want to help shape the future of the game, share ideas, or get early access to upcoming versions, join the Discord."
+      },
+      "links": {
+        "discordUrl": "https://discord.gg/9mZrrU47GA"
+      }
+    }
+  ]
+}

@@ -1,0 +1,837 @@
+{
+  "language": "fr",
+  "sequences": [
+    {
+      "id": "shop_welcome",
+      "type": "shop",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "seller", "text": "Bienvenue à l’atelier. Si t’as des thunes, j’ai du matos." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "seller", "text": "L’atelier est ouvert. Si tu veux survivre, je te conseille d’équiper ton vaisseau." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "seller", "text": "Pose ton vaisseau, bois un café, on s’occupe de tout." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "seller", "text": "Réparations, installations de modules en tout genre. Prends ton temps pour t’équiper correctement." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L1_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Mike. Première passe tranquille. Tu renvoies tout vers les récupérateurs. Les noires, tu les laisses filer." },
+            { "speakerId": "mike", "text": "Compris. Je casse rien." },
+            { "speakerId": "leigh", "text": "Ce serait une première." },
+            { "speakerId": "rye", "text": "Mike, fais bien ton taf. J’ai un sudoku à finir." },
+            { "speakerId": "captain", "text": "Content de voir que tout le monde est détendu. Allez, concentration, je veux un sans faute." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 1,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 1,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 1,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Ça suffit pour aujourd’hui. On rentre." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Bon… ça va. J’ai vu pire comme première mission." },
+            { "speakerId": "rye", "text": "Normal. C’était l’échauffement." },
+            { "speakerId": "leigh", "text": "Flux stable. Pas de surprise." },
+            { "speakerId": "mike", "text": "Ça me va. Si toutes les missions sont comme ça, je signe." },
+            { "speakerId": "rye", "text": "Attends de voir la suite avant de fanfaronner." },
+            { "speakerId": "captain", "text": "Restez concentrés. On est encore loin de la fin du contrat." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L2_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Flux un peu plus rapide que le précédent." },
+            { "speakerId": "mike", "text": "Parfait. J’étais en train de m’ennuyer." },
+            { "speakerId": "rye", "text": "Tu t’ennuies deux minutes et tu fais n’importe quoi." },
+            { "speakerId": "mike", "text": "C’est faux. Je fais n’importe quoi beaucoup plus vite que ça." },
+            { "speakerId": "leigh", "text": "Angles plus instables. Fais attention aux rebonds." },
+            { "speakerId": "mike", "text": "Reçu." },
+            { "speakerId": "rye", "text": "Mike… j’en suis à la grille 47." },
+            { "speakerId": "mike", "text": "Je sens que j’ai une responsabilité énorme." },
+            { "speakerId": "captain", "text": "Allez, ça suffit. Vous ferez mumuse plus tard, on a des bacs à remplir." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L2_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 2,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L2_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 2,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L2_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 2,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L2_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "On récupère les dernières et on décolle." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L2_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Bon… ça commence à devenir intéressant." },
+            { "speakerId": "leigh", "text": "Flux plus dense, mais toujours stable." },
+            { "speakerId": "rye", "text": "Et mon sudoku avance bien." },
+            { "speakerId": "mike", "text": "Tu joues vraiment pendant qu’on bosse ?" },
+            { "speakerId": "rye", "text": "Je joue parce que tu bosses." },
+            { "speakerId": "captain", "text": "Continuez comme ça." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L3_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 3,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Flux plus chargé sur ce secteur." },
+            { "speakerId": "mike", "text": "Ah. Ça y est, on travaille pour de vrai." },
+            { "speakerId": "rye", "text": "Je vois plus de noires aussi." },
+            { "speakerId": "leigh", "text": "Confirmé. Ratio en hausse." },
+            { "speakerId": "mike", "text": "Rien d’inquiétant." },
+            { "speakerId": "captain", "text": "Peut-être. Mais on reste propres." },
+            { "speakerId": "rye", "text": "Et après ça… j’espère que l’atelier vaut le détour." },
+            { "speakerId": "mike", "text": "Oh oui. Mon poste de pilotage mérite une petite amélioration." },
+            { "speakerId": "captain", "text": "Finissez déjà cette mission." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L3_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 3,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L3_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 3,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L3_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 3,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L3_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 3,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "On récupère les dernières et on décolle." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L3_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 3,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Bon… là c’était déjà un peu plus animé." },
+            { "speakerId": "leigh", "text": "Flux plus instable." },
+            { "speakerId": "rye", "text": "Mais toujours gérable." },
+            { "speakerId": "mike", "text": "Et ton sudoku ?" },
+            { "speakerId": "rye", "text": "Terminé." },
+            { "speakerId": "mike", "text": "Je suis impressionné." },
+            { "speakerId": "rye", "text": "Je savais que tu finirais par faire quelque chose de bien." },
+            { "speakerId": "captain", "text": "Allez. Prochaine étape : l’atelier. Je vais en profiter pour boire un bon café." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L4_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 4,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Héhé… je suis reparti avec le numéro de la vendeuse." },
+            { "speakerId": "rye", "text": "Et moi avec huit heures de sommeil." },
+            { "speakerId": "leigh", "text": "Secteur suivant : Rockfall Corridor." },
+            { "speakerId": "mike", "text": "Le nom donne vachement confiance…" },
+            { "speakerId": "leigh", "text": "Il y a quelque chose d’étrange dans les relevés." },
+            { "speakerId": "mike", "text": "Étrange comment ?" },
+            { "speakerId": "leigh", "text": "Difficile à dire." },
+            { "speakerId": "captain", "text": "Bien. Dans ce cas on reste sur nos gardes." },
+            { "speakerId": "mike", "text": "Reçu cap’tain." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L4_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 4,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L4_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 4,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L4_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 4,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L4_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 4,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Allez, on traîne pas. On ramasse et on décolle." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L4_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 4,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Ok… quelqu’un peut m’expliquer ce qui vient de se passer ?" },
+            { "speakerId": "rye", "text": "J’ai cru qu’on y restait." },
+            { "speakerId": "leigh", "text": "La dernière vague… le ratio de noires était beaucoup trop élevé." },
+            { "speakerId": "mike", "text": "Oui, ça j’avais remarqué." },
+            { "speakerId": "mike", "text": "Une erreur dans le rapport ?" },
+            { "speakerId": "leigh", "text": "Possible." },
+            { "speakerId": "captain", "text": "Ça arrive." },
+            { "speakerId": "rye", "text": "J’aime pas trop ce genre d’erreur." },
+            { "speakerId": "captain", "text": "On reste concentrés. On continue." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L5_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 5,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Flux très chargé sur ce secteur." },
+            { "speakerId": "mike", "text": "Oui… je vois ça. Et je vais pas mentir, après ce qui s’est passé dans le corridor, je préfère savoir à quoi m’attendre." },
+            { "speakerId": "rye", "text": "Au moins cette fois on est prêts." },
+            { "speakerId": "leigh", "text": "Les trajectoires sont instables." },
+            { "speakerId": "mike", "text": "Super." },
+            { "speakerId": "captain", "text": "On garde la tête froide. On fait notre travail." },
+            { "speakerId": "mike", "text": "Reçu cap’tain." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L5_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 5,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L5_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 5,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L5_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 5,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L5_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 5,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Allez. On ramasse les dernières et on décolle." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L5_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 5,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Bon… j’espère que la prochaine sera la dernière, parce que celle-là m’a bien secoué." },
+            { "speakerId": "rye", "text": "Tu dis ça à chaque mission." },
+            { "speakerId": "mike", "text": "Oui, mais cette fois je le pense vraiment." },
+            { "speakerId": "leigh", "text": "Le secteur devient de plus en plus instable." },
+            { "speakerId": "mike", "text": "Ah bon ? Je ne m’en étais pas rendu compte." },
+            { "speakerId": "captain", "text": "Reste concentré Mike. On approche de la fin de la zone." },
+            { "speakerId": "rye", "text": "Cap’tain ?" },
+            { "speakerId": "captain", "text": "Plus tard, Rye. On en reparle si on survit à ce foutoir." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L6_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 6,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Je confirme les relevés… quelque chose ne va pas." },
+            { "speakerId": "mike", "text": "Qu’est-ce que tu veux dire ?" },
+            { "speakerId": "leigh", "text": "Ça sent pas bon. Beaucoup trop de noires." },
+            { "speakerId": "rye", "text": "À ce point ?" },
+            { "speakerId": "leigh", "text": "Oui." },
+            { "speakerId": "mike", "text": "On est censés récupérer combien déjà ?" },
+            { "speakerId": "leigh", "text": "Pas assez pour que ça me plaise." },
+            { "speakerId": "mike", "text": "Super… donc on risque de démolir le vaisseau pour trois miettes." },
+            { "speakerId": "captain", "text": "On est déjà là." },
+            { "speakerId": "mike", "text": "Cap’tain…" },
+            { "speakerId": "captain", "text": "On récupère ce qui vaut le coup et on sort." },
+            { "speakerId": "rye", "text": "Compris." },
+            { "speakerId": "mike", "text": "Ah… ça promet. J’adore déjà." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L6_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 6,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L6_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 6,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L6_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 6,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L6_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 6,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Ça suffit. On ramasse ce qui reste et on fout le camp d'ici." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L6_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 6,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Bon… je vais poser la question que tout le monde a dans la tête." },
+            { "speakerId": "mike", "text": "Parce que là… le dernier secteur…" },
+            { "speakerId": "mike", "text": "ça ressemblait quand même beaucoup à un endroit où on était censés mourir." },
+            { "speakerId": "leigh", "text": "Les données du briefing étaient correctes." },
+            { "speakerId": "leigh", "text": "Ce qui s’est passé… c’était cohérent avec les relevés." },
+            { "speakerId": "mike", "text": "Oui, j’avais bien compris." },
+            { "speakerId": "mike", "text": "C’est justement ça qui m’inquiète." },
+            { "speakerId": "rye", "text": "…" },
+            { "speakerId": "mike", "text": "Rye ?" },
+            { "speakerId": "rye", "text": "…" },
+            { "speakerId": "captain", "text": "Parle." },
+            { "speakerId": "rye", "text": "Je sais pas." },
+            { "speakerId": "rye", "text": "Tout ce que je sais c’est que pendant trente secondes j’ai regardé ces trajectoires arriver et j’ai eu l’impression qu’on nous avait envoyés exactement là où il fallait pour qu’on n’en sorte pas." },
+            { "speakerId": "rye", "text": "Et j’aime pas cette sensation." },
+            { "speakerId": "leigh", "text": "Statistiquement… c’était une très mauvaise mission." },
+            { "speakerId": "mike", "text": "\"Mauvaise\" ?" },
+            { "speakerId": "mike", "text": "On a failli y laisser le vaisseau pour récupérer quoi… quelques billes ?" },
+            { "speakerId": "rye", "text": "…" },
+            { "speakerId": "mike", "text": "Et personne ne trouve ça bizarre ?" },
+            { "speakerId": "captain", "text": "On a signé pour récupérer." },
+            { "speakerId": "mike", "text": "Oui." },
+            { "speakerId": "mike", "text": "Mais on est censés être payés quand, exactement ?" },
+            { "speakerId": "leigh", "text": "Quand ils nous rappellent." },
+            { "speakerId": "mike", "text": "Et ça arrive quand ?" },
+            { "speakerId": "leigh", "text": "Six mois." },
+            { "speakerId": "mike", "text": "Six mois." },
+            { "speakerId": "mike", "text": "Donc on traverse des secteurs comme celui-là pendant six mois…" },
+            { "speakerId": "mike", "text": "et ensuite peut-être qu’on touche quelque chose." },
+            { "speakerId": "rye", "text": "…" },
+            { "speakerId": "mike", "text": "Rye ?" },
+            { "speakerId": "rye", "text": "Oui je réfléchis." },
+            { "speakerId": "rye", "text": "Parce que j’essaie de comprendre un truc." },
+            { "speakerId": "rye", "text": "Si quelqu’un voulait envoyer un équipage se faire broyer dans un coin de l’espace…" },
+            { "speakerId": "rye", "text": "ça ressemblerait beaucoup à ce qu’on vient de faire." },
+            { "speakerId": "leigh", "text": "C’est une hypothèse." },
+            { "speakerId": "mike", "text": "Rassurant." },
+            { "speakerId": "captain", "text": "Ça suffit." },
+            { "speakerId": "captain", "text": "On est encore en vie." },
+            { "speakerId": "captain", "text": "Le vaisseau tient." },
+            { "speakerId": "captain", "text": "Et tant que c’est le cas… on continue." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "contract_victory",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Bien joué Rydell." }
+          ]
+        },
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Bon travail Rydell, mission validée." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "Bon travail, équipage 404." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "Résultat validé. Continuez comme ça, 404." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contract_defeat_2",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Vous avez échoué Rydell. Je vous mets un avertissement." }
+          ]
+        },
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Ce n’est pas acceptable Rydell. Considérez ceci comme un avertissement." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "Échec de mission, équipage 404. Un avertissement est ajouté à votre dossier." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "404, ce résultat est insuffisant. Un avertissement est enregistré." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contract_defeat_1",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Rydell, au prochain échec c'est la porte." }
+          ]
+        },
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Rydell, vous êtes à un échec de la résiliation du contrat." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "Équipage 404, un nouvel échec mettra fin à votre contrat." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "404, vous êtes à un échec de la résiliation." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contract_gameover",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "C'est terminé Rydell. Trouvez-vous un autre travail." }
+          ]
+        },
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Votre contrat est résilié Rydell. Bonne continuation." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "C'est terminé pour vous, équipage 404. Votre contrat est résilié." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "404, vos services ne sont plus requis." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hull_destroyed",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Et merde ! Mission terminée." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Les réceptacles sont morts. On ne rentrera pas avec ce vaisseau." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "rye", "text": "Fait chier..." }
+          ]
+        }
+      ]
+    }
+  ]
+}

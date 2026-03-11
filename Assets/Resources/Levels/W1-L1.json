@@ -1,0 +1,89 @@
+{
+  "LevelID": "W1-L1",
+  "MainObjective": {
+    "Text": "Collect at least 28 nodes.",
+    "ThresholdCount": 28,
+    "Bonus": 300
+  },
+  "ScoreGoals": [
+    { "Type": "Bronze", "Points": 3200 },
+    { "Type": "Silver", "Points": 4200 },
+    { "Type": "Gold", "Points": 4900 }
+  ],
+  "SecondaryObjectives": [
+    {
+      "Id": "W1L1_SO_WS_3",
+      "Type": "ComboCount",
+      "TargetId": "WhiteStreak",
+      "Threshold": 3,
+      "RewardScore": 250,
+      "UiText": "Trigger 3 White Streak combos."
+    }
+  ],
+  "Balls": [
+    { "Type": "White", "Points": 100 },
+    { "Type": "Blue", "Points": 150 },
+    { "Type": "Red", "Points": 200 },
+    { "Type": "Black", "Points": -120 }
+  ],
+  "Phases": [
+    {
+      "Name": "PHASE 1",
+      "Weight": 2,
+      "Intervalle": 1.6,
+      "AngleMin": -6,
+      "AngleMax": 6,
+      "Mix": [
+        { "Type": "White", "Poids": 0.90 },
+        { "Type": "Blue", "Poids": 0.10 },
+        { "Type": "Black", "Poids": 0.00 }
+      ]
+    },
+    {
+      "Name": "PHASE 2",
+      "Weight": 3,
+      "Intervalle": 1.4,
+      "AngleMin": -8,
+      "AngleMax": 8,
+      "Mix": [
+        { "Type": "White", "Poids": 0.82 },
+        { "Type": "Blue", "Poids": 0.15 },
+        { "Type": "Black", "Poids": 0.03 }
+      ]
+    },
+    {
+      "Name": "PHASE 3",
+      "Weight": 1,
+      "Intervalle": 1.2,
+      "AngleMin": -10,
+      "AngleMax": 10,
+      "Mix": [
+        { "Type": "White", "Poids": 0.78 },
+        { "Type": "Blue", "Poids": 0.15 },
+        { "Type": "Black", "Poids": 0.07 }
+      ]
+    }
+  ],
+  "Evacuation": { "Name": "Evacuation", "DurationSec": 10 },
+  "Obstacles": [
+  {
+    "obstacleId": "Obstacle1",
+    "localPosition": { "x": -1.2, "y": 0.8, "z": 0.0 },
+    "localEulerAngles": { "x": 0.0, "y": 0.0, "z": 0.0 },
+    "phaseIndex": 0
+  },
+  {
+    "obstacleId": "Obstacle1",
+    "localPosition": { "x": 0.0, "y": 0.8, "z": 0.0 },
+    "localEulerAngles": { "x": 0.0, "y": 0.0, "z": 0.0 },
+    "phaseIndex": 0
+  },
+  {
+    "obstacleId": "Obstacle1",
+    "localPosition": { "x": 1.2, "y": 0.8, "z": 0.0 },
+    "localEulerAngles": { "x": 0.0, "y": 0.0, "z": 0.0 },
+    "phaseIndex": 0
+  }
+]
+
+}

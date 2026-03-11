@@ -1,0 +1,107 @@
+{
+  "modules": [
+    {
+      "id": "HULL_CORE_T1",
+      "familyId": "HULL",
+      "displayName": "Reinforced Hull",
+      "description": "+1 Maximum Hull",
+      "tier": 1,
+      "cost": 4,
+      "iconPath": "Modules/Icons/hull_boost",
+      "hullMaxAdd": 1,
+      "scanTierSet": 0
+    },
+    {
+      "id": "HULL_CORE_T2",
+      "familyId": "HULL",
+      "displayName": "Reinforced Hull",
+      "description": "+2 Maximum Hull",
+      "tier": 2,
+      "cost": 10,
+      "iconPath": "Modules/Icons/hull_boost",
+      "hullMaxAdd": 2,
+      "scanTierSet": 0
+    },
+    {
+      "id": "HULL_CORE_T3",
+      "familyId": "HULL",
+      "displayName": "Reinforced Hull",
+      "description": "+3 Maximum Hull",
+      "tier": 3,
+      "cost": 16,
+      "iconPath": "Modules/Icons/hull_boost",
+      "hullMaxAdd": 3,
+      "scanTierSet": 0
+    },
+
+    {
+      "id": "SCAN_ARRAY_T1",
+      "familyId": "SCAN",
+      "displayName": "Scan Array",
+      "description": "Briefing detail: T1",
+      "tier": 1,
+      "cost": 4,
+      "iconPath": "Modules/Icons/scan_array",
+      "hullMaxAdd": 0,
+      "scanTierSet": 1
+    },
+    {
+      "id": "SCAN_ARRAY_T2",
+      "familyId": "SCAN",
+      "displayName": "Scan Array",
+      "description": "Briefing detail: T2",
+      "tier": 2,
+      "cost": 10,
+      "iconPath": "Modules/Icons/scan_array",
+      "hullMaxAdd": 0,
+      "scanTierSet": 2
+    },
+    {
+      "id": "SCAN_ARRAY_T3",
+      "familyId": "SCAN",
+      "displayName": "Scan Array",
+      "description": "Briefing detail: T3",
+      "tier": 3,
+      "cost": 16,
+      "iconPath": "Modules/Icons/scan_array",
+      "hullMaxAdd": 0,
+      "scanTierSet": 3
+    },
+    {
+  "id": "GREED_COIL_T1",
+  "familyId": "GREED",
+  "displayName": "Greed Coil",
+  "description": "Flush threshold +1 (bigger combos)",
+  "tier": 1,
+  "cost": 4,
+  "iconPath": "Modules/Icons/greed_coil",
+  "hullMaxAdd": 0,
+  "scanTierSet": 0,
+  "flushMinBallsAdd": 1
+},
+{
+  "id": "GREED_COIL_T2",
+  "familyId": "GREED",
+  "displayName": "Greed Coil",
+  "description": "Flush threshold +2 (bigger combos)",
+  "tier": 2,
+  "cost": 10,
+  "iconPath": "Modules/Icons/greed_coil",
+  "hullMaxAdd": 0,
+  "scanTierSet": 0,
+  "flushMinBallsAdd": 2
+},
+{
+  "id": "GREED_COIL_T3",
+  "familyId": "GREED",
+  "displayName": "Greed Coil",
+  "description": "Flush threshold +3 (bigger combos)",
+  "tier": 3,
+  "cost": 16,
+  "iconPath": "Modules/Icons/greed_coil",
+  "hullMaxAdd": 0,
+  "scanTierSet": 0,
+  "flushMinBallsAdd": 3
+}
+  ]
+}

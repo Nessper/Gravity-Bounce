@@ -1,0 +1,40 @@
+{
+  "levels": [
+    {
+      "levelId": "W1-L1",
+      "worldId": "W1",
+      "title": "FIRST CONTACT",
+      "gameplayPath": "Levels/W1-L1"
+    },
+    {
+      "levelId": "W1-L2",
+      "worldId": "W1",
+      "title": "DEEPER INTO THE BELT",
+      "gameplayPath": "Levels/W1-L2"
+    },
+    {
+      "levelId": "W1-L3",
+      "worldId": "W1",
+      "title": "NARROW PASSAGE",
+      "gameplayPath": "Levels/W1-L3"
+    },
+    {
+      "levelId": "W1-L4",
+      "worldId": "W1",
+      "title": "ROCKFALL CORRIDOR",
+      "gameplayPath": "Levels/W1-L4"
+    },
+    {
+      "levelId": "W1-L5",
+      "worldId": "W1",
+      "title": "UNTIL THE BREAK",
+      "gameplayPath": "Levels/W1-L5"
+    },
+    {
+      "levelId": "W1-L6",
+      "worldId": "W1",
+      "title": "UNDER A BLACK RAIN",
+      "gameplayPath": "Levels/W1-L6"
+    }
+  ]
+}

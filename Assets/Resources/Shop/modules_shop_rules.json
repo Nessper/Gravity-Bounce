@@ -1,0 +1,25 @@
+{
+  "worldRules": [
+    {
+      "worldId": "W1",
+      "patterns": [
+        { "t1": 2, "t2": 1, "t3": 0, "weight": 80 },
+        { "t1": 3, "t2": 0, "t3": 0, "weight": 17 },
+        { "t1": 1, "t2": 2, "t3": 0, "weight": 3 }
+      ]
+    },
+    {
+      "worldId": "W2",
+      "patterns": [
+        { "t1": 2, "t2": 1, "t3": 0, "weight": 65 },
+        { "t1": 1, "t2": 2, "t3": 0, "weight": 25 },
+        { "t1": 1, "t2": 1, "t3": 1, "weight": 10 }
+      ]
+    }
+  ],
+  "defaultPatterns": [
+    { "t1": 2, "t2": 1, "t3": 0, "weight": 80 },
+    { "t1": 1, "t2": 2, "t3": 0, "weight": 15 },
+    { "t1": 1, "t2": 1, "t3": 1, "weight": 5 }
+  ]
+}
