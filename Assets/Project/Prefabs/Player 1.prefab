@@ -491,7 +491,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b0162338ed7b43448200628e7470ede, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ImpactSfxEmitter
-  sfxId: 11
+  sfxId: 14
   otherTagFilter: Ball
   cooldownSec: 0.12
   minImpactSpeed: 0.3

@@ -1817,8 +1817,8 @@ MonoBehaviour:
   afterFoldDelay: 0.3
   playCeremonyMusicOnShow: 1
   ceremonyMusicId: 50
-  ceremonyFadeOutSec: 0.8
-  ceremonyFadeInSec: 0.8
+  ceremonyFadeOutSec: 2
+  ceremonyFadeInSec: 1.5
 --- !u!1001 &107000131
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6647,6 +6647,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ebdaf4181e1c0443a028ee0791bfeb7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelController
+  runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
   player: {fileID: 1330354634}
   closeBinController: {fileID: 2049829430}
   levelTimer: {fileID: 567906014}
@@ -17593,7 +17594,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2651055446214205391, guid: 5057ccfb547c4554491e0460fe7a0f70, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 8.433319
+      value: 8.433333
       objectReference: {fileID: 0}
     - target: {fileID: 2651055446214205391, guid: 5057ccfb547c4554491e0460fe7a0f70, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -24022,6 +24023,7 @@ MonoBehaviour:
   closeBinController: {fileID: 2049829430}
   pauseController: {fileID: 794936362}
   runStateController: {fileID: 4523183}
+  runSessionState: {fileID: 0}
   evacDurationSec: 10
   tickIntervalSec: 0.1
   progressBarUI: {fileID: 892579293}
@@ -25570,6 +25572,13 @@ MonoBehaviour:
   allowBuy: 0
   buyButton: {fileID: 0}
   buyButtonText: {fileID: 0}
+  buyButtonBackground: {fileID: 0}
+  buySfx: 5
+  errorSfx: 6
+  buyTextColorAffordable: {r: 1, g: 1, b: 1, a: 1}
+  buyTextColorUnaffordable: {r: 1, g: 1, b: 1, a: 0.5}
+  buyBgColorAffordable: {r: 1, g: 1, b: 1, a: 1}
+  buyBgColorUnaffordable: {r: 1, g: 1, b: 1, a: 0.5}
   equipStatusText: {fileID: 1289815427}
   spriteYOffset: -6
 --- !u!1 &1321277883

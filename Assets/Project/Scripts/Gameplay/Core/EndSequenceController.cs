@@ -3,17 +3,24 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Gere la phase d evacuation de fin de niveau :
-/// - Laisse le joueur evacuer les billes pendant une duree definie.
-/// - Active l auto-flush des bins.
-/// - Force un flush final, attend la fin des flushs.
-/// - Attend la fin de l animation de la ProgressBar (step-by-step) avant de lancer l overlay de fin.
-/// - Coupe les controles, lance l outro du board, cache le HUD.
-/// - Puis, apres un leger delai, appelle le callback de fin (ceremonie, etc.).
+/// Gère la phase d'évacuation de fin de niveau :
+/// - laisse le joueur évacuer les billes pendant une durée définie,
+/// - active l'auto-flush des bins,
+/// - force un flush final,
+/// - attend la fin des animations UI utiles,
+/// - coupe les contrôles,
+/// - joue l'outro du board,
+/// - masque le HUD,
+/// - puis appelle le callback de fin normale.
+///
+/// IMPORTANT :
+/// Si le Hull tombe à 0 pendant l'évacuation / final flush,
+/// la cérémonie normale NE DOIT PAS se lancer.
+/// Le flow GameOver Hull doit garder la priorité.
 /// </summary>
 public class EndSequenceController : MonoBehaviour
 {
-    [Header("References gameplay")]
+    [Header("Références gameplay")]
     [SerializeField] private BinCollector collector;
     [SerializeField] private PlayerController player;
     [SerializeField] private CloseBinController closeBinController;
@@ -21,71 +28,71 @@ public class EndSequenceController : MonoBehaviour
 
     [Header("Run / Persistance")]
     [SerializeField] private LevelRunStateController runStateController;
+    [SerializeField] private RunSessionState runSessionState;
 
     [Header("Evacuation")]
-    [Tooltip("Duree de la phase d evacuation en secondes.")]
+    [Tooltip("Durée de la phase d'évacuation en secondes.")]
     [SerializeField] private float evacDurationSec = 10f;
 
     [Tooltip("Intervalle entre deux ticks de callback UI (compteur).")]
     [SerializeField] private float tickIntervalSec = 1f;
 
     [Header("Progression (UI)")]
-    [Tooltip("ProgressBar (wrapper) utilisee pendant le niveau. Sert a attendre la fin de l animation step-by-step.")]
+    [Tooltip("ProgressBar utilisée pendant le niveau. Sert à attendre la fin de l'animation step-by-step.")]
     [SerializeField] private ProgressBarUI progressBarUI;
 
-    [Tooltip("Temps max d attente pour laisser la barre finir l animation step-by-step.")]
+    [Tooltip("Temps max d'attente pour laisser la barre finir l'animation step-by-step.")]
     [SerializeField] private float progressAnimTimeoutSec = 2f;
 
     [Header("Board / Outro")]
     [Tooltip("Racine du board. Doit porter un BoardOutroAssembler.")]
     [SerializeField] private Transform boardRoot;
 
-    [Tooltip("Delai avant de lancer le rangement du board apres le dernier flush.")]
+    [Tooltip("Délai avant de lancer le rangement du board après le dernier flush.")]
     [SerializeField] private float outroStartDelaySec = 0.15f;
 
     [Header("HUD")]
     [Tooltip("Racine du HUD gameplay (Canvas HUD principal).")]
     [SerializeField] private GameObject gameplayHudRoot;
 
-    [Header("Controles")]
-    [Tooltip("Controleur centralise des controles de gameplay (player + CloseBin + UI mobile).")]
+    [Header("Contrôles")]
+    [Tooltip("Contrôleur centralisé des contrôles de gameplay (player + CloseBin + UI mobile).")]
     [SerializeField] private LevelControlsController levelControls;
 
-    [Tooltip("Delai entre le masquage du HUD et l appel du callback de fin (ceremonie).")]
+    [Tooltip("Délai entre le masquage du HUD et l'appel du callback de fin normale.")]
     [SerializeField] private float hudToCeremonyDelaySec = 0.25f;
 
     private BoardOutroAssembler boardOutro;
     private Coroutine co;
 
-    // Callbacks optionnels pour l UI d evacuation (affichage, etc.)
+    // Callbacks optionnels pour l'UI d'évacuation.
     private Action onEvacStart;
     private Action<float> onEvacTick;
 
-    // Event public pour prevenir le reste du jeu (debut de l evacuation)
+    // Event public pour prévenir le reste du jeu du début d'évacuation.
     public event Action OnEvacuationStarted;
 
-    // Event public qui previent que le gameplay est scellé
+    // Event public qui prévient que le gameplay est définitivement scellé.
     public event Action OnGameplaySealed;
-
 
     private void Awake()
     {
+        // Récupère le composant d'outro du board si possible.
         if (boardRoot != null)
         {
             boardOutro = boardRoot.GetComponent<BoardOutroAssembler>();
+
             if (boardOutro == null)
-            {
-                Debug.LogWarning("[EndSequenceController] Aucun BoardOutroAssembler trouve sur boardRoot.");
-            }
+                Debug.LogWarning("[EndSequenceController] Aucun BoardOutroAssembler trouvé sur boardRoot.");
         }
         else
         {
-            Debug.LogWarning("[EndSequenceController] boardRoot non assigne.");
+            Debug.LogWarning("[EndSequenceController] boardRoot non assigné.");
         }
     }
 
     /// <summary>
-    /// Configure dynamiquement les references et parametres de la phase d evacuation.
+    /// Configure dynamiquement les références et paramètres de la phase d'évacuation.
     /// </summary>
     public void Configure(
         BinCollector c,
@@ -112,13 +119,14 @@ public class EndSequenceController : MonoBehaviour
         onEvacStart = onEvacStartCb;
         onEvacTick = onEvacTickCb;
 
-        // Optionnel : si fourni, on ecrase la ref Inspector
+        // Si une ProgressBar est fournie ici, elle remplace celle de l'Inspector.
         if (progressBar != null)
             progressBarUI = progressBar;
     }
 
     /// <summary>
-    /// Reinitialise l etat interne (arret de la coroutine en cours).
+    /// Réinitialise l'état interne du contrôleur.
+    /// Coupe la coroutine en cours si nécessaire.
     /// </summary>
     public void ResetState()
     {
@@ -130,39 +138,67 @@ public class EndSequenceController : MonoBehaviour
     }
 
     /// <summary>
-    /// Lance la phase d evacuation.
-    /// onCompleted sera appele une fois que tout est termine :
-    /// evac + flush final + attente UI + outro + hide HUD + delai, puis ceremonie.
+    /// Lance la phase d'évacuation.
+    /// Le callback onCompleted correspond à la fin normale :
+    /// cérémonie, overlay de fin, etc.
+    /// 
+    /// IMPORTANT :
+    /// si le Hull est détruit avant la fin, ce callback ne sera pas appelé.
     /// </summary>
     public void BeginEvacuationPhase(Action onCompleted, float? overrideDurationSec = null)
     {
+        // Évite de lancer deux fois la même séquence.
         if (co == null)
             co = StartCoroutine(RunEvac(onCompleted, overrideDurationSec));
     }
 
+    /// <summary>
+    /// Retourne true si le vaisseau est déjà détruit.
+    /// Dans ce cas, la cérémonie normale ne doit pas se lancer.
+    /// </summary>
+    private bool IsHullDestroyed()
+    {
+        return runSessionState != null && runSessionState.Hull <= 0;
+    }
+
+    /// <summary>
+    /// Coroutine principale de la phase d'évacuation.
+    /// </summary>
     private IEnumerator RunEvac(Action done, float? overrideDurationSec)
     {
         float duration = overrideDurationSec.HasValue
             ? Mathf.Max(0f, overrideDurationSec.Value)
             : evacDurationSec;
 
-        // 1) Debut evacuation
+        // --------------------------------------------------------------------
+        // 1) Début d'évacuation
+        // --------------------------------------------------------------------
+
+        // On autorise la pause pendant l'évacuation.
         pauseController?.EnablePause(true);
 
+        // On laisse les contrôles gameplay actifs pendant l'évacuation.
         if (levelControls != null)
+        {
             levelControls.EnableGameplayControls();
+        }
         else
         {
             player?.SetActiveControl(true);
             closeBinController?.SetActiveControl(true);
         }
 
+        // Active l'auto-flush des bins pendant l'évacuation.
         collector?.SetAutoFlushEnabled(true);
 
+        // Notifie le reste du jeu / UI.
         OnEvacuationStarted?.Invoke();
         onEvacStart?.Invoke();
 
-        // 2) Compte a rebours (temps scale ici volontairement : si timescale bouge, l evac suit)
+        // --------------------------------------------------------------------
+        // 2) Compte à rebours d'évacuation
+        // --------------------------------------------------------------------
+
         float remaining = duration;
         float tickTimer = 0f;
 
@@ -175,7 +211,8 @@ public class EndSequenceController : MonoBehaviour
             if (remaining < 0f)
                 remaining = 0f;
 
-            // Tick UI robuste : si une frame lag, on rattrape les ticks manques
+            // Si l'intervalle de tick est défini, on rattrape les ticks manqués
+            // même en cas de frame longue.
             if (tickIntervalSec > 0f)
             {
                 while (tickTimer >= tickIntervalSec)
@@ -188,46 +225,69 @@ public class EndSequenceController : MonoBehaviour
             yield return null;
         }
 
-        // Dernier tick force a 0 (utile pour afficher "0" une fois)
+        // Force un dernier tick à 0 pour l'UI du compteur.
         onEvacTick?.Invoke(0f);
 
+        // --------------------------------------------------------------------
         // 3) Stop auto-flush
+        // --------------------------------------------------------------------
+
         collector?.SetAutoFlushEnabled(false);
 
-        // 4) Attente fin d un flush eventuel
+        // --------------------------------------------------------------------
+        // 4) Attente de la fin d'un flush éventuellement encore en cours
+        // --------------------------------------------------------------------
+
         if (collector != null && collector.IsAnyFlushActive)
             yield return new WaitUntil(() => !collector.IsAnyFlushActive);
 
-        // 5) Flush final force
+        // --------------------------------------------------------------------
+        // 5) Flush final forcé
+        // --------------------------------------------------------------------
+
         if (collector != null)
         {
             collector.CollectAll(force: true, skipDelay: true, isFinalFlush: true);
             yield return new WaitUntil(() => !collector.IsAnyFlushActive);
         }
 
-        // 5a) IMPORTANT : le gameplay est considere termine apres le flush final.
-        // On desarme la penalite "quit = Hull -1" pour eviter une penalite fantome au prochain Load.
+        // --------------------------------------------------------------------
+        // 5a) Le gameplay est maintenant considéré comme terminé
+        // --------------------------------------------------------------------
+
+        // On désarme les pénalités de quit/relaunch liées au niveau en cours.
         runStateController?.MarkLevelEnded();
         OnGameplaySealed?.Invoke();
 
-        // 5bis) IMPORTANT : laisser la ProgressBar finir son step-by-step
-        // On force un Refresh au cas ou le dernier flush n aurait pas declenche l event UI.
+        // --------------------------------------------------------------------
+        // 5b) On laisse le temps à la ProgressBar de finir ses animations
+        // --------------------------------------------------------------------
+
         if (progressBarUI != null)
         {
+            // Refresh défensif au cas où le dernier flush n'aurait pas poussé l'update.
             progressBarUI.Refresh();
             yield return progressBarUI.WaitForProgressAnimationComplete(progressAnimTimeoutSec);
         }
 
-        // 6) Couper les controles de gameplay
+        // --------------------------------------------------------------------
+        // 6) On coupe les contrôles gameplay
+        // --------------------------------------------------------------------
+
         if (levelControls != null)
+        {
             levelControls.DisableGameplayControls();
+        }
         else
         {
             player?.SetActiveControl(false);
             closeBinController?.SetActiveControl(false);
         }
 
-        // 7) Rangement visuel du board
+        // --------------------------------------------------------------------
+        // 7) Outro visuelle du board
+        // --------------------------------------------------------------------
+
         if (boardOutro != null)
         {
             if (outroStartDelaySec > 0f)
@@ -236,15 +296,38 @@ public class EndSequenceController : MonoBehaviour
             yield return StartCoroutine(boardOutro.PlayOutro());
         }
 
-        // 8) Cacher le HUD gameplay
+        // --------------------------------------------------------------------
+        // 8) Masquage du HUD gameplay
+        // --------------------------------------------------------------------
+
         if (gameplayHudRoot != null)
             gameplayHudRoot.SetActive(false);
 
-        // 9) Delai avant ceremonie
+        // --------------------------------------------------------------------
+        // 9) Petit délai avant la fin normale
+        // --------------------------------------------------------------------
+
         if (hudToCeremonyDelaySec > 0f)
             yield return new WaitForSeconds(hudToCeremonyDelaySec);
 
-        // 10) Callback de fin
+        // --------------------------------------------------------------------
+        // 10) VERROU CRITIQUE :
+        // si le Hull est tombé à 0 pendant l'évacuation / final flush,
+        // on NE LANCE PAS la cérémonie normale.
+        // Le flow GameOver Hull doit rester seul maître à bord.
+        // --------------------------------------------------------------------
+
+        if (IsHullDestroyed())
+        {
+            Debug.Log("[EndSequenceController] Cérémonie normale annulée : Hull <= 0.");
+            co = null;
+            yield break;
+        }
+
+        // --------------------------------------------------------------------
+        // 11) Callback de fin normale
+        // --------------------------------------------------------------------
+
         done?.Invoke();
         co = null;
     }

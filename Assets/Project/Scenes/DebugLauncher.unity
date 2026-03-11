@@ -285,7 +285,7 @@ MonoBehaviour:
   debugWorldId: W1
   debugNodeIndex: 3
   debugShipId: CORE_SCOUT
-  debugCurrentHull: 5
+  debugCurrentHull: 10
   debugContractLives: 3
   debugMoney: 200
   debugRunScore: 10000

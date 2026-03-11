@@ -38,11 +38,10 @@ public class EndLevelUI : MonoBehaviour
     [SerializeField] private bool playCeremonyMusicOnShow = true;
 
     [SerializeField] private MusicId ceremonyMusicId = MusicId.MainEndSequence;
+    [SerializeField] private float ceremonyFadeOutSec = 2.0f;
+    [SerializeField] private float ceremonyFadeInSec = 1.5f;
 
-    [SerializeField] private float ceremonyFadeOutSec = 0.8f;
-    [SerializeField] private float ceremonyFadeInSec = 0.8f;
-
-    // CHANGE: event avec token
+    // Event emis a la fin de la ceremonie, avec le token scelle associe.
     public Action<EndLevelOutcome, EndLevelToken> OnCeremonyFinished;
 
     public string CurrentLevelId { get; private set; }
@@ -54,15 +53,19 @@ public class EndLevelUI : MonoBehaviour
     private int silverThreshold;
     private int goldThreshold;
 
-    // NEW: token scellé injecté par LevelManager
+    // Token de fin de niveau injecte par le LevelManager.
     private bool hasToken;
     private EndLevelToken token;
 
-    // NEW: garde-fou musique (evite de relancer si Show() est appele plusieurs fois)
+    // Garde-fou pour eviter de relancer plusieurs fois la musique de ceremonie.
     private bool ceremonyMusicStarted;
 
+    // Flag d'annulation de ceremonie.
+    // S'il passe a true, la reveal routine doit s'arreter proprement.
+    private bool ceremonyAborted;
+
     /// <summary>
-    /// Injecte le token scellé (créé par LevelManager) avant la reveal routine.
+    /// Injecte le token scelle (cree par LevelManager) avant la reveal routine.
     /// </summary>
     public void SetEndLevelToken(EndLevelToken t)
     {
@@ -70,6 +73,9 @@ public class EndLevelUI : MonoBehaviour
         hasToken = true;
     }
 
+    /// <summary>
+    /// Lance la ceremonie de fin normale.
+    /// </summary>
     public void Show(
         EndLevelStats stats,
         LevelCatalogService.LevelCatalogEntry levelMeta,
@@ -77,6 +83,9 @@ public class EndLevelUI : MonoBehaviour
         MainObjectiveResult mainObj,
         List<SecondaryObjectiveResult> secondaryObjectiveResults)
     {
+        // Toute nouvelle ceremonie repart d'un etat non annule.
+        ceremonyAborted = false;
+
         currentLevelMeta = levelMeta;
         secondaryResults = secondaryObjectiveResults;
 
@@ -88,6 +97,9 @@ public class EndLevelUI : MonoBehaviour
         StartCoroutine(RevealRoutine(stats, levelData, mainObj));
     }
 
+    /// <summary>
+    /// Masque l'UI et remet les flags dans un etat propre.
+    /// </summary>
     public void Hide()
     {
         StopAllCoroutines();
@@ -98,12 +110,54 @@ public class EndLevelUI : MonoBehaviour
         if (hudBottom != null)
             hudBottom.SetActive(false);
 
-        // Reset pour la prochaine ceremonie
+        // Reset propre pour la prochaine ceremonie.
         ceremonyMusicStarted = false;
         hasToken = false;
         token = default;
+        ceremonyAborted = false;
     }
 
+    /// <summary>
+    /// Annule explicitement la ceremonie en cours.
+    /// Utilise par le flow GameOver Hull pour prendre la priorite
+    /// sur une ceremonie deja en train de se derouler.
+    /// </summary>
+    public void AbortCeremony()
+    {
+        ceremonyAborted = true;
+        StopAllCoroutines();
+
+        // On masque le HUD bottom pour eviter qu'il reste visible
+        // si la ceremonie est coupee brutalement.
+        if (hudBottom != null)
+            hudBottom.SetActive(false);
+    }
+
+    /// <summary>
+    /// Permet de rafraichir uniquement le header sans lancer toute la ceremonie.
+    /// Utile pour la branche GameOver directe qui bypass la reveal routine normale.
+    /// </summary>
+    public void ShowHeaderOnly(string levelId, LevelCatalogService.LevelCatalogEntry levelMeta)
+    {
+        currentLevelMeta = levelMeta;
+
+        LevelData fakeLevelData = new LevelData();
+        fakeLevelData.LevelID = levelId;
+
+        SetupHeader(fakeLevelData);
+    }
+
+    /// <summary>
+    /// Retourne true si la ceremonie doit etre interrompue.
+    /// </summary>
+    private bool ShouldAbortCeremony()
+    {
+        return ceremonyAborted;
+    }
+
+    /// <summary>
+    /// Lance la musique de ceremonie une seule fois.
+    /// </summary>
     private void StartCeremonyMusicOnce()
     {
         if (ceremonyMusicStarted)
@@ -117,13 +171,18 @@ public class EndLevelUI : MonoBehaviour
         if (AudioManager.Instance == null)
             return;
 
-        // Safety : si un multiplier trainait d'une phase precedente, on revient normal.
-        AudioManager.Instance.SetMusicVolumeMultiplier(1f, 0f);
-
+        // Securite : remet le multiplicateur a 1 si quelque chose trainait d'avant.
+        AudioManager.Instance.SetMusicVolumeMultiplier(1f, 0.5f);
         AudioManager.Instance.PlayMusic(ceremonyMusicId, ceremonyFadeOutSec, ceremonyFadeInSec);
     }
 
-    private void SetupHeader(LevelData levelData)
+    /// <summary>
+    /// Remplit le header de l'overlay de fin :
+    /// - id du niveau
+    /// - nom du monde
+    /// - titre du niveau
+    /// </summary>
+    public void SetupHeader(LevelData levelData)
     {
         if (levelData == null)
             return;
@@ -141,6 +200,11 @@ public class EndLevelUI : MonoBehaviour
             titleText.text = string.IsNullOrEmpty(title) ? "" : title;
     }
 
+    /// <summary>
+    /// Coroutine principale de reveal de la ceremonie.
+    /// On ajoute plusieurs garde-fous "ShouldAbortCeremony"
+    /// pour pouvoir couper proprement le flow si un GameOver Hull prend la main.
+    /// </summary>
     private IEnumerator RevealRoutine(EndLevelStats stats, LevelData levelData, MainObjectiveResult mainObj)
     {
         if (endLevelOverlay != null)
@@ -169,6 +233,10 @@ public class EndLevelUI : MonoBehaviour
 
         SetupHeader(levelData);
 
+        // Si la ceremonie a ete annulee entre-temps, on s'arrete ici.
+        if (ShouldAbortCeremony())
+            yield break;
+
         EndLevelScoreBreakdown breakdown = new EndLevelScoreBreakdown();
         breakdown.RawScore = (stats != null) ? Mathf.Max(0, stats.RawScore) : 0;
         breakdown.GoalsBonus = 0;
@@ -177,15 +245,24 @@ public class EndLevelUI : MonoBehaviour
 
         yield return WaitBlockIntro();
 
+        if (ShouldAbortCeremony())
+            yield break;
+
         if (totalsPresenter != null)
             totalsPresenter.ShowRawScoreLine();
 
         yield return new WaitForSecondsRealtime(lineDelay);
 
+        if (ShouldAbortCeremony())
+            yield break;
+
         if (totalsPresenter != null)
             yield return StartCoroutine(totalsPresenter.AnimateOrSetRawScore(breakdown.RawScore));
 
         yield return new WaitForSecondsRealtime(lineDelay);
+
+        if (ShouldAbortCeremony())
+            yield break;
 
         if (totalsPresenter != null)
         {
@@ -195,15 +272,24 @@ public class EndLevelUI : MonoBehaviour
 
         yield return WaitBlockOutro();
 
+        if (ShouldAbortCeremony())
+            yield break;
+
         if (goalsContainer != null)
             goalsContainer.gameObject.SetActive(true);
 
         yield return WaitBlockIntro();
 
+        if (ShouldAbortCeremony())
+            yield break;
+
         if (linesBuilder != null)
             linesBuilder.AddMainObjectiveLine(mainObj);
 
         yield return new WaitForSecondsRealtime(lineDelay);
+
+        if (ShouldAbortCeremony())
+            yield break;
 
         if (secondaryResults != null && secondaryResults.Count > 0)
         {
@@ -213,11 +299,17 @@ public class EndLevelUI : MonoBehaviour
                     linesBuilder.AddSecondaryObjectiveLine(secondaryResults[i]);
 
                 yield return new WaitForSecondsRealtime(lineDelay);
+
+                if (ShouldAbortCeremony())
+                    yield break;
             }
         }
         else
         {
             yield return new WaitForSecondsRealtime(lineDelay);
+
+            if (ShouldAbortCeremony())
+                yield break;
         }
 
         int totalGoalsBonus = (linesBuilder != null)
@@ -229,6 +321,9 @@ public class EndLevelUI : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(lineDelay);
 
+        if (ShouldAbortCeremony())
+            yield break;
+
         if (totalsPresenter != null)
             yield return StartCoroutine(totalsPresenter.AnimateGoalsBonus(totalGoalsBonus));
 
@@ -236,6 +331,9 @@ public class EndLevelUI : MonoBehaviour
 
         breakdown.GoalsBonus = Mathf.Max(0, totalGoalsBonus);
         breakdown.FinalScore = breakdown.RawScore + breakdown.GoalsBonus;
+
+        if (ShouldAbortCeremony())
+            yield break;
 
         if (totalsPresenter != null)
         {
@@ -247,6 +345,9 @@ public class EndLevelUI : MonoBehaviour
             accordionUI.RefreshGoalsCachedHeight();
 
         yield return WaitBlockOutro();
+
+        if (ShouldAbortCeremony())
+            yield break;
 
         if (accordionUI != null)
         {
@@ -260,6 +361,9 @@ public class EndLevelUI : MonoBehaviour
                 yield return new WaitForSecondsRealtime(afterFoldDelay);
         }
 
+        if (ShouldAbortCeremony())
+            yield break;
+
         if (bonusContainer != null)
             bonusContainer.gameObject.SetActive(true);
 
@@ -267,6 +371,9 @@ public class EndLevelUI : MonoBehaviour
             accordionUI.SetCombosExpanded(true, instant: true);
 
         yield return WaitBlockIntro();
+
+        if (ShouldAbortCeremony())
+            yield break;
 
         if (linesBuilder != null)
             yield return StartCoroutine(linesBuilder.RevealCombos(stats, lineDelay));
@@ -281,6 +388,9 @@ public class EndLevelUI : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(lineDelay);
 
+        if (ShouldAbortCeremony())
+            yield break;
+
         if (totalsPresenter != null)
             yield return StartCoroutine(totalsPresenter.AnimateCombosBonus(totalComboPoints));
 
@@ -289,6 +399,9 @@ public class EndLevelUI : MonoBehaviour
         breakdown.CombosBonus = Mathf.Max(0, totalComboPoints);
         breakdown.FinalScore = breakdown.RawScore + breakdown.GoalsBonus + breakdown.CombosBonus;
 
+        if (ShouldAbortCeremony())
+            yield break;
+
         if (totalsPresenter != null)
         {
             totalsPresenter.SetFinalScore(breakdown.FinalScore, animate: true);
@@ -296,6 +409,9 @@ public class EndLevelUI : MonoBehaviour
         }
 
         yield return WaitBlockOutro();
+
+        if (ShouldAbortCeremony())
+            yield break;
 
         if (accordionUI != null)
             accordionUI.SetInteractable(true);
@@ -306,9 +422,12 @@ public class EndLevelUI : MonoBehaviour
         silverThreshold = outcome.SilverThreshold;
         goldThreshold = outcome.GoldThreshold;
 
-        // CHANGE: on renvoie le token si injecté, sinon default (mais log)
+        // Si le token n'a pas ete injecte, on loggue un warning defensif.
         if (!hasToken)
             Debug.LogWarning("[EndLevelUI] Aucun EndLevelToken injecté. OnCeremonyFinished enverra default.");
+
+        if (ShouldAbortCeremony())
+            yield break;
 
         OnCeremonyFinished?.Invoke(outcome, hasToken ? token : default);
 
@@ -316,6 +435,9 @@ public class EndLevelUI : MonoBehaviour
             hudBottom.SetActive(true);
     }
 
+    /// <summary>
+    /// Lit les thresholds Bronze / Silver / Gold depuis le LevelData.
+    /// </summary>
     private void ReadThresholdsFromLevelData(LevelData levelData)
     {
         bronzeThreshold = 0;

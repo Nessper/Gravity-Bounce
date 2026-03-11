@@ -9,13 +9,26 @@ using UnityEngine;
 [Serializable]
 public struct PhasePlanInfo
 {
-    public int Index;           // 0-based
+    // Index de phase 0-based
+    public int Index;
+
+    // Nom affiché dans le briefing
     public string Name;
+
+    // Données runtime de phase
     public float DurationSec;
     public float IntervalSec;
     public int Quota;
-}
 
+    // Mix FINAL REEL issu du spawner
+    // IMPORTANT :
+    // Ces valeurs doivent refléter exactement les types réellement planifiés
+    // après répartition discrète + forced spawns + injections éventuelles.
+    public int WhiteCount;
+    public int BlueCount;
+    public int RedCount;
+    public int BlackCount;
+}
 /// <summary>
 /// BallSpawner:
 /// - Construit un plan par phase (duree via weights, intervalle via JSON).
@@ -301,6 +314,12 @@ public class BallSpawner : MonoBehaviour
         PlannedNonBlackSpawnCount = 0;
         PlannedBlackSpawnCount = 0;
 
+        // Ces tableaux servent à exposer le mix FINAL REEL à l'UI briefing.
+        int[] phaseWhiteCounts = new int[plans.Count];
+        int[] phaseBlueCounts = new int[plans.Count];
+        int[] phaseRedCounts = new int[plans.Count];
+        int[] phaseBlackCounts = new int[plans.Count];
+
         // 1) Quota par phase
         for (int i = 0; i < plans.Count; i++)
         {
@@ -311,7 +330,7 @@ public class BallSpawner : MonoBehaviour
             plannedTotal += p.Quota;
         }
 
-        // 2) Queues de types discretes selon quota + mix + forced
+        // 2) Queues de types discrètes selon quota + mix + forced
         for (int i = 0; i < plans.Count; i++)
         {
             int count = plans[i].Quota;
@@ -320,9 +339,20 @@ public class BallSpawner : MonoBehaviour
 
             Queue<BallType> queue = new Queue<BallType>(count);
 
+            // Compteurs réels pour cette phase
+            int whiteCount = 0;
+            int blueCount = 0;
+            int redCount = 0;
+            int blackCount = 0;
+
             if (count <= 0)
             {
                 typeQueues.Add(queue);
+
+                phaseWhiteCounts[i] = 0;
+                phaseBlueCounts[i] = 0;
+                phaseRedCounts[i] = 0;
+                phaseBlackCounts[i] = 0;
                 continue;
             }
 
@@ -350,13 +380,27 @@ public class BallSpawner : MonoBehaviour
 
                 for (int k = 0; k < finalList.Count; k++)
                 {
-                    if (finalList[k] == BallType.Black) PlannedBlackSpawnCount++;
+                    BallType t = finalList[k];
+
+                    if (t == BallType.Black) PlannedBlackSpawnCount++;
                     else PlannedNonBlackSpawnCount++;
 
-                    queue.Enqueue(finalList[k]);
+                    if (t == BallType.White) whiteCount++;
+                    else if (t == BallType.Blue) blueCount++;
+                    else if (t == BallType.Red) redCount++;
+                    else if (t == BallType.Black) blackCount++;
+
+                    queue.Enqueue(t);
                 }
 
                 typeQueues.Add(queue);
+
+                // On mémorise le mix réel de la phase
+                phaseWhiteCounts[i] = whiteCount;
+                phaseBlueCounts[i] = blueCount;
+                phaseRedCounts[i] = redCount;
+                phaseBlackCounts[i] = blackCount;
+
                 continue;
             }
 
@@ -418,13 +462,26 @@ public class BallSpawner : MonoBehaviour
 
             for (int k = 0; k < finalTypes.Count; k++)
             {
-                if (finalTypes[k] == BallType.Black) PlannedBlackSpawnCount++;
+                BallType t = finalTypes[k];
+
+                if (t == BallType.Black) PlannedBlackSpawnCount++;
                 else PlannedNonBlackSpawnCount++;
 
-                queue.Enqueue(finalTypes[k]);
+                if (t == BallType.White) whiteCount++;
+                else if (t == BallType.Blue) blueCount++;
+                else if (t == BallType.Red) redCount++;
+                else if (t == BallType.Black) blackCount++;
+
+                queue.Enqueue(t);
             }
 
             typeQueues.Add(queue);
+
+            // On mémorise le mix réel de la phase
+            phaseWhiteCounts[i] = whiteCount;
+            phaseBlueCounts[i] = blueCount;
+            phaseRedCounts[i] = redCount;
+            phaseBlackCounts[i] = blackCount;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             string breakdown = "";
@@ -433,11 +490,12 @@ public class BallSpawner : MonoBehaviour
 
             string forcedStr = forced.Count > 0 ? (" forced=" + forced.Count) : "";
             Debug.Log("[Spawner/Types] Phase " + plans[i].Index + " \"" + plans[i].Name + "\" -> " + count +
-                      " (remaining=" + remaining + forcedStr + ") | " + breakdown);
+                      " (remaining=" + remaining + forcedStr + ") | " + breakdown +
+                      " || FINAL => W:" + whiteCount + " B:" + blueCount + " R:" + redCount + " K:" + blackCount);
 #endif
         }
 
-        // 3) Public view
+        // 3) Vue publique pour le briefing / debug
         publicPhasePlans = new PhasePlanInfo[plans.Count];
         for (int i = 0; i < plans.Count; i++)
         {
@@ -448,7 +506,11 @@ public class BallSpawner : MonoBehaviour
                 Name = p.Name,
                 DurationSec = p.DurationSec,
                 IntervalSec = p.Interval,
-                Quota = p.Quota
+                Quota = p.Quota,
+                WhiteCount = phaseWhiteCounts[i],
+                BlueCount = phaseBlueCounts[i],
+                RedCount = phaseRedCounts[i],
+                BlackCount = phaseBlackCounts[i]
             };
         }
     }

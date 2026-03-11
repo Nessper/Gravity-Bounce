@@ -37,7 +37,7 @@ public class MainDebugStarterV3 : MonoBehaviour
     [SerializeField] private string mainSceneName = "Main";
     [SerializeField] private string creditsSceneName = "CreditsScene";
 
-    [Header("Run identity")]
+    
     [SerializeField] private string debugWorldId = "W1";
     [SerializeField] private int debugNodeIndex = 0;
 
@@ -87,6 +87,11 @@ public class MainDebugStarterV3 : MonoBehaviour
         {
             bool ok = runSessionState.LoadFromSave();
             Debug.Log("[MainDebugStarterV3] RunSessionState.LoadFromSave => " + (ok ? "OK" : "FAIL"));
+            Debug.Log("[MainDebugStarterV3] After LoadFromSave | Hull=" + runSessionState.Hull
+    + " | HullMax=" + runSessionState.HullMax
+    + " | ContractLives=" + runSessionState.ContractLives
+    + " | World=" + runSessionState.WorldId
+    + " | Node=" + runSessionState.CurrentNodeIndex);
         }
 
         EnsureDialogManagerForDebug();

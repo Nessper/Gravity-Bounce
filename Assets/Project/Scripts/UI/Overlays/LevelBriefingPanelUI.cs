@@ -206,8 +206,13 @@ public class LevelBriefingPanelUI : MonoBehaviour
             if (phaseNameTexts != null && phaseNameTexts[i] != null)
                 phaseNameTexts[i].text = plan.Name;
 
-            int w, b, r, k;
-            ComputeMixCounts(data, i, plan.Quota, out w, out b, out r, out k);
+            // IMPORTANT :
+            // On n'utilise PLUS le JSON pour recalculer un mix théorique.
+            // Le briefing doit afficher le mix FINAL REEL préparé par le BallSpawner.
+            int w = plan.WhiteCount;
+            int b = plan.BlueCount;
+            int r = plan.RedCount;
+            int k = plan.BlackCount;
 
             PhaseBriefingInput input = new PhaseBriefingInput
             {
@@ -334,98 +339,7 @@ public class LevelBriefingPanelUI : MonoBehaviour
         }
     }
 
-    // ------------------------------------------------------------
-    // MIX COUNTS (W/B/R/BLACK) - BASE SUR LE JSON + QUOTA
-    // ------------------------------------------------------------
-
-    private void ComputeMixCounts(LevelData data, int phaseIndex, int quota, out int white, out int blue, out int red, out int black)
-    {
-        white = 0;
-        blue = 0;
-        red = 0;
-        black = 0;
-
-        if (data == null || data.Phases == null)
-            return;
-        if (phaseIndex < 0 || phaseIndex >= data.Phases.Length)
-            return;
-        if (quota <= 0)
-            return;
-
-        var phase = data.Phases[phaseIndex];
-        var mix = phase.Mix;
-        if (mix == null || mix.Length == 0)
-            return;
-
-        float[] weights = new float[4];
-        float totalW = 0f;
-
-        for (int i = 0; i < mix.Length; i++)
-        {
-            var m = mix[i];
-            if (m == null || m.Poids <= 0f)
-                continue;
-
-            int idx = TypeToIndex(m.Type);
-            if (idx < 0)
-                continue;
-
-            weights[idx] += m.Poids;
-            totalW += m.Poids;
-        }
-
-        if (totalW <= 0f)
-            return;
-
-        int[] alloc = new int[4];
-        float[] residuals = new float[4];
-
-        int sum = 0;
-
-        for (int i = 0; i < 4; i++)
-        {
-            if (weights[i] <= 0f)
-            {
-                alloc[i] = 0;
-                residuals[i] = 0f;
-                continue;
-            }
-
-            float target = (weights[i] / totalW) * quota;
-            int baseInt = Mathf.FloorToInt(target);
-
-            alloc[i] = baseInt;
-            residuals[i] = target - baseInt;
-            sum += baseInt;
-        }
-
-        int remain = quota - sum;
-        if (remain > 0)
-        {
-            int[] order = new int[4] { 0, 1, 2, 3 };
-            System.Array.Sort(order, (a, b) => residuals[b].CompareTo(residuals[a]));
-
-            for (int r = 0; r < remain; r++)
-            {
-                int slot = order[r % 4];
-                alloc[slot]++;
-            }
-        }
-
-        white = alloc[0];
-        blue = alloc[1];
-        red = alloc[2];
-        black = alloc[3];
-    }
-
-    private int TypeToIndex(string type)
-    {
-        if (type == "White") return 0;
-        if (type == "Blue") return 1;
-        if (type == "Red") return 2;
-        if (type == "Black") return 3;
-        return -1;
-    }
+    
 
     // ------------------------------------------------------------
     // PLACEHOLDERS

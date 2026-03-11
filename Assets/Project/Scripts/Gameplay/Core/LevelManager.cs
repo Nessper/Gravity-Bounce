@@ -21,6 +21,9 @@ using UnityEngine.Events;
 /// </summary>
 public class LevelManager : MonoBehaviour
 {
+    [Header("Run State")]
+    [SerializeField] private RunSessionState runSessionState;
+
     // ----------------------------------------------------------
     // REFERENCES GAMEPLAY
     // ----------------------------------------------------------
@@ -820,13 +823,20 @@ public class LevelManager : MonoBehaviour
             SaveManager.Instance.SetPendingEndSnapshot(snapshot);
         }
 
-        // Nouveau : pilotage explicite de l'UI de fin (EndLevelUI = view)
         if (endLevelUI != null)
         {
+            // Si le Hull est deja a 0, on annule la ceremonie normale.
+            if (runSessionState != null && runSessionState.Hull <= 0)
+            {
+                Debug.Log("[LevelManager] EvaluateLevelResult -> ceremonie annulee (Hull <= 0)");
+                return;
+            }
+
             if (endLevelToken.HasValue)
                 endLevelUI.SetEndLevelToken(endLevelToken.Value);
 
             List<SecondaryObjectiveResult> secondary = GetSecondaryObjectiveResults();
+
             endLevelUI.Show(
                 evalResult.Stats,
                 levelMeta,
@@ -834,10 +844,6 @@ public class LevelManager : MonoBehaviour
                 evalResult.MainObjective,
                 secondary
             );
-        }
-        else
-        {
-            Debug.LogWarning("[LevelManager] endLevelUI non assigne. La ceremonie de fin ne sera pas affichee.");
         }
     }
 

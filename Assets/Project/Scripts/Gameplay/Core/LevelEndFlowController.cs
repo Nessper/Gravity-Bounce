@@ -109,7 +109,7 @@ public class LevelEndFlowController : MonoBehaviour
         commitPrepared = false;
         commitSnapshot = default;
 
-        // IMPORTANT: signature avec token
+        // Signature avec token.
         endLevelUI.OnCeremonyFinished += HandleCeremonyFinished;
     }
 
@@ -119,6 +119,9 @@ public class LevelEndFlowController : MonoBehaviour
             endLevelUI.OnCeremonyFinished -= HandleCeremonyFinished;
     }
 
+    /// <summary>
+    /// Callback appele a la fin de la ceremonie normale.
+    /// </summary>
     private void HandleCeremonyFinished(EndLevelOutcome outcome, EndLevelToken token)
     {
         lastOutcome = outcome;
@@ -133,6 +136,25 @@ public class LevelEndFlowController : MonoBehaviour
         PrepareAndCommitOnce(outcome, token);
     }
 
+    /// <summary>
+    /// Annule explicitement toute ceremonie / flow de fin en cours.
+    /// Cette methode est utilisee par le GameOver Hull pour prendre la main.
+    /// </summary>
+    public void AbortPendingCeremony()
+    {
+        if (endLevelUI != null)
+            endLevelUI.AbortCeremony();
+
+        // Coupe aussi toute coroutine locale potentielle du controller.
+        StopAllCoroutines();
+
+        isRunning = false;
+        navigationLocked = false;
+    }
+
+    /// <summary>
+    /// Affiche le panneau final (Victory / Defeat / GameOver).
+    /// </summary>
     public void OnClickShowFinalPanel()
     {
         if (isRunning)
@@ -165,6 +187,10 @@ public class LevelEndFlowController : MonoBehaviour
         StartCoroutine(FinalRoutine(lastOutcome, commitSnapshot));
     }
 
+    /// <summary>
+    /// Prepare les consequences de fin de niveau et les commits de progression.
+    /// Cette methode ne doit s'executer qu'une seule fois par fin de niveau.
+    /// </summary>
     private void PrepareAndCommitOnce(EndLevelOutcome outcome, EndLevelToken token)
     {
         if (commitPrepared)
@@ -172,10 +198,7 @@ public class LevelEndFlowController : MonoBehaviour
 
         int remainingContractLives = (runSessionState != null) ? runSessionState.ContractLives : 0;
 
-        // --------------------------------------------------------
-        // 1) Résoudre le type de fin + appliquer les conséquences "défaite"
-        //    (LoseContractLife(1)) le cas échéant.
-        // --------------------------------------------------------
+        // 1) Resolve le type de fin et applique la perte de vie de contrat si necessaire.
         EndType endType = ResolveAndApplyEndTypeOnce(out remainingContractLives, outcome);
 
         lastEndType = endType;
@@ -189,53 +212,33 @@ public class LevelEndFlowController : MonoBehaviour
         bool revealMoney = false;
 
         bool runCompletedAfterCommit = false;
-
         bool commitAccepted = true;
 
-        // --------------------------------------------------------
-        // 2) VALIDATION TOKEN vs SAVE (source de vérité)
-        //    -> on garde la validation stricte sur Victory (anti double-commit / mauvaise run)
-        // --------------------------------------------------------
+        // 2) Validation stricte du token pour les victoires.
         if (outcome.IsVictory)
         {
             if (!TryValidateTokenAgainstSave(token))
             {
                 commitAccepted = false;
-                Debug.LogError("[LevelEndFlowController] Token invalide vs save -> commit Victory refuse (anti double-commit / mauvaise run).");
+                Debug.LogError("[LevelEndFlowController] Token invalide vs save -> commit Victory refuse.");
             }
         }
 
-        // --------------------------------------------------------
-        // 3) CRASH-SAFE: on doit marquer le snapshot "committed" aussi en DEFEAT
-        //
-        // Problème corrigé:
-        // - en défaite, ResolveAndApplyEndTypeOnce applique déjà ContractLives -1
-        // - si le joueur quit après l'écran de fin, on rejoue la cérémonie au boot
-        // - OnCeremonyFinished re-déclenche PrepareAndCommitOnce => re-payait -1
-        //
-        // Solution:
-        // - en fin DEFEAT/GAMEOVER, on marque le snapshot comme committed immédiatement
-        //   (car la conséquence a déjà été appliquée).
-        //
-        // Note:
-        // - on ne force pas une validation stricte ici, car le garde-fou "nodeIndex == token.NodeIndex"
-        //   est fait côté LevelManager au moment du resume. Ici on veut juste l'idempotence.
-        // --------------------------------------------------------
+        // 3) En Defeat / GameOver, on marque le snapshot comme committed
+        // pour eviter qu'il soit rejoue apres quit / relaunch.
         if (!outcome.IsVictory && commitAccepted && SaveManager.Instance != null)
         {
             SaveManager.Instance.MarkPendingEndSnapshotCommitted(token);
         }
 
-        // --------------------------------------------------------
-        // 4) Rewards + Progression commit (Victory only)
-        // --------------------------------------------------------
+        // 4) Rewards + progression seulement en victoire.
         if (outcome.IsVictory && commitAccepted)
         {
-            // 1) Campaign score
+            // Score de campagne.
             campaignAfter = campaignBefore + Mathf.Max(0, outcome.FinalScore);
             WriteCampaignScore(campaignAfter);
 
-            // 2) Money reward
+            // Reward money.
             int moneyReward = 0;
             if (economyConfig != null)
                 moneyReward = Mathf.Max(0, economyConfig.GetMoneyReward(outcome.BestMedal));
@@ -247,7 +250,7 @@ public class LevelEndFlowController : MonoBehaviour
                 runSessionState.AddMoney(moneyReward);
             }
 
-            // 3) Progression: advance + persist NOW (source de vérité)
+            // Progression de run.
             if (runSessionState == null)
             {
                 Debug.LogError("[LevelEndFlowController] RunSessionState manquant: impossible de commit la victoire.");
@@ -259,16 +262,13 @@ public class LevelEndFlowController : MonoBehaviour
                 if (!ok)
                 {
                     commitAccepted = false;
-                    Debug.LogWarning("[LevelEndFlowController] CommitVictoryAndAdvanceNode a échoué (déjà avancé ?).");
+                    Debug.LogWarning("[LevelEndFlowController] CommitVictoryAndAdvanceNode a echoue.");
                 }
 
                 runSessionState.EnsurePlanLoaded();
                 runCompletedAfterCommit = runSessionState.IsRunCompleted;
 
-                // ============================================================
-                // CRASH-SAFE: en Victory, on marque le snapshot comme committed
-                // après le commit métier (score/money/advance).
-                // ============================================================
+                // Marque le snapshot comme committed apres le commit metier.
                 if (commitAccepted && SaveManager.Instance != null)
                 {
                     SaveManager.Instance.MarkPendingEndSnapshotCommitted(token);
@@ -319,6 +319,9 @@ public class LevelEndFlowController : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Routine de reveal du panneau final simplifie (stamp, score, medal, money, boutons).
+    /// </summary>
     private IEnumerator FinalRoutine(EndLevelOutcome outcome, FinalCommitSnapshot snap)
     {
         isRunning = true;
@@ -381,9 +384,11 @@ public class LevelEndFlowController : MonoBehaviour
             endLevelButtonsUI.ShowGameOver();
     }
 
+    /// <summary>
+    /// Nettoie les billes restantes de maniere idempotente.
+    /// </summary>
     private void CleanupBallsOnce()
     {
-        // On veut pouvoir appeler ça plusieurs fois sans risque (boutons, transition, etc.)
         if (ballsCleanupService == null)
             return;
 
@@ -459,7 +464,6 @@ public class LevelEndFlowController : MonoBehaviour
             BootRoot.GameFlow.GoToRunHub();
         };
 
-        // Nettoyage centralisé AVANT la transition
         CleanupBallsOnce();
 
         if (nextTransition != null)
@@ -468,7 +472,12 @@ public class LevelEndFlowController : MonoBehaviour
             go();
     }
 
-
+    /// <summary>
+    /// Resolve le type de fin.
+    /// - Victory : aucune perte de vie de contrat.
+    /// - Defeat : on retire 1 vie de contrat.
+    /// - GameOver force : priorite absolue.
+    /// </summary>
     private EndType ResolveAndApplyEndTypeOnce(out int remainingContractLives, EndLevelOutcome outcome)
     {
         remainingContractLives = runSessionState != null ? runSessionState.ContractLives : 0;
@@ -489,6 +498,9 @@ public class LevelEndFlowController : MonoBehaviour
         return (remainingContractLives > 0) ? EndType.Defeat : EndType.GameOver;
     }
 
+    /// <summary>
+    /// Joue une sequence de dialogue de fin si elle existe.
+    /// </summary>
     private IEnumerator PlayDialogById(string sequenceId)
     {
         if (dialogSequenceRunner == null)
@@ -552,6 +564,9 @@ public class LevelEndFlowController : MonoBehaviour
         return FinalPanelUI.FinalEndType.Defeat;
     }
 
+    /// <summary>
+    /// Persiste proprement les vies de contrat restantes.
+    /// </summary>
     private void UpdateContractLivesInSave(int contractLives)
     {
         if (SaveManager.Instance == null ||
@@ -608,6 +623,13 @@ public class LevelEndFlowController : MonoBehaviour
         return SaveManager.Instance.GetMoney();
     }
 
+    /// <summary>
+    /// Branche speciale GameOver Hull.
+    /// - force le type de fin a GameOver
+    /// - prepare un outcome minimal
+    /// - rafraichit le header de l'overlay
+    /// - affiche ensuite le panneau final
+    /// </summary>
     public void TriggerGameOverFinalRoutine(int finalScore)
     {
         forcedGameOver = true;
@@ -629,6 +651,23 @@ public class LevelEndFlowController : MonoBehaviour
 
         commitPrepared = false;
         commitSnapshot = default;
+
+        // Rafraichit explicitement le header de l'overlay de fin,
+        // car la branche GameOver directe bypass la ceremonie normale
+        // et donc bypass aussi SetupHeader() de EndLevelUI.RevealRoutine().
+        if (endLevelUI != null && runSessionState != null)
+        {
+            runSessionState.EnsurePlanLoaded();
+
+            RunNode node = runSessionState.CurrentPlayableNode;
+            if (node != null && !string.IsNullOrEmpty(node.levelId))
+            {
+                if (LevelCatalogService.TryGet(node.levelId, out var meta))
+                    endLevelUI.ShowHeaderOnly(node.levelId, meta);
+                else
+                    endLevelUI.ShowHeaderOnly(node.levelId, null);
+            }
+        }
 
         PrepareAndCommitOnce(lastOutcome, default);
 

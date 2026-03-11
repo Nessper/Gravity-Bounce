@@ -92,12 +92,21 @@ public class SegmentedFinalScoreBarUI : MonoBehaviour
             return;
         }
 
-        // Convertit un score en index de segment [0 .. segmentCount-1]
+        // Convertit un score en index du dernier segment allumé [0 .. segmentCount-1]
+        // en utilisant EXACTEMENT la même logique que SetProgress01.
         int ScoreToIndex(int score)
         {
             score = Mathf.Max(0, score);
             float ratio = Mathf.Clamp01((float)score / maxScore);
-            return Mathf.CeilToInt(ratio * (segmentCount - 1));
+
+            // Même logique que SetProgress01 :
+            // targetFilledSegments = FloorToInt(progress01 * segmentCount)
+            int filledSegments = Mathf.FloorToInt(ratio * segmentCount);
+
+            if (filledSegments <= 0)
+                return 0;
+
+            return Mathf.Clamp(filledSegments - 1, 0, segmentCount - 1);
         }
 
         bronzeIndex = (bronzeScore > 0) ? ScoreToIndex(bronzeScore) : -1;
