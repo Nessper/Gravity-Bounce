@@ -134,6 +134,37 @@ public class LevelEndFlowController : MonoBehaviour
         isRunning = false;
 
         PrepareAndCommitOnce(outcome, token);
+
+        // ==============================
+        // ANALYTICS
+        // ==============================
+        if (AlphaAnalytics.Instance != null)
+        {
+            AlphaAnalytics.Instance.SendLevelEnd(
+                token.LevelId,
+                outcome.IsVictory ? "victory" : "defeat",
+                outcome.BestMedal.ToString().ToLower()
+            );
+
+            // Fin complete de la run par victoire finale
+            if (commitSnapshot.RunCompletedAfterCommit)
+            {
+                AlphaAnalytics.Instance.SendRunEnd(
+                    token.LevelId,
+                    true,
+                    true
+                );
+            }
+            // Fin de run par perte de la derniere vie de contrat
+            else if (lastEndType == EndType.GameOver)
+            {
+                AlphaAnalytics.Instance.SendRunEnd(
+                    token.LevelId,
+                    false,
+                    false
+                );
+            }
+        }
     }
 
     /// <summary>
@@ -627,6 +658,14 @@ public class LevelEndFlowController : MonoBehaviour
     /// Branche speciale GameOver Hull.
     /// - force le type de fin a GameOver
     /// - prepare un outcome minimal
+    /// - rafraichit le header de l overlay
+    /// - envoie les analytics de fin de niveau + fin de run
+    /// - affiche ensuite le panneau final
+    /// </summary>
+    /// <summary>
+    /// Branche speciale GameOver Hull.
+    /// - force le type de fin a GameOver
+    /// - prepare un outcome minimal
     /// - rafraichit le header de l'overlay
     /// - affiche ensuite le panneau final
     /// </summary>
@@ -652,24 +691,47 @@ public class LevelEndFlowController : MonoBehaviour
         commitPrepared = false;
         commitSnapshot = default;
 
-        // Rafraichit explicitement le header de l'overlay de fin,
-        // car la branche GameOver directe bypass la ceremonie normale
-        // et donc bypass aussi SetupHeader() de EndLevelUI.RevealRoutine().
-        if (endLevelUI != null && runSessionState != null)
+        string finalLevelId = "";
+
+        if (runSessionState != null)
         {
             runSessionState.EnsurePlanLoaded();
 
             RunNode node = runSessionState.CurrentPlayableNode;
             if (node != null && !string.IsNullOrEmpty(node.levelId))
-            {
-                if (LevelCatalogService.TryGet(node.levelId, out var meta))
-                    endLevelUI.ShowHeaderOnly(node.levelId, meta);
-                else
-                    endLevelUI.ShowHeaderOnly(node.levelId, null);
-            }
+                finalLevelId = node.levelId;
+        }
+
+        // Rafraichit explicitement le header de l'overlay de fin
+        if (endLevelUI != null && !string.IsNullOrEmpty(finalLevelId))
+        {
+            if (LevelCatalogService.TryGet(finalLevelId, out var meta))
+                endLevelUI.ShowHeaderOnly(finalLevelId, meta);
+            else
+                endLevelUI.ShowHeaderOnly(finalLevelId, null);
         }
 
         PrepareAndCommitOnce(lastOutcome, default);
+
+        // ==============================
+        // ANALYTICS
+        // ==============================
+        if (AlphaAnalytics.Instance != null)
+        {
+            // 1. Fin du niveau (GameOver)
+            AlphaAnalytics.Instance.SendLevelEnd(
+                finalLevelId,
+                "gameover",
+                "none"
+            );
+
+            // 2. Fin de la run
+            AlphaAnalytics.Instance.SendRunEnd(
+                finalLevelId,
+                false,
+                false
+            );
+        }
 
         OnClickShowFinalPanel();
     }

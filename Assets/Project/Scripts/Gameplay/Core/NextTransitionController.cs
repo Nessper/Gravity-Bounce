@@ -1,7 +1,21 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
+/// <summary>
+/// Gere la transition "Next" apres la fin de niveau :
+/// - fermeture du panneau final
+/// - dialogue d outro de niveau (optionnel)
+/// - bouton Skip pendant le dialogue
+/// - depart du vaisseau vers le haut
+/// - callback final (ex: navigation vers RunHub / Credits / etc.)
+///
+/// Philosophie du skip :
+/// - on ne saute PAS toute la transition
+/// - on coupe seulement la phase dialogue
+/// - on continue ensuite normalement vers l animation du vaisseau
+/// </summary>
 public class NextTransitionController : MonoBehaviour
 {
     [Header("Refs")]
@@ -9,7 +23,25 @@ public class NextTransitionController : MonoBehaviour
     [SerializeField] private GameObject endLevelRoot;
     [SerializeField] private DialogSequenceRunner dialogSequenceRunner;
 
+    [Header("Outro HUD")]
+    [Tooltip("HUD du haut dedie a l outro (contient notamment le bouton Skip).")]
+    [SerializeField] private GameObject outroHUDRoot;
+
+    [Header("Skip")]
+    [Tooltip("Bouton Skip de l outro.")]
+    [SerializeField] private Button skipButton;
+
+    [Tooltip("CanvasGroup du bouton Skip pour gerer alpha / interact / raycasts.")]
+    [SerializeField] private CanvasGroup skipButtonCanvasGroup;
+
+    [Tooltip("Delai avant l apparition du bouton Skip pendant le dialogue.")]
+    [SerializeField] private float skipAppearDelay = 1.5f;
+
+    [Tooltip("Duree du fade-in du bouton Skip.")]
+    [SerializeField] private float skipFadeDuration = 0.25f;
+
     [Header("Outro Dialog")]
+    [Tooltip("Suffixe du dialogue d outro. Exemple : W1_L1_outro.")]
     [SerializeField] private string outroSuffix = "_outro";
 
     [Header("Timing (unscaled)")]
@@ -18,19 +50,19 @@ public class NextTransitionController : MonoBehaviour
     [SerializeField] private float pauseAfterShip = 0.15f;
 
     [Header("Ship Outro (optional)")]
-    [Tooltip("Transform du vaisseau (world space). Si null, l'anim ship est ignorée.")]
+    [Tooltip("Transform du vaisseau (world space). Si null, l animation ship est ignoree.")]
     [SerializeField] private Transform shipRoot;
 
     [Tooltip("Camera orthographique de gameplay. Si null, Camera.main.")]
     [SerializeField] private Camera gameplayCamera;
 
-    [Tooltip("SpriteRenderer du vaisseau (pour calculer la hauteur et sortir complètement). Si null, GetComponentInChildren<SpriteRenderer>().")]
+    [Tooltip("SpriteRenderer du vaisseau. Si null, GetComponentInChildren<SpriteRenderer>().")]
     [SerializeField] private SpriteRenderer shipSpriteRenderer;
 
-    [Tooltip("Durée du boost (unscaled).")]
+    [Tooltip("Duree du depart du vaisseau (unscaled).")]
     [SerializeField] private float shipDepartDuration = 0.55f;
 
-    [Tooltip("Marge world au-dessus du haut de la caméra pour être certain d'être hors champ.")]
+    [Tooltip("Marge world au-dessus du haut de la camera pour etre certain d etre hors champ.")]
     [SerializeField] private float shipOffscreenMarginWorld = 0.6f;
 
     [Tooltip("Overshoot (world) pour donner du punch (0 = aucun).")]
@@ -38,43 +70,103 @@ public class NextTransitionController : MonoBehaviour
 
     [Header("Flash (optional)")]
     [SerializeField] private CanvasGroup flashCanvasGroup;
-
     [SerializeField] private float flashPeakAlpha = 0.85f;
     [SerializeField] private float flashDuration = 0.12f;
 
-
     private bool isRunning;
+    private bool skipRequested;
+
+    private Coroutine playRoutine;
+    private Coroutine skipRevealRoutine;
 
     public bool IsRunning => isRunning;
 
+    private void Awake()
+    {
+        // Securite : on part avec le bouton Skip cache.
+        HideSkipButtonImmediate();
+
+        if (outroHUDRoot != null)
+            outroHUDRoot.SetActive(false);
+    }
+
+    /// <summary>
+    /// Lance la transition d outro.
+    /// </summary>
     public void PlayOutroAndFinish(Action onComplete)
     {
         if (isRunning)
             return;
 
-        StopAllCoroutines();
-        StartCoroutine(Routine(onComplete));
+        StopControllerRoutinesOnly();
+
+        skipRequested = false;
+        isRunning = false;
+
+        HideSkipButtonImmediate();
+
+        if (outroHUDRoot != null)
+            outroHUDRoot.SetActive(false);
+
+        if (gameObject.activeInHierarchy)
+            playRoutine = StartCoroutine(Routine(onComplete));
     }
 
+    /// <summary>
+    /// Callback du bouton Skip.
+    /// Coupe uniquement la phase dialogue, puis laisse la routine principale
+    /// continuer normalement vers le depart du vaisseau.
+    /// </summary>
+    public void OnSkipButtonPressed()
+    {
+        if (!isRunning || skipRequested)
+            return;
+
+        skipRequested = true;
+
+        if (dialogSequenceRunner != null)
+            dialogSequenceRunner.StopAndHide();
+
+        HideSkipButtonImmediate();
+    }
+
+    /// <summary>
+    /// Routine principale de la transition Next.
+    /// </summary>
     private IEnumerator Routine(Action onComplete)
     {
         isRunning = true;
 
-        // 1) Hide overlay end
+        // 1) Ferme le root de fin de niveau.
         if (endLevelRoot != null && endLevelRoot.activeSelf)
             endLevelRoot.SetActive(false);
 
         if (pauseAfterHide > 0f)
             yield return new WaitForSecondsRealtime(pauseAfterHide);
 
-        // 2) Outro dialog (optionnel)
+        // 2) Active le HUD outro (skip, etc.).
+        if (outroHUDRoot != null)
+            outroHUDRoot.SetActive(true);
+
+        // 3) Lance l apparition differee du bouton Skip.
+        if (gameObject.activeInHierarchy)
+            skipRevealRoutine = StartCoroutine(RevealSkipButtonAfterDelay());
+
+        // 4) Joue le dialogue outro si present.
         yield return StartCoroutine(PlayOutroIfAny());
 
-        if (pauseAfterDialog > 0f)
+        // Le dialogue est fini ou skippe -> le bouton Skip n a plus lieu d etre.
+        HideSkipButtonImmediate();
+
+        if (outroHUDRoot != null)
+            outroHUDRoot.SetActive(false);
+
+        // Si le joueur a skippe, on part directement sur l anim du vaisseau
+        // sans attendre la pause de respiration apres dialogue.
+        if (!skipRequested && pauseAfterDialog > 0f)
             yield return new WaitForSecondsRealtime(pauseAfterDialog);
 
-        // 3) Ship depart (après dialogues) - sort complètement de l'écran vers le haut
-        // 3) Ship depart (après dialogues)
+        // 5) Flash + depart du vaisseau.
         StartCoroutine(PlayFlashIfAny());
         yield return StartCoroutine(PlayShipDepartUpAndOffscreenIfAny());
 
@@ -82,9 +174,15 @@ public class NextTransitionController : MonoBehaviour
             yield return new WaitForSecondsRealtime(pauseAfterShip);
 
         isRunning = false;
+        playRoutine = null;
+
         onComplete?.Invoke();
     }
 
+    /// <summary>
+    /// Joue le dialogue outro du niveau si un ID existe dans le JSON.
+    /// Le skip coupe proprement le dialogue via dialogSequenceRunner.StopAndHide().
+    /// </summary>
     private IEnumerator PlayOutroIfAny()
     {
         if (dialogSequenceRunner == null)
@@ -95,7 +193,12 @@ public class NextTransitionController : MonoBehaviour
             yield break;
 
         while (!dialogManager.IsReady)
+        {
+            if (skipRequested)
+                yield break;
+
             yield return null;
+        }
 
         // EndLevelUI expose CurrentLevelId (ex: "W1-L1")
         string levelId = (endLevelUI != null) ? endLevelUI.CurrentLevelId : null;
@@ -118,9 +221,20 @@ public class NextTransitionController : MonoBehaviour
         dialogSequenceRunner.Play(lines, () => done = true);
 
         while (!done)
+        {
+            if (skipRequested)
+            {
+                dialogSequenceRunner.StopAndHide();
+                yield break;
+            }
+
             yield return null;
+        }
     }
 
+    /// <summary>
+    /// Fait sortir le vaisseau vers le haut, completement hors champ.
+    /// </summary>
     private IEnumerator PlayShipDepartUpAndOffscreenIfAny()
     {
         if (shipRoot == null)
@@ -138,21 +252,23 @@ public class NextTransitionController : MonoBehaviour
 
         Vector3 start = shipRoot.position;
 
-        // Top Y of camera view in world
+        // Haut de l ecran camera en world.
         float camTopY = cam.transform.position.y + cam.orthographicSize;
 
-        // Ensure ship fully out: move so ship bottom is above camTopY + margin
+        // Pour que le vaisseau soit completement sorti, son bas doit etre au-dessus du haut camera + marge.
         float halfHeight = sr.bounds.extents.y;
         float targetBottomY = camTopY + Mathf.Max(0f, shipOffscreenMarginWorld);
         float endY = targetBottomY + halfHeight;
 
         Vector3 end = new Vector3(start.x, endY, start.z);
 
-        // Overshoot for punch (upward)
+        // Overshoot optionnel pour donner du punch.
         float overshoot = Mathf.Max(0f, shipOvershootWorld);
         Vector3 overshootPos = new Vector3(start.x, endY + overshoot, start.z);
 
-        // Two-phase animation: kick to overshoot (ease-in), then settle back to end (ease-out)
+        // Anim en 2 phases :
+        // 1) impulsion vers le haut
+        // 2) retour doux vers la position finale hors ecran
         float phase1Ratio = (overshoot > 0f) ? 0.70f : 1.0f;
         float dur1 = dur * Mathf.Clamp01(phase1Ratio);
         float dur2 = dur - dur1;
@@ -164,7 +280,7 @@ public class NextTransitionController : MonoBehaviour
             t += Time.unscaledDeltaTime;
             float k = Mathf.Clamp01(t / dur1);
 
-            // EaseInQuad (départ sec)
+            // EaseInQuad
             float eased = k * k;
 
             shipRoot.position = Vector3.LerpUnclamped(start, overshoot > 0f ? overshootPos : end, eased);
@@ -182,7 +298,7 @@ public class NextTransitionController : MonoBehaviour
                 t2 += Time.unscaledDeltaTime;
                 float k = Mathf.Clamp01(t2 / dur2);
 
-                // EaseOutCubic (settle)
+                // EaseOutCubic
                 float eased = 1f - Mathf.Pow(1f - k, 3f);
 
                 shipRoot.position = Vector3.LerpUnclamped(overshootPos, end, eased);
@@ -193,6 +309,9 @@ public class NextTransitionController : MonoBehaviour
         shipRoot.position = end;
     }
 
+    /// <summary>
+    /// Petit flash optionnel accompagne le depart du vaisseau.
+    /// </summary>
     private IEnumerator PlayFlashIfAny()
     {
         if (flashCanvasGroup == null)
@@ -228,4 +347,76 @@ public class NextTransitionController : MonoBehaviour
         flashCanvasGroup.alpha = 0f;
     }
 
+    /// <summary>
+    /// Reveal progressif du bouton Skip.
+    /// Logique identique a celle de l intro.
+    /// </summary>
+    private IEnumerator RevealSkipButtonAfterDelay()
+    {
+        if (skipAppearDelay > 0f)
+            yield return new WaitForSecondsRealtime(skipAppearDelay);
+
+        if (skipRequested || skipButtonCanvasGroup == null)
+            yield break;
+
+        float dur = Mathf.Max(0.01f, skipFadeDuration);
+        float t = 0f;
+
+        skipButtonCanvasGroup.alpha = 0f;
+        skipButtonCanvasGroup.interactable = false;
+        skipButtonCanvasGroup.blocksRaycasts = false;
+
+        while (t < dur)
+        {
+            if (skipRequested)
+                yield break;
+
+            t += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(t / dur);
+            skipButtonCanvasGroup.alpha = Mathf.Lerp(0f, 1f, k);
+            yield return null;
+        }
+
+        skipButtonCanvasGroup.alpha = 1f;
+        skipButtonCanvasGroup.interactable = true;
+        skipButtonCanvasGroup.blocksRaycasts = true;
+    }
+
+    /// <summary>
+    /// Cache immediatement le bouton Skip.
+    /// </summary>
+    private void HideSkipButtonImmediate()
+    {
+        if (skipButtonCanvasGroup != null)
+        {
+            skipButtonCanvasGroup.alpha = 0f;
+            skipButtonCanvasGroup.interactable = false;
+            skipButtonCanvasGroup.blocksRaycasts = false;
+        }
+    }
+
+    /// <summary>
+    /// Stop uniquement les coroutines de ce controller.
+    /// On ne veut pas utiliser StopAllCoroutines() au moment du skip,
+    /// car la routine principale doit continuer vers l animation du vaisseau.
+    /// </summary>
+    private void StopControllerRoutinesOnly()
+    {
+        if (playRoutine != null)
+        {
+            StopCoroutine(playRoutine);
+            playRoutine = null;
+        }
+
+        if (skipRevealRoutine != null)
+        {
+            StopCoroutine(skipRevealRoutine);
+            skipRevealRoutine = null;
+        }
+
+        HideSkipButtonImmediate();
+
+        if (dialogSequenceRunner != null)
+            dialogSequenceRunner.StopAndHide();
+    }
 }

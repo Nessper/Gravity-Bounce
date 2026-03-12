@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.Video;
 
 /// <summary>
-/// CreditsController (ultra minimal V1)
+/// CreditsController
 /// - Video: driven by Inspector (VideoPlayer.clip). No Resources loading.
 /// - JSON (optional): Resources/Credits/CreditsCatalog.json
 ///   Uses first entry in "endings" to fetch:
@@ -13,6 +13,12 @@ using UnityEngine.Video;
 ///     - links.discordUrl
 /// - Displays: SCORE, BEST (+ NEW BEST inline) using SaveManager meta persistence.
 /// - Buttons: Discord (OpenURL) + Menu (GoToTitle)
+///
+/// IMPORTANT :
+/// - Arriver sur les credits = fin definitive et reussie de la run.
+/// - On lit d abord les infos de run utiles a l affichage.
+/// - On commit ensuite le best score si necessaire.
+/// - Puis on purge proprement l etat de run via SaveManager.EndRun_Completed().
 /// </summary>
 public class CreditsController : MonoBehaviour
 {
@@ -46,7 +52,7 @@ public class CreditsController : MonoBehaviour
         int bestBefore = GetBestScore();
         bool isNewBest = (runScore > bestBefore);
 
-        // Commit best score in meta save (idempotent if already committed elsewhere).
+        // Commit best score dans la meta-save avant purge de la run.
         TryCommitBestScore(runScore);
 
         int bestAfter = GetBestScore();
@@ -60,6 +66,11 @@ public class CreditsController : MonoBehaviour
         if (mainText != null)
             mainText.text = ResolveMainText(cfg);
 
+        // Arrivee aux credits = fin definitive et reussie de la run.
+        // On purge l etat runtime apres avoir lu le score et commit le best.
+        if (SaveManager.Instance != null)
+            SaveManager.Instance.EndRun_Completed();
+
         BindButtons(cfg);
     }
 
@@ -68,8 +79,7 @@ public class CreditsController : MonoBehaviour
     // ---------------------------------------------------------
 
     /// <summary>
-    /// Plays the VideoPlayer clip already assigned in the Inspector.
-    /// No Resources loading, no path.
+    /// Joue le clip deja assigne dans l Inspector.
     /// </summary>
     private void PlayVideoFromInspector()
     {
@@ -133,7 +143,7 @@ public class CreditsController : MonoBehaviour
 
     private int GetRunScore()
     {
-        // Preferred: SaveManager persisted run score
+        // Source preferee : SaveManager persiste
         if (SaveManager.Instance != null && SaveManager.Instance.Current != null)
         {
             RunStateData run = SaveManager.Instance.GetRunState();
@@ -141,7 +151,7 @@ public class CreditsController : MonoBehaviour
                 return Mathf.Max(0, run.currentRunScore);
         }
 
-        // Fallback: RunSessionState (if you expose it)
+        // Fallback
         if (runSession != null)
             return Mathf.Max(0, runSession.RunScore);
 
@@ -165,7 +175,7 @@ public class CreditsController : MonoBehaviour
     }
 }
 
-#region Catalog models + loader (aligned with your JSON)
+#region Catalog models + loader
 
 [Serializable]
 public class CreditsCatalog

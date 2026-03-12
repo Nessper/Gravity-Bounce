@@ -532,6 +532,15 @@ public class LevelManager : MonoBehaviour
         endSequenceRunning = false;
         gameplaySealed = false;
         Time.timeScale = 1f;
+
+        // Analytics :
+        // - BeginRun uniquement sur le premier node de la run
+        // - BeginLevel a chaque niveau
+        if (runSessionState != null && runSessionState.CurrentNodeIndex == 0)
+            AlphaAnalytics.Instance?.BeginRun();
+
+        AlphaAnalytics.Instance?.BeginLevel();
+
         levelMusicDirector?.PlayGameplayMusic();
 
         // Evac controller reset (evite les restes d etat si rerun)

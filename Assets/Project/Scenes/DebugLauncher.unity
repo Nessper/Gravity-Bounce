@@ -283,7 +283,7 @@ MonoBehaviour:
   mainSceneName: Main
   creditsSceneName: CreditsScene
   debugWorldId: W1
-  debugNodeIndex: 3
+  debugNodeIndex: 6
   debugShipId: CORE_SCOUT
   debugCurrentHull: 10
   debugContractLives: 3

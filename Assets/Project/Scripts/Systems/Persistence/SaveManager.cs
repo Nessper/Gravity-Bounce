@@ -1,4 +1,4 @@
-// Chemin recommandé (projet Unity) : Scripts/Systems/Save/SaveManager.cs
+// Chemin recommande (projet Unity) : Scripts/Systems/Save/SaveManager.cs
 
 using System;
 using System.Collections.Generic;
@@ -7,22 +7,22 @@ using UnityEngine;
 /// <summary>
 /// SaveManager
 ///
-/// Responsabilités :
+/// Responsabilites :
 /// - Charger / sauvegarder GameSaveData dans PlayerPrefs (JSON unique).
-/// - Garantir une base cohérente (ship de base, runState non-null).
-/// - Appliquer une migration légère (ex: worldId/runId manquants).
-/// - Appliquer la pénalité d'abandon (quit sauvage) si nécessaire.
-/// - Sanity-check : empêcher un "Continue" sur une run morte.
-/// - Gérer un token + snapshot de fin de niveau (anti double-commit / replay cérémonie).
+/// - Garantir une base coherente (ship de base, runState non-null).
+/// - Appliquer une migration legere (ex: worldId/runId manquants).
+/// - Appliquer la penalite d abandon (quit sauvage) si necessaire.
+/// - Sanity-check : empecher un "Continue" sur une run morte.
+/// - Gerer un token + snapshot de fin de niveau (anti double-commit / replay ceremonie).
 ///
-/// RÈGLE (Modules) :
+/// REGLE (Modules) :
 /// - 100% RUN-ONLY : ownedModuleIdsInRun + equipped + offers + slots.
-/// - Quit / crash : conservé (RunStateData persisté).
-/// - Fin de run / GameOver : purgé via une méthode UNIQUE EndRun_GameOver().
+/// - Quit / crash : conserve (RunStateData persiste).
+/// - Fin de run / GameOver : purge via une methode metier dediee.
 ///
 /// IMPORTANT (API) :
-/// - On conserve l'API historique HasOwnedModule/TryAddOwnedModule/etc.
-/// - Le SaveManager est la couche d'abstraction : les autres scripts ne doivent pas être cassés.
+/// - On conserve l API historique HasOwnedModule/TryAddOwnedModule/etc.
+/// - Le SaveManager est la couche d abstraction : les autres scripts ne doivent pas etre casses.
 /// </summary>
 public class SaveManager : MonoBehaviour
 {
@@ -62,7 +62,7 @@ public class SaveManager : MonoBehaviour
                 }
                 catch
                 {
-                    Debug.LogWarning("[SaveManager] JSON corrompu, creation d'une nouvelle sauvegarde.");
+                    Debug.LogWarning("[SaveManager] JSON corrompu, creation d une nouvelle sauvegarde.");
                 }
             }
         }
@@ -114,7 +114,37 @@ public class SaveManager : MonoBehaviour
         Save();
     }
 
+    /// <summary>
+    /// Reset technique de l etat de run.
+    /// Utilisable quand on veut purger explicitement la run courante.
+    /// </summary>
     public void ResetRunState()
+    {
+        ClearRunStateToDefault();
+        Save();
+    }
+
+    /// <summary>
+    /// Methode UNIQUE de fin de run reussie / completee.
+    /// A utiliser quand le joueur termine la run normalement
+    /// (ex: arrivee aux credits apres victoire finale).
+    ///
+    /// Important :
+    /// - ce n est PAS un GameOver
+    /// - on purge l etat de run
+    /// - on conserve la meta-save (best score, ships unlock, etc.)
+    /// </summary>
+    public void EndRun_Completed()
+    {
+        ClearRunStateToDefault();
+        Save();
+    }
+
+    /// <summary>
+    /// Remet l etat de run a sa valeur par defaut, sans toucher a la meta-save.
+    /// Source unique de verite pour la purge de run "propre".
+    /// </summary>
+    private void ClearRunStateToDefault()
     {
         EnsureRunStateReady();
         EnsureRunOnlyCollectionsReady();
@@ -127,6 +157,7 @@ public class SaveManager : MonoBehaviour
         run.worldId = "W1";
         run.currentNodeIndex = 0;
 
+        // On repart du ship actuellement selectionne pour une future run.
         run.currentShipId = Current.selectedShipId;
 
         run.remainingHullInRun = 0;
@@ -149,26 +180,22 @@ public class SaveManager : MonoBehaviour
         run.pendingEndTokenCommitted = false;
         run.pendingEndToken = default;
 
-        // Snapshot fin de niveau (replay ceremonie)
+        // Snapshot fin de niveau
         run.hasPendingEndSnapshot = false;
         run.pendingEndSnapshot = null;
 
-        // Money (design actuel) : reset à chaque new run
+        // Money (design actuel) : reset a chaque new run
         Current.money = 0;
 
         // RUN-ONLY : purge modules + shop + slots
         run.unlockedModuleSlotsInRun = 0;
 
-        // Owned modules (run-only)
         if (run.ownedModuleIdsInRun != null)
             run.ownedModuleIdsInRun.Clear();
 
-        // Equip / offers
         run.equippedModuleIds = null;
         run.shopOfferModuleIds = null;
         run.shopRerollCount = 0;
-
-        Save();
     }
 
     // ------------------------------------------------------------
@@ -256,7 +283,7 @@ public class SaveManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Garantit que toutes les collections RUN-ONLY existent (évite les null après chargement d'une ancienne save).
+    /// Garantit que toutes les collections RUN-ONLY existent (evite les null apres chargement d une ancienne save).
     /// </summary>
     private void EnsureRunOnlyCollectionsReady()
     {
@@ -332,7 +359,7 @@ public class SaveManager : MonoBehaviour
 
         RunStateData run = Current.runState;
 
-        run.unlockedModuleSlotsInRun = 0; // 0 = non initialisé, sera recalé au boot run
+        run.unlockedModuleSlotsInRun = 0;
 
         if (run.equippedModuleIds != null)
         {
@@ -344,12 +371,9 @@ public class SaveManager : MonoBehaviour
     }
 
     // ------------------------------------------------------------
-    // MODULES (RUN-ONLY) - API HISTORIQUE (ne pas casser les callsites)
+    // MODULES (RUN-ONLY) - API HISTORIQUE
     // ------------------------------------------------------------
 
-    /// <summary>
-    /// Retourne la liste des modules possédés dans la RUN (run-only).
-    /// </summary>
     public List<string> GetOwnedModuleIds()
     {
         if (Current == null)
@@ -359,9 +383,6 @@ public class SaveManager : MonoBehaviour
         return Current.runState.ownedModuleIdsInRun;
     }
 
-    /// <summary>
-    /// Retourne true si le module est possédé dans la RUN (run-only).
-    /// </summary>
     public bool HasOwnedModule(string moduleId)
     {
         if (string.IsNullOrEmpty(moduleId) || Current == null)
@@ -371,10 +392,6 @@ public class SaveManager : MonoBehaviour
         return Current.runState.ownedModuleIdsInRun.Contains(moduleId);
     }
 
-    /// <summary>
-    /// Ajoute un module dans l'inventaire de la RUN (run-only).
-    /// Retourne false si déjà présent.
-    /// </summary>
     public bool TryAddOwnedModule(string moduleId)
     {
         if (string.IsNullOrEmpty(moduleId) || Current == null)
@@ -391,9 +408,6 @@ public class SaveManager : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Purge l'inventaire owned de la RUN (run-only).
-    /// </summary>
     public void ClearOwnedModules()
     {
         if (Current == null)
@@ -405,7 +419,7 @@ public class SaveManager : MonoBehaviour
     }
 
     // ------------------------------------------------------------
-    // MODULES (RUN-ONLY) - ALIAS OPTIONNELS (si tu en as déjà dans d'autres scripts)
+    // MODULES (RUN-ONLY) - ALIAS OPTIONNELS
     // ------------------------------------------------------------
 
     public List<string> GetOwnedModuleIdsInRun() => GetOwnedModuleIds();
@@ -422,10 +436,9 @@ public class SaveManager : MonoBehaviour
         EnsureRunStateReady();
         RunStateData run = Current.runState;
 
-        // Par securite: ne pas ecraser un token pending non consomme.
         if (run.hasPendingEndToken && !run.pendingEndTokenCommitted)
         {
-            Debug.LogWarning("[SaveManager] PendingEndToken deja present. On n'ecrase pas.");
+            Debug.LogWarning("[SaveManager] PendingEndToken deja present. On n ecrase pas.");
             return;
         }
 
@@ -478,7 +491,7 @@ public class SaveManager : MonoBehaviour
     }
 
     // ------------------------------------------------------------
-    // END SNAPSHOT API (replay ceremonie + idempotence)
+    // END SNAPSHOT API
     // ------------------------------------------------------------
 
     public void SetPendingEndSnapshot(EndLevelSnapshot snapshot)
@@ -492,10 +505,9 @@ public class SaveManager : MonoBehaviour
             return;
         }
 
-        // Par securite: ne pas ecraser un snapshot pending non committé.
         if (run.hasPendingEndSnapshot && run.pendingEndSnapshot != null && !run.pendingEndSnapshot.RewardsCommitted)
         {
-            Debug.LogWarning("[SaveManager] PendingEndSnapshot deja present (non committed). On n'ecrase pas.");
+            Debug.LogWarning("[SaveManager] PendingEndSnapshot deja present (non committed). On n ecrase pas.");
             return;
         }
 
@@ -540,11 +552,9 @@ public class SaveManager : MonoBehaviour
         if (!run.hasPendingEndSnapshot || run.pendingEndSnapshot == null)
             return false;
 
-        // Deja committé => idempotent
         if (run.pendingEndTokenCommitted || run.pendingEndSnapshot.RewardsCommitted)
             return false;
 
-        // Safety runId
         if (!string.IsNullOrEmpty(run.runId) &&
             !string.IsNullOrEmpty(token.RunId) &&
             !string.Equals(run.runId, token.RunId, StringComparison.Ordinal))
@@ -559,7 +569,6 @@ public class SaveManager : MonoBehaviour
 
         run.pendingEndTokenCommitted = true;
 
-        // Token pending consomme
         run.hasPendingEndToken = false;
         run.pendingEndToken = default;
 
@@ -579,7 +588,6 @@ public class SaveManager : MonoBehaviour
 
         EndLevelSnapshot snap = run.pendingEndSnapshot;
 
-        // Si la progression a déjà avancé, on considère le commit fait.
         if (run.currentNodeIndex > snap.Token.NodeIndex)
         {
             run.hasPendingEndSnapshot = false;
@@ -593,7 +601,6 @@ public class SaveManager : MonoBehaviour
             return;
         }
 
-        // Si snapshot déjà committed, on peut aussi purger (évite toute ambiguïté au boot)
         if (snap.RewardsCommitted)
         {
             run.hasPendingEndSnapshot = false;
@@ -671,7 +678,6 @@ public class SaveManager : MonoBehaviour
         data.runState.hasPendingEndSnapshot = false;
         data.runState.pendingEndSnapshot = null;
 
-        // RUN-ONLY : modules
         data.runState.unlockedModuleSlotsInRun = 0;
         data.runState.ownedModuleIdsInRun = new List<string>();
         data.runState.equippedModuleIds = null;
@@ -730,7 +736,6 @@ public class SaveManager : MonoBehaviour
             changed = true;
         }
 
-        // Safety: contract lives jamais < 0
         if (run.remainingContractLives < 0)
         {
             run.remainingContractLives = 0;
@@ -742,7 +747,7 @@ public class SaveManager : MonoBehaviour
     }
 
     // ------------------------------------------------------------
-    // ABORT PENALTY (quit sauvage)
+    // ABORT PENALTY
     // ------------------------------------------------------------
 
     private void ApplyAbortPenaltyIfNeeded()
@@ -769,14 +774,12 @@ public class SaveManager : MonoBehaviour
         run.levelInProgress = false;
         run.abortPenaltyArmed = false;
 
-        // Abort fatal -> fin de run CENTRALISÉE
         if (run.remainingHullInRun <= 0)
         {
             EndRun_GameOver(fromAbortPenalty: true);
             return;
         }
 
-        // Run vivante
         run.pendingGameOverFromAbort = false;
         Save();
     }
@@ -802,14 +805,12 @@ public class SaveManager : MonoBehaviour
         run.levelInProgress = false;
         run.abortPenaltyArmed = false;
 
-        // Abort fatal -> fin de run CENTRALISÉE
         if (run.remainingHullInRun <= 0)
         {
             EndRun_GameOver(fromAbortPenalty: true);
             return true;
         }
 
-        // Run vivante
         run.pendingGameOverFromAbort = false;
         Save();
         return true;
@@ -837,7 +838,7 @@ public class SaveManager : MonoBehaviour
     }
 
     // ------------------------------------------------------------
-    // RUN FLAGS (armement / desarmement)
+    // RUN FLAGS
     // ------------------------------------------------------------
 
     public void MarkLevelStartedInRun()
@@ -874,7 +875,7 @@ public class SaveManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Méthode UNIQUE de fin de run.
+    /// Methode UNIQUE de fin de run par echec.
     /// Toute mort de run doit passer par ici.
     /// </summary>
     public void EndRun_GameOver(bool fromAbortPenalty)
@@ -884,15 +885,12 @@ public class SaveManager : MonoBehaviour
 
         RunStateData run = Current.runState;
 
-        // Flags run
         run.levelInProgress = false;
         run.abortPenaltyArmed = false;
         run.hasOngoingRun = false;
 
-        // Cause
         run.pendingGameOverFromAbort = fromAbortPenalty;
 
-        // Purge token + snapshot
         run.hasPendingEndToken = false;
         run.pendingEndTokenCommitted = false;
         run.pendingEndToken = default;
@@ -900,7 +898,6 @@ public class SaveManager : MonoBehaviour
         run.hasPendingEndSnapshot = false;
         run.pendingEndSnapshot = null;
 
-        // RUN-ONLY : purge modules + shop + slots
         run.unlockedModuleSlotsInRun = 0;
 
         if (run.ownedModuleIdsInRun != null)
@@ -914,7 +911,7 @@ public class SaveManager : MonoBehaviour
     }
 
     // ------------------------------------------------------------
-    // MONEY (run) - Dépense
+    // MONEY (run) - Depense
     // ------------------------------------------------------------
 
     public bool TrySpendMoney(int amount)
