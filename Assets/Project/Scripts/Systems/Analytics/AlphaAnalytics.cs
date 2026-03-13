@@ -39,6 +39,7 @@ public class AlphaAnalytics : MonoBehaviour
         "https://docs.google.com/forms/d/e/1FAIpQLSdmMNzi7Y0KsUdeFd0vISFq-b3CbZZa4uzg_XtzrGNLFBCAjw/formResponse";
 
     // Mapping des champs Google Form
+    private const string ENTRY_PLATFORM = "entry.798175474";
     private const string ENTRY_EVENT = "entry.1837315321";
     private const string ENTRY_VERSION = "entry.34879558";
     private const string ENTRY_SESSION_ID = "entry.395953445";
@@ -87,6 +88,11 @@ public class AlphaAnalytics : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+#if UNITY_EDITOR
+        // Dans l'éditeur Unity on désactive les analytics
+        analyticsEnabled = false;
+#endif
 
         sessionId = Guid.NewGuid().ToString("N");
         currentRunId = 0;
@@ -183,6 +189,7 @@ public class AlphaAnalytics : MonoBehaviour
         return new Dictionary<string, string>
         {
             { ENTRY_EVENT, "" },
+            { ENTRY_PLATFORM, GetPlatformName() },
             { ENTRY_VERSION, AnalyticsVersion },
             { ENTRY_SESSION_ID, Safe(sessionId) },
             { ENTRY_RUN_ID, currentRunId.ToString() },
@@ -256,6 +263,25 @@ public class AlphaAnalytics : MonoBehaviour
     // ----------------------------------------------------------------
     // Helpers pratiques optionnels pour convertir tes enums / etats
     // ----------------------------------------------------------------
+
+    private string GetPlatformName()
+    {
+        #if UNITY_EDITOR
+                return "editor";
+        #elif UNITY_WEBGL
+            return "webgl";
+        #elif UNITY_STANDALONE_WIN
+            return "windows";
+        #elif UNITY_STANDALONE_OSX
+            return "mac";
+        #elif UNITY_ANDROID
+            return "android";
+        #elif UNITY_IOS
+            return "ios";
+        #else
+            return "unknown";
+        #endif
+    }
 
     public static string MedalToString(EndMedal medal)
     {

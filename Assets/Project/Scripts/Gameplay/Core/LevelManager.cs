@@ -630,6 +630,10 @@ public class LevelManager : MonoBehaviour
         if (levelTimer != null)
             levelTimer.enabled = false;
 
+        // IMPORTANT :
+        // on annule explicitement toute evacuation / countdown / final flush en cours
+        evacuationController?.AbortEvacuation();
+
         ballSpawner?.StopSpawning();
 
         // Fige les bins
@@ -637,7 +641,7 @@ public class LevelManager : MonoBehaviour
 
         DisableGameplayControls();
 
-        // Coupe toutes les coroutines (evac, countdown, etc.)
+        // Coupe les coroutines du LevelManager
         StopAllCoroutines();
 
         // Stop intro si encore en cours

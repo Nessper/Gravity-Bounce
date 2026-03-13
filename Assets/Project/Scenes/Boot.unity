@@ -678,6 +678,7 @@ Transform:
   - {fileID: 1003551054}
   - {fileID: 1063119616}
   - {fileID: 243999504}
+  - {fileID: 1114376730}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1110301953
@@ -692,6 +693,53 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35e467b896475ae4c8bcece02edfd2d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BootRoot
+--- !u!1 &1114376729
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1114376730}
+  - component: {fileID: 1114376731}
+  m_Layer: 0
+  m_Name: AlphaAnalytics
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1114376730
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1114376729}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1110301952}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1114376731
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1114376729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1efad07cc897e746adc52d428400a73, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AlphaAnalytics
+  analyticsEnabled: 1
+  versionOverride: 0.1
+  formResponseUrl: https://docs.google.com/forms/d/e/1FAIpQLSdmMNzi7Y0KsUdeFd0vISFq-b3CbZZa4uzg_XtzrGNLFBCAjw/formResponse
 --- !u!1 &1533193939
 GameObject:
   m_ObjectHideFlags: 0

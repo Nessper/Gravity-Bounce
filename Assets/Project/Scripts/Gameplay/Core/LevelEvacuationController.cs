@@ -77,6 +77,12 @@ public class LevelEvacuationController : MonoBehaviour
             endSequence.ResetState();
     }
 
+    public void AbortEvacuation()
+    {
+        if (endSequence != null)
+            endSequence.AbortSequence();
+    }
+
     public void BeginEvacuationPhase(Action onComplete)
     {
         if (endSequence == null)

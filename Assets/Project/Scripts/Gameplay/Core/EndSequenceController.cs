@@ -138,6 +138,36 @@ public class EndSequenceController : MonoBehaviour
     }
 
     /// <summary>
+    /// Coupe immediatement toute la sequence d'evacuation / fin normale.
+    /// A utiliser quand un GameOver Hull prend la priorite absolue.
+    /// </summary>
+    public void AbortSequence()
+    {
+        if (co != null)
+        {
+            StopCoroutine(co);
+            co = null;
+        }
+
+        // Stop auto-flush evac si actif
+        collector?.SetAutoFlushEnabled(false);
+
+        // Coupe les controles gameplay
+        if (levelControls != null)
+        {
+            levelControls.DisableGameplayControls();
+        }
+        else
+        {
+            player?.SetActiveControl(false);
+            closeBinController?.SetActiveControl(false);
+        }
+
+        // La pause n'a plus lieu d'etre pendant un GameOver force
+        pauseController?.EnablePause(false);
+    }
+
+    /// <summary>
     /// Lance la phase d'évacuation.
     /// Le callback onCompleted correspond à la fin normale :
     /// cérémonie, overlay de fin, etc.

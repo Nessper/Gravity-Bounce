@@ -3,11 +3,18 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Barre de progression segmentée (UI).
-/// Gère :
-/// - La coloration des segments selon la progression + seuil (objectif).
-/// - Une animation "step by step" lorsque la progression augmente :
-///   les segments s'allument un par un, avec un pulse.
+/// Barre de progression segmentee (UI).
+/// Gere :
+/// - la coloration des segments selon la progression + seuil (objectif)
+/// - une animation "step by step" lorsque la progression augmente
+///
+/// CONTRAT IMPORTANT :
+/// Ce composant doit rester robuste meme si son GameObject
+/// (ou un parent) devient inactif pendant un flow de fin / evacuation.
+/// Dans ce cas :
+/// - on ne lance pas de coroutine
+/// - on applique directement l'etat visuel final
+/// - on evite tout warning Unity de type StartCoroutine sur objet inactif
 /// </summary>
 public class SegmentedProgressBarUI : MonoBehaviour
 {
@@ -36,17 +43,15 @@ public class SegmentedProgressBarUI : MonoBehaviour
 
     /// <summary>
     /// Vrai si l'animation step-by-step est en cours.
-    /// Permet à un autre système (fin de niveau) d'attendre la fin de l'anim.
+    /// Permet a un autre systeme d'attendre la fin de l'anim.
     /// </summary>
     public bool IsAnimating => stepRoutine != null;
 
     private void Awake()
     {
-        // Fallback : si aucun tableau n'est assigné, on récupère les Images enfants.
+        // Fallback : si aucun tableau n'est assigne, on recupere les Images enfants.
         if (segments == null || segments.Length == 0)
-        {
             segments = GetComponentsInChildren<Image>();
-        }
 
         segmentCount = (segments != null) ? segments.Length : 0;
         thresholdIndex = Mathf.Clamp(thresholdIndex, 0, Mathf.Max(0, segmentCount - 1));
@@ -90,9 +95,8 @@ public class SegmentedProgressBarUI : MonoBehaviour
         SetThresholdIndex(index);
     }
 
-
     /// <summary>
-    /// Définit l'index du segment "objectif" (seuil) et rafraîchit les couleurs.
+    /// Definit l'index du segment "objectif" (seuil) et rafraichit les couleurs.
     /// </summary>
     public void SetThresholdIndex(int index)
     {
@@ -101,12 +105,14 @@ public class SegmentedProgressBarUI : MonoBehaviour
     }
 
     // --------------------------------------------------------------------
-    // Mise à jour de la progression
+    // Mise a jour de la progression
     // --------------------------------------------------------------------
 
     /// <summary>
-    /// Met à jour la progression en 0..1.
+    /// Met a jour la progression en 0..1.
     /// Si animateSteps = true : allumage step-by-step vers la cible.
+    /// Si le composant n'est pas dans un etat animable, on applique directement
+    /// l'etat final sans lancer de coroutine.
     /// </summary>
     public void SetProgress01(float progress01)
     {
@@ -115,11 +121,19 @@ public class SegmentedProgressBarUI : MonoBehaviour
 
         progress01 = Mathf.Clamp01(progress01);
 
-        // IMPORTANT : on vise un nombre de segments allumés.
         int targetFilledSegments = Mathf.CeilToInt(progress01 * segmentCount);
         targetFilledSegments = Mathf.Clamp(targetFilledSegments, 0, segmentCount);
 
-        // Pas d'animation : update immédiat.
+        // Si l'objet / composant n'est pas animable, on applique direct.
+        if (!CanAnimate())
+        {
+            StopStepRoutineIfAny();
+            currentFilledSegments = targetFilledSegments;
+            UpdateVisual();
+            return;
+        }
+
+        // Pas d'animation : update immediat.
         if (!animateSteps)
         {
             StopStepRoutineIfAny();
@@ -128,13 +142,13 @@ public class SegmentedProgressBarUI : MonoBehaviour
             return;
         }
 
-        // On stoppe une éventuelle anim en cours avant d'en relancer une nouvelle.
+        // On stoppe une anim en cours avant d'en relancer une nouvelle.
         StopStepRoutineIfAny();
         stepRoutine = StartCoroutine(AnimateToTargetFilledSegments(targetFilledSegments));
     }
 
     /// <summary>
-    /// Version pratique : calcule progress01 à partir de current/total.
+    /// Version pratique : calcule progress01 a partir de current/total.
     /// </summary>
     public void SetProgressCounts(int current, int total)
     {
@@ -150,7 +164,7 @@ public class SegmentedProgressBarUI : MonoBehaviour
 
     /// <summary>
     /// Attend la fin de l'animation step-by-step.
-    /// Utile pour éviter que l'overlay de fin s'affiche avant la fin du remplissage.
+    /// Utile pour eviter qu'un overlay de fin s'affiche avant la fin du remplissage.
     /// </summary>
     public IEnumerator WaitForAnimationComplete(float timeoutSec = 2f)
     {
@@ -160,7 +174,7 @@ public class SegmentedProgressBarUI : MonoBehaviour
         {
             t += Time.unscaledDeltaTime;
 
-            // Safety : on évite un blocage infini si quelque chose se passe mal.
+            // Safety : on evite un blocage infini si quelque chose se passe mal.
             if (timeoutSec > 0f && t >= timeoutSec)
                 yield break;
 
@@ -186,17 +200,26 @@ public class SegmentedProgressBarUI : MonoBehaviour
         // Sinon, on augmente : step-by-step.
         while (currentFilledSegments < targetFilledSegments)
         {
+            // Si entre-temps le GO / composant n'est plus animable,
+            // on termine instantanement proprement sans warning.
+            if (!CanAnimate())
+            {
+                currentFilledSegments = targetFilledSegments;
+                UpdateVisual();
+                stepRoutine = null;
+                yield break;
+            }
+
             currentFilledSegments++;
             UpdateVisual();
 
             int segmentIndex = currentFilledSegments - 1;
             if (segmentIndex >= 0 && segments != null && segmentIndex < segments.Length)
             {
-                // Pulse non bloquant : OK si plusieurs pulses se chevauchent légèrement.
-                StartCoroutine(PulseSegment(segments[segmentIndex]));
+                if (CanAnimate())
+                    StartCoroutine(PulseSegment(segments[segmentIndex]));
             }
 
-            // Realtime pour ne pas dépendre de timeScale (fin de niveau, pause, etc.)
             if (stepDelay > 0f)
                 yield return new WaitForSecondsRealtime(stepDelay);
             else
@@ -211,6 +234,9 @@ public class SegmentedProgressBarUI : MonoBehaviour
         if (segment == null)
             yield break;
 
+        if (!CanAnimate())
+            yield break;
+
         Transform tr = segment.transform;
 
         Vector3 baseScale = Vector3.one;
@@ -222,6 +248,12 @@ public class SegmentedProgressBarUI : MonoBehaviour
         float t = 0f;
         while (t < halfDuration)
         {
+            if (!CanAnimate())
+            {
+                tr.localScale = baseScale;
+                yield break;
+            }
+
             t += Time.unscaledDeltaTime;
             float k = (halfDuration <= 0f) ? 1f : Mathf.Clamp01(t / halfDuration);
             tr.localScale = Vector3.Lerp(baseScale, targetScale, k);
@@ -232,6 +264,12 @@ public class SegmentedProgressBarUI : MonoBehaviour
         t = 0f;
         while (t < halfDuration)
         {
+            if (!CanAnimate())
+            {
+                tr.localScale = baseScale;
+                yield break;
+            }
+
             t += Time.unscaledDeltaTime;
             float k = (halfDuration <= 0f) ? 1f : Mathf.Clamp01(t / halfDuration);
             tr.localScale = Vector3.Lerp(targetScale, baseScale, k);
@@ -250,7 +288,6 @@ public class SegmentedProgressBarUI : MonoBehaviour
         if (segments == null || segments.Length == 0)
             return;
 
-        // Clamp par sécurité.
         currentFilledSegments = Mathf.Clamp(currentFilledSegments, 0, segmentCount);
 
         for (int i = 0; i < segmentCount; i++)
@@ -260,8 +297,8 @@ public class SegmentedProgressBarUI : MonoBehaviour
             if (i == thresholdIndex)
             {
                 // Segment objectif :
-                // - avant d'être atteint : jaune
-                // - après : vert
+                // - avant d'etre atteint : jaune
+                // - apres : vert
                 segments[i].color = isActive ? postGoalColor : goalColor;
             }
             else
@@ -278,5 +315,14 @@ public class SegmentedProgressBarUI : MonoBehaviour
             StopCoroutine(stepRoutine);
             stepRoutine = null;
         }
+    }
+
+    /// <summary>
+    /// Retourne true si le composant est dans un etat ou il peut lancer / executer
+    /// des coroutines d'animation UI.
+    /// </summary>
+    private bool CanAnimate()
+    {
+        return isActiveAndEnabled && gameObject.activeInHierarchy;
     }
 }
