@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,6 +14,8 @@ public class BinTrigger : MonoBehaviour
     [SerializeField] public int flushThreshold = 5;
     [SerializeField] private bool autoFlushOnThreshold = true;
 
+    public event Action<BallState, Side> OnBallEnteredBin;
+
     private readonly HashSet<BallState> present = new HashSet<BallState>();
     private bool autoFlushEnabled = true;
 
@@ -23,11 +26,6 @@ public class BinTrigger : MonoBehaviour
         autoFlushEnabled = enabled;
     }
 
-    /// <summary>
-    /// Renvoie la somme des points des billes actuellement dans le bin,
-    /// sans modifier l'état du bin.
-    /// Utilisé pour pré-calculer la couleur du FX de flush.
-    /// </summary>
     public int PeekTotalPoints()
     {
         int total = 0;
@@ -39,9 +37,6 @@ public class BinTrigger : MonoBehaviour
         return total;
     }
 
-    /// <summary>
-    /// Indique si au moins une bille noire est présente dans le bin.
-    /// </summary>
     public bool ContainsBlack()
     {
         foreach (var st in present)
@@ -53,21 +48,15 @@ public class BinTrigger : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// Utilisé par le collector pour prendre le lot et vider le bin.
-    /// </summary>
     public List<BallState> TakeSnapshotAndClear()
     {
-        // Prenons TOUT ce qui est présent, même si déjà `collected`
         var snapshot = new List<BallState>(present.Count);
 
-        // Copie robuste + purge
         foreach (var st in present)
         {
             if (st == null) continue;
             snapshot.Add(st);
 
-            // Reset des flags de présence côté bin
             if (st.currentSide == side)
             {
                 st.inBin = false;
@@ -75,7 +64,6 @@ public class BinTrigger : MonoBehaviour
             }
         }
 
-        // On vide complètement le set — important car OnTriggerExit ne sera pas appelé
         present.Clear();
 
         return snapshot;
@@ -93,6 +81,8 @@ public class BinTrigger : MonoBehaviour
             state.inBin = true;
             state.currentSide = side;
 
+            OnBallEnteredBin?.Invoke(state, side);
+
             if (autoFlushEnabled && autoFlushOnThreshold && collector != null)
             {
                 int effectiveThreshold = collector.GetEffectiveFlushThresholdFor(this);
@@ -103,7 +93,6 @@ public class BinTrigger : MonoBehaviour
                         collector.CollectFromBin(side);
                 }
             }
-
         }
     }
 

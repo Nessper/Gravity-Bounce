@@ -663,6 +663,8 @@ public class SaveManager : MonoBehaviour
 
         data.runState.currentShipId = "CORE_SCOUT";
 
+        data.tutorialCompleted = false;
+
         data.runState.remainingHullInRun = 0;
         data.runState.remainingContractLives = 3;
         data.runState.currentRunScore = 0;

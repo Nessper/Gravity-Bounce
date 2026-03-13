@@ -9,42 +9,31 @@ using UnityEngine;
 [Serializable]
 public struct PhasePlanInfo
 {
-    // Index de phase 0-based
     public int Index;
-
-    // Nom affiché dans le briefing
     public string Name;
-
-    // Données runtime de phase
     public float DurationSec;
     public float IntervalSec;
     public int Quota;
 
-    // Mix FINAL REEL issu du spawner
-    // IMPORTANT :
-    // Ces valeurs doivent refléter exactement les types réellement planifiés
-    // après répartition discrète + forced spawns + injections éventuelles.
+    // Mix final reel issu du spawner
     public int WhiteCount;
     public int BlueCount;
     public int RedCount;
     public int BlackCount;
 }
+
 /// <summary>
 /// BallSpawner:
 /// - Construit un plan par phase (duree via weights, intervalle via JSON).
 /// - Construit des queues de types discretes (quota exact).
 /// - Spawn runtime en mode quota-driven (exact, sans derive dt).
 ///
-/// OPTION A:
-/// - OnPhaseChanged emet un index 0-based (Phase 0,1,2...).
-/// - Les systèmes qui affichent "PHASE 1..N" font +1 eux-memes.
+/// Important:
+/// - Le tuto ne passe PAS par le pipeline de pool normal.
+/// - Les billes de tuto sont instanciees a part puis detruites.
 /// </summary>
 public class BallSpawner : MonoBehaviour
 {
-    // =====================================================================
-    // SERIALIZED REFERENCES
-    // =====================================================================
-
     [Header("Refs")]
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private GameObject ballPrefab;
@@ -61,31 +50,24 @@ public class BallSpawner : MonoBehaviour
     [SerializeField] private float zSpawn = -0.2f;
     [SerializeField] private float intervalDefault = 0.6f;
 
-    // =====================================================================
-    // PUBLIC STATE / EVENTS
-    // =====================================================================
+    [Header("Debug Tutorial Spawn")]
+    [SerializeField] private bool logTutorialSpawn = false;
+    [SerializeField] private bool tutorialReleasePhysicsNextFrame = true;
 
     public int PlannedSpawnCount { get; private set; }
     public int PlannedNonBlackSpawnCount { get; private set; }
     public int PlannedBlackSpawnCount { get; private set; }
 
-    public int CurrentPhaseIndex { get; private set; } = 0; // 0-based
+    public int CurrentPhaseIndex { get; private set; } = 0;
 
-    // Option A: phaseIndex0Based
     public event Action<int, string> OnPhaseChanged;
     public event Action<int> OnPlannedReady;
     public event Action<int> OnActivated;
 
-    // Debug / stats
     private readonly Dictionary<BallType, int> recycledCollectedByType = new Dictionary<BallType, int>();
     private readonly Dictionary<BallType, int> recycledLostByType = new Dictionary<BallType, int>();
 
-    // =====================================================================
-    // INTERNAL DATA
-    // =====================================================================
-
     private LevelData data;
-
     private readonly Dictionary<BallType, int> pointsByType = new Dictionary<BallType, int>();
 
     private struct PhasePlan
@@ -124,10 +106,9 @@ public class BallSpawner : MonoBehaviour
 
     private PhasePlanInfo[] publicPhasePlans = Array.Empty<PhasePlanInfo>();
 
-    // =====================================================================
-    // CONFIGURATION
-    // =====================================================================
-
+    /// <summary>
+    /// Configure le spawner a partir du level data et de la duree runtime.
+    /// </summary>
     public void ConfigureFromLevel(LevelData levelData, float totalRunSec)
     {
         data = levelData;
@@ -314,13 +295,11 @@ public class BallSpawner : MonoBehaviour
         PlannedNonBlackSpawnCount = 0;
         PlannedBlackSpawnCount = 0;
 
-        // Ces tableaux servent à exposer le mix FINAL REEL à l'UI briefing.
         int[] phaseWhiteCounts = new int[plans.Count];
         int[] phaseBlueCounts = new int[plans.Count];
         int[] phaseRedCounts = new int[plans.Count];
         int[] phaseBlackCounts = new int[plans.Count];
 
-        // 1) Quota par phase
         for (int i = 0; i < plans.Count; i++)
         {
             PhasePlan p = plans[i];
@@ -330,7 +309,6 @@ public class BallSpawner : MonoBehaviour
             plannedTotal += p.Quota;
         }
 
-        // 2) Queues de types discrètes selon quota + mix + forced
         for (int i = 0; i < plans.Count; i++)
         {
             int count = plans[i].Quota;
@@ -339,7 +317,6 @@ public class BallSpawner : MonoBehaviour
 
             Queue<BallType> queue = new Queue<BallType>(count);
 
-            // Compteurs réels pour cette phase
             int whiteCount = 0;
             int blueCount = 0;
             int redCount = 0;
@@ -369,7 +346,6 @@ public class BallSpawner : MonoBehaviour
 
             int remaining = Mathf.Max(0, count - forcedTotal);
 
-            // Fallback si mix invalide
             if (remaining <= 0 || totalW <= 0f || mix == null || mix.Count == 0)
             {
                 List<BallType> temp = new List<BallType>(count);
@@ -395,7 +371,6 @@ public class BallSpawner : MonoBehaviour
 
                 typeQueues.Add(queue);
 
-                // On mémorise le mix réel de la phase
                 phaseWhiteCounts[i] = whiteCount;
                 phaseBlueCounts[i] = blueCount;
                 phaseRedCounts[i] = redCount;
@@ -477,7 +452,6 @@ public class BallSpawner : MonoBehaviour
 
             typeQueues.Add(queue);
 
-            // On mémorise le mix réel de la phase
             phaseWhiteCounts[i] = whiteCount;
             phaseBlueCounts[i] = blueCount;
             phaseRedCounts[i] = redCount;
@@ -495,7 +469,6 @@ public class BallSpawner : MonoBehaviour
 #endif
         }
 
-        // 3) Vue publique pour le briefing / debug
         publicPhasePlans = new PhasePlanInfo[plans.Count];
         for (int i = 0; i < plans.Count; i++)
         {
@@ -631,10 +604,10 @@ public class BallSpawner : MonoBehaviour
         return BallType.White;
     }
 
-    // =====================================================================
-    // PREWARM
-    // =====================================================================
-
+    /// <summary>
+    /// Prewarm du pool gameplay normal.
+    /// Le tuto n utilise pas ce pool.
+    /// </summary>
     public void StartPrewarm(int budgetPerFrame = 256)
     {
         if (prewarmCoro != null)
@@ -673,10 +646,9 @@ public class BallSpawner : MonoBehaviour
         prewarmCoro = null;
     }
 
-    // =====================================================================
-    // RUNTIME SPAWNING
-    // =====================================================================
-
+    /// <summary>
+    /// Demarre le spawn gameplay normal.
+    /// </summary>
     public void StartSpawning()
     {
         if (ballPrefab == null)
@@ -698,6 +670,9 @@ public class BallSpawner : MonoBehaviour
         loop = StartCoroutine(SpawnLoop());
     }
 
+    /// <summary>
+    /// Stoppe le spawn gameplay normal.
+    /// </summary>
     public void StopSpawning()
     {
         running = false;
@@ -717,10 +692,8 @@ public class BallSpawner : MonoBehaviour
                 break;
 
             PhasePlan p = plans[phase];
-
             CurrentPhaseIndex = p.Index;
 
-            // OPTION A: on emet du 0-based
             OnPhaseChanged?.Invoke(CurrentPhaseIndex, p.Name);
 
             int toSpawn = Mathf.Max(0, p.Quota);
@@ -756,10 +729,6 @@ public class BallSpawner : MonoBehaviour
         }
     }
 
-    // =====================================================================
-    // SPAWN POSITION
-    // =====================================================================
-
     private float ComputeSpawnY()
     {
         if (gameplayCamera != null && gameplayCamera.orthographic)
@@ -771,6 +740,9 @@ public class BallSpawner : MonoBehaviour
         return ySpawn;
     }
 
+    /// <summary>
+    /// Active une bille gameplay normale depuis le pool.
+    /// </summary>
     private void ActivateOne(int phaseIdx)
     {
         GameObject go = (pool.Count > 0) ? pool.Pop() : Instantiate(ballPrefab);
@@ -801,6 +773,7 @@ public class BallSpawner : MonoBehaviour
             st.inBin = false;
             st.collected = false;
             st.currentSide = Side.None;
+            st.isTutorialBall = false;
             st.Initialize(type, pts);
         }
 
@@ -821,10 +794,9 @@ public class BallSpawner : MonoBehaviour
         return q.Dequeue();
     }
 
-    // =====================================================================
-    // RECYCLE / POOLING
-    // =====================================================================
-
+    /// <summary>
+    /// Recyclage d une bille gameplay normale dans le pool.
+    /// </summary>
     public void Recycle(GameObject go, BallType type, bool collected = false)
     {
         if (go == null)
@@ -872,9 +844,135 @@ public class BallSpawner : MonoBehaviour
         Recycle(go, t, collected);
     }
 
-    // =====================================================================
-    // PUBLIC VIEW
-    // =====================================================================
+    /// <summary>
+    /// Spawn une bille de tutoriel totalement isolee du pool gameplay.
+    /// Important :
+    /// - pas de RegisterRealSpawn
+    /// - pas d increment des stats runtime
+    /// - pas de reutilisation du pool
+    /// - instance detruite a la fin du tuto
+    ///
+    /// Cette version est plus robuste :
+    /// - on instancie sans parent ambigu
+    /// - on set explicitement parent / position / rotation
+    /// - on peut relacher la physique au frame suivant pour eviter
+    ///   les comportements etranges au premier frame
+    /// </summary>
+    public GameObject SpawnTutorialBall(Vector3 position, Vector3 velocity, BallType type)
+    {
+        if (ballPrefab == null)
+        {
+            Debug.LogWarning("[BallSpawner] ballPrefab manquant.");
+            return null;
+        }
+
+        // Instanciation isolee
+        GameObject go = Instantiate(ballPrefab);
+
+        // Parent optionnel, en conservant l espace monde
+        if (ballsParent != null)
+            go.transform.SetParent(ballsParent, true);
+
+        // Position / rotation monde explicites
+        go.transform.position = position;
+        go.transform.rotation = Quaternion.identity;
+        go.SetActive(true);
+
+        if (go.TryGetComponent(out Collider col))
+            col.enabled = true;
+
+        Rigidbody rb = null;
+        if (go.TryGetComponent(out rb))
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+
+            if (tutorialReleasePhysicsNextFrame)
+            {
+                // On garde la bille immobile au premier frame pour eviter
+                // les deplacements parasites immediats.
+                rb.isKinematic = true;
+            }
+            else
+            {
+                rb.isKinematic = false;
+                rb.linearVelocity = velocity;
+            }
+        }
+
+        if (go.TryGetComponent(out BallCeilingGrace grace))
+        {
+            grace.SetCeiling(ceilingCollider);
+
+            // On ne lance la grace qu au moment ou la physique est vraiment relachee
+            if (!tutorialReleasePhysicsNextFrame)
+                grace.StartGrace();
+        }
+
+        int pts = pointsByType.TryGetValue(type, out int p) ? p : 0;
+
+        if (go.TryGetComponent(out BallState st))
+        {
+            st.inBin = false;
+            st.collected = false;
+            st.currentSide = Side.None;
+            st.isTutorialBall = true;
+            st.Initialize(type, pts);
+        }
+
+        if (tutorialReleasePhysicsNextFrame)
+            StartCoroutine(ReleaseTutorialBallNextFrame(go, velocity));
+
+        if (logTutorialSpawn)
+            StartCoroutine(LogTutorialSpawnNextFrame(go, type));
+
+        return go;
+    }
+
+    /// <summary>
+    /// Relache la physique de la bille de tuto au frame suivant.
+    /// </summary>
+    private IEnumerator ReleaseTutorialBallNextFrame(GameObject go, Vector3 velocity)
+    {
+        yield return null;
+
+        if (go == null)
+            yield break;
+
+        Rigidbody rb = go.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.linearVelocity = velocity;
+        }
+
+        BallCeilingGrace grace = go.GetComponent<BallCeilingGrace>();
+        if (grace != null)
+            grace.StartGrace();
+    }
+
+    /// <summary>
+    /// Log de debug au frame suivant pour verifier si la bille a bouge
+    /// avant meme que le joueur la voie.
+    /// </summary>
+    private IEnumerator LogTutorialSpawnNextFrame(GameObject go, BallType type)
+    {
+        yield return null;
+    }
+
+    /// <summary>
+    /// Detruit une bille de tutoriel isolee.
+    /// Ne jamais la renvoyer dans le pool gameplay.
+    /// </summary>
+    public void DestroyTutorialBall(GameObject go)
+    {
+        if (go == null)
+            return;
+
+        Destroy(go);
+    }
 
     public PhasePlanInfo[] GetPhasePlans()
     {
@@ -885,10 +983,6 @@ public class BallSpawner : MonoBehaviour
         Array.Copy(publicPhasePlans, copy, publicPhasePlans.Length);
         return copy;
     }
-
-    // =====================================================================
-    // STATS
-    // =====================================================================
 
     public void LogStats()
     {

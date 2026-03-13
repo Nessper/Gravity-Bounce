@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -18,6 +19,8 @@ public class PlayerController : MonoBehaviour
     [Header("Feedback visuel")]
     [SerializeField] private PlayerFlashFeedback flashFeedback;
 
+    public event Action<Collision> OnBallCollision;
+
     private Rigidbody playerRb;
     private float targetX;
 
@@ -33,7 +36,6 @@ public class PlayerController : MonoBehaviour
             playerRb.interpolation = RigidbodyInterpolation.None;
         }
 
-        // Initialise targetX à la position actuelle pour éviter un saut au démarrage.
         targetX = transform.position.x;
     }
 
@@ -47,18 +49,11 @@ public class PlayerController : MonoBehaviour
         transform.position = nextPos;
     }
 
-    /// <summary>
-    /// Définit la position cible en X, en coordonnées monde.
-    /// Clampée dans [-xRange, xRange].
-    /// </summary>
     public void SetTargetXWorld(float worldX)
     {
         targetX = Mathf.Clamp(worldX, -xRange, xRange);
     }
 
-    /// <summary>
-    /// Active / désactive le contrôle du paddle.
-    /// </summary>
     public void SetActiveControl(bool state)
     {
         canControl = state;
@@ -66,12 +61,12 @@ public class PlayerController : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        // Le SFX est géré par ImpactSfxEmitter (sur le même objet).
-        // Ici on ne gère que le feedback visuel.
         if (!collision.collider.CompareTag("Ball"))
             return;
 
         if (flashFeedback != null)
             flashFeedback.TriggerFlash();
+
+        OnBallCollision?.Invoke(collision);
     }
 }

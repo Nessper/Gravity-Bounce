@@ -38,6 +38,9 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private LevelControlsController controlsController;
     [SerializeField] private LevelMusicDirector levelMusicDirector;
 
+    [Header("Tutorial")]
+    [SerializeField] private LevelTutorialController tutorialController;
+
     // NOTE : ici, collector n est plus utilise directement par LevelManager,
     // mais il peut etre utile a l inspection et/ou utilise par LevelEvacuationController.
     // Si tu veux aller au bout: supprime ce champ ici et garde uniquement la ref dans LevelEvacuationController.
@@ -484,8 +487,8 @@ public class LevelManager : MonoBehaviour
                     // Configure le levelId au cas ou (safe)
                     introSequenceController.ConfigureLevelId(levelID);
 
-                    // Quand l intro se termine -> start level
-                    introSequenceController.Play(StartLevel);
+                    // Quand l intro se termine -> tuto -> start level
+                    introSequenceController.Play(BeginTutorialOrStartLevel);
                 }
                 else
                 {
@@ -952,5 +955,16 @@ public class LevelManager : MonoBehaviour
         // Detach phase handler
         if (ballSpawner != null && onPhaseChangedHandler != null)
             ballSpawner.OnPhaseChanged -= onPhaseChangedHandler;
+    }
+
+    private void BeginTutorialOrStartLevel()
+    {
+        if (tutorialController != null && tutorialController.ShouldRunForLevel(levelID))
+        {
+            tutorialController.PlayTutorial(StartLevel);
+            return;
+        }
+
+        StartLevel();
     }
 }

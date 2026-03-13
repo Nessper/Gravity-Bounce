@@ -29,6 +29,11 @@ public class GameSaveData
     // Money : ressource de run (persistée pour survivre à quit/crash pendant la run).
     // Reset à New Run selon ton design actuel (cf SaveManager.ResetRunState()).
     public int money = 0;
+
+    // ------------------------------------------------------------
+    // FLAG POUR LE TUTO
+    // ------------------------------------------------------------
+    public bool tutorialCompleted = false;
 }
 
 /// <summary>
@@ -113,6 +118,6 @@ public class RunStateData
 
     // ------------------------------------------------------------
     // SHOP REROLL (pour fixer le prix du reroll)
-    //
+    // ------------------------------------------------------------
     public int shopRerollCount = 0;
 }

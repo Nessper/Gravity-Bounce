@@ -22,6 +22,9 @@ public class BallState : MonoBehaviour
     public bool collected = false;
     public Side currentSide = Side.None;
 
+    [Header("Tutoriel")]
+    public bool isTutorialBall = false;
+
     private bool initialized;
 
     [Header("Référence visuelle")]
@@ -97,13 +100,8 @@ public class BallState : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Active uniquement le TrailRenderer correspondant au type de bille.
-    /// Tous les réglages (couleur, time, width...) se font dans l'inspector.
-    /// </summary>
     private void UpdateTrails()
     {
-        // On coupe tout
         SetTrail(trailWhite, false);
         SetTrail(trailBlue, false);
         SetTrail(trailRed, false);
