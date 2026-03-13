@@ -89,6 +89,11 @@ firstview.jpg
 secondview.jpg
 kenney_digital-audio.zip
 
+
+# Unity Builds
+/Builds*
+/Build*
+
 # =========================
 # BACKUPS
 # =========================
