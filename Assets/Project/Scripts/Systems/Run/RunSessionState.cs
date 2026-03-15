@@ -117,6 +117,18 @@ public class RunSessionState : ScriptableObject
 
     public int EquipmentSlotCount => Mathf.Max(0, equipmentSlotCount);
 
+
+    /// <summary>
+    /// Flag global de debug : si vrai, tous les modules sont considérés comme owned
+    /// pour les règles d'équipement runtime.
+    /// 
+    /// Important :
+    /// - Runtime only
+    /// - Non persisté en save
+    /// - Piloté par MainDebugStarterV3
+    /// </summary>
+    public static bool DebugTreatAllModulesAsOwnedGlobal = false;
+
     // ------------------------------------------------------------
     // DIAGNOSTIC (TUNING)
     // ------------------------------------------------------------
@@ -714,6 +726,9 @@ public class RunSessionState : ScriptableObject
 
     private bool IsOwnedRuntime(string moduleId)
     {
+        if (DebugTreatAllModulesAsOwnedGlobal)
+            return true;
+
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
             return false;
 

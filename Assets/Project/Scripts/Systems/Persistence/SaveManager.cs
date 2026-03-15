@@ -1,5 +1,3 @@
-// Chemin recommande (projet Unity) : Scripts/Systems/Save/SaveManager.cs
-
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -27,6 +25,7 @@ using UnityEngine;
 public class SaveManager : MonoBehaviour
 {
     private const string PlayerPrefsKey = "GameSave_v1";
+    private const string PlayerPrefsKey_GameVersion = "VS_GAME_VERSION";
 
     public static SaveManager Instance { get; private set; }
     public GameSaveData Current { get; private set; }
@@ -40,7 +39,51 @@ public class SaveManager : MonoBehaviour
         }
 
         Instance = this;
+
+        // IMPORTANT :
+        // Le reset de version doit se faire AVANT Load().
+        // Sinon l'ancienne save est deja chargee en memoire dans Current.
+        ResetSaveIfBuildVersionChanged();
+
         Load();
+    }
+
+    /// <summary>
+    /// Reinitialise completement les donnees locales si la version du build a change.
+    ///
+    /// Pourquoi ici ?
+    /// - SaveManager charge la save dans Awake().
+    /// - Si on faisait ce reset plus tard (ex: dans Bootstrapper.Start()),
+    ///   l'ancienne save serait deja chargee en memoire.
+    ///
+    /// Effet attendu :
+    /// - nouvelle build -> save wipe
+    /// - meme build -> aucune purge
+    /// </summary>
+    private void ResetSaveIfBuildVersionChanged()
+    {
+        string currentVersion = Application.version;
+        string savedVersion = PlayerPrefs.GetString(PlayerPrefsKey_GameVersion, "");
+
+        Debug.Log("[SaveManager] currentVersion = " + currentVersion);
+        Debug.Log("[SaveManager] savedVersion = " + savedVersion);
+
+        // Meme version -> on ne touche a rien
+        if (string.Equals(savedVersion, currentVersion, StringComparison.Ordinal))
+        {
+            Debug.Log("[SaveManager] Meme version -> pas de reset.");
+            return;
+        }
+
+        Debug.Log("[SaveManager] Nouvelle version detectee -> reset complet des donnees locales.");
+
+        // Purge de tous les PlayerPrefs
+        PlayerPrefs.DeleteAll();
+        PlayerPrefs.Save();
+
+        // On reecrit immediatement la version actuelle
+        PlayerPrefs.SetString(PlayerPrefsKey_GameVersion, currentVersion);
+        PlayerPrefs.Save();
     }
 
     // ------------------------------------------------------------

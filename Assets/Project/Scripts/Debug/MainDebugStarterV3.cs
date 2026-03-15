@@ -1,23 +1,46 @@
+// Chemin recommandé (projet Unity) : Scripts/Debug/MainDebugStarterV3.cs
+
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Debug injector: writes a run into the save then loads RunHub/Main/Credits.
-/// Goal: fast testing without going through the full flow.
+/// MainDebugStarterV3
+/// ------------------------------------------------------------
+/// Injecte un état de run de debug dans la sauvegarde, puis charge
+/// directement la scène demandée (RunHub / Main / Credits).
 ///
-/// Safety:
-/// - Only active when debug flag is enabled (PlayerPrefs key).
-/// - DEBUG RULE: each play session = NEW GAME (ResetRunState).
-/// - Does not persist HullMax (derived later by RunSessionState).
+/// Objectif : tester rapidement une situation sans repasser par le flow complet.
 ///
-/// Credits:
-/// - Can start directly on CreditsScene for quick UI tests.
+/// Règles de fonctionnement :
+/// - Actif uniquement si le PlayerPref de debug est activé.
+/// - Une seule injection par session Play pour éviter les doubles initialisations.
+/// - Chaque lancement debug repart d'une nouvelle run (ResetRunState).
+/// - Le HullMax n'est jamais persisté ici : il reste dérivé du ship plus tard.
+/// - Les modules debug sont stockés comme vrais moduleId, puis injectés dans l'équipement de run.
+///
+/// Note Inspector :
+/// - debugWorldId, debugNodeIndex, debugShipId et debugEquippedModuleIds sont cachés.
+/// - Ils restent sérialisés pour stocker la config choisie via le Custom Editor.
 /// </summary>
 [DefaultExecutionOrder(-500)]
 public class MainDebugStarterV3 : MonoBehaviour
 {
     private static bool s_hasAppliedThisPlaySession;
+
+    private const string DebugPlayerPrefKey = "VS_DEBUG_MAIN";
+
+    private const string RunHubSceneName = "RunHub";
+    private const string MainSceneName = "Main";
+    private const string CreditsSceneName = "CreditsScene";
+
+    // IMPORTANT :
+    // Doit rester aligné avec RunSessionState.equipmentSlotCount.
+    private const int RunEquipmentSlotCount = 6;
+
+    // Nombre de slots de pré-équipement debug dans l'inspector.
+    private const int DebugModuleLoadoutSlotCount = 3;
 
     public enum StartDestination
     {
@@ -26,44 +49,43 @@ public class MainDebugStarterV3 : MonoBehaviour
         Credits
     }
 
-    [Header("Debug mode")]
-    [SerializeField] private bool debugEnabled = true;
-    [SerializeField] private bool allowDebugInPlayer = false;
-    [SerializeField] private string playerPrefKeyDebug = "VS_DEBUG_MAIN";
-
     [Header("Start")]
     [SerializeField] private StartDestination startDestination = StartDestination.RunHub;
-    [SerializeField] private string runHubSceneName = "RunHub";
-    [SerializeField] private string mainSceneName = "Main";
-    [SerializeField] private string creditsSceneName = "CreditsScene";
 
-    
+    [Header("Run target")]
+    [HideInInspector]
     [SerializeField] private string debugWorldId = "W1";
+
+    [HideInInspector]
     [SerializeField] private int debugNodeIndex = 0;
 
     [Header("Ship")]
+    [HideInInspector]
     [SerializeField] private string debugShipId = "CORE_SCOUT";
 
     [Header("Run state overrides")]
-    [Tooltip("0 = default ship max hull. Otherwise simulates current hull after damage.")]
+    [Tooltip("0 = utilise le hull max du vaisseau. Sinon simule un hull courant déjà endommagé.")]
     [SerializeField] private int debugCurrentHull = 0;
 
     [SerializeField] private int debugContractLives = 3;
     [SerializeField] private int debugMoney = 0;
     [SerializeField] private int debugRunScore = 0;
 
-    [Header("Optional")]
-    [SerializeField] private RunSessionState runSessionState;
-    [SerializeField] private MainDebugSkipsApplier debugSkipsApplier;
-    [SerializeField] private bool debugSkipBriefing = true;
-    [SerializeField] private bool debugSkipIntro = true;
+    [Header("Debug modules")]
+    [SerializeField] private bool debugTreatAllModulesAsOwned = true;
 
-    [Header("Dialogs debug")]
-    [SerializeField] private bool enableDialogsInDebug = true;
-    [SerializeField] private DialogManager dialogManagerPrefab;
+    [HideInInspector]
+    [SerializeField] private string[] debugEquippedModuleIds = new string[DebugModuleLoadoutSlotCount];
+
+    private void OnValidate()
+    {
+        EnsureDebugModuleArrayInitialized();
+    }
 
     private void Awake()
     {
+        EnsureDebugModuleArrayInitialized();
+
         if (!IsDebugActive())
             return;
 
@@ -72,10 +94,13 @@ public class MainDebugStarterV3 : MonoBehaviour
 
         s_hasAppliedThisPlaySession = true;
 
+        // Flag global runtime pour l'équipement debug des modules.
+        RunSessionState.DebugTreatAllModulesAsOwnedGlobal = debugTreatAllModulesAsOwned;
+
         Debug.Log("[MainDebugStarterV3] Debug injection active. Destination=" + startDestination);
 
         TryEnsureShipCatalogLoaded();
-        ApplyRunConfigShip();
+        ModuleCatalogService.EnsureLoaded();
 
         if (!SetupRunStateInSave())
         {
@@ -83,36 +108,33 @@ public class MainDebugStarterV3 : MonoBehaviour
             return;
         }
 
-        if (runSessionState != null)
-        {
-            bool ok = runSessionState.LoadFromSave();
-            Debug.Log("[MainDebugStarterV3] RunSessionState.LoadFromSave => " + (ok ? "OK" : "FAIL"));
-            Debug.Log("[MainDebugStarterV3] After LoadFromSave | Hull=" + runSessionState.Hull
-    + " | HullMax=" + runSessionState.HullMax
-    + " | ContractLives=" + runSessionState.ContractLives
-    + " | World=" + runSessionState.WorldId
-    + " | Node=" + runSessionState.CurrentNodeIndex);
-        }
-
-        EnsureDialogManagerForDebug();
-
-        if (debugSkipsApplier != null)
-            debugSkipsApplier.ApplySkips(debugSkipBriefing, debugSkipIntro);
-
         LoadDestinationScene();
     }
 
-    /// <summary>
-    /// Loads the requested destination scene.
-    /// </summary>
+    private void EnsureDebugModuleArrayInitialized()
+    {
+        if (debugEquippedModuleIds == null || debugEquippedModuleIds.Length != DebugModuleLoadoutSlotCount)
+        {
+            string[] resized = new string[DebugModuleLoadoutSlotCount];
+
+            if (debugEquippedModuleIds != null)
+            {
+                int copyCount = Mathf.Min(debugEquippedModuleIds.Length, resized.Length);
+                Array.Copy(debugEquippedModuleIds, resized, copyCount);
+            }
+
+            debugEquippedModuleIds = resized;
+        }
+    }
+
     private void LoadDestinationScene()
     {
         string target =
-            (startDestination == StartDestination.RunHub) ? runHubSceneName :
-            (startDestination == StartDestination.Main) ? mainSceneName :
-            creditsSceneName;
+            startDestination == StartDestination.RunHub ? RunHubSceneName :
+            startDestination == StartDestination.Main ? MainSceneName :
+            CreditsSceneName;
 
-        if (string.IsNullOrEmpty(target))
+        if (string.IsNullOrWhiteSpace(target))
         {
             Debug.LogWarning("[MainDebugStarterV3] Destination scene name is empty. No scene will be loaded.");
             return;
@@ -128,27 +150,27 @@ public class MainDebugStarterV3 : MonoBehaviour
         SceneManager.LoadScene(target, LoadSceneMode.Single);
     }
 
-    /// <summary>
-    /// Writes the debug run into the save. Returns false if SaveManager is unavailable.
-    /// </summary>
     private bool SetupRunStateInSave()
     {
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
             return false;
 
-        // DEBUG RULE: each play = NEW GAME
         SaveManager.Instance.ResetRunState();
 
         RunStateData run = SaveManager.Instance.GetRunState();
+        if (run == null)
+            return false;
+
+        string resolvedWorldId = string.IsNullOrWhiteSpace(debugWorldId) ? "W1" : debugWorldId.Trim();
+        string resolvedShipId = string.IsNullOrWhiteSpace(debugShipId) ? "CORE_SCOUT" : debugShipId.Trim();
 
         run.runId = Guid.NewGuid().ToString("N");
         run.hasOngoingRun = true;
-
-        run.worldId = string.IsNullOrEmpty(debugWorldId) ? "W1" : debugWorldId;
+        run.worldId = resolvedWorldId;
         run.currentNodeIndex = Mathf.Max(0, debugNodeIndex);
-        run.currentShipId = string.IsNullOrEmpty(debugShipId) ? "CORE_SCOUT" : debugShipId;
+        run.currentShipId = resolvedShipId;
 
-        int shipHullMax = ResolveShipHullMax();
+        int shipHullMax = ResolveShipHullMax(resolvedShipId);
         int currentHull = ResolveCurrentHull(shipHullMax);
 
         SaveManager.Instance.SetRemainingHullInRun(currentHull);
@@ -156,25 +178,91 @@ public class MainDebugStarterV3 : MonoBehaviour
         SaveManager.Instance.SetCurrentRunScore(Mathf.Max(0, debugRunScore));
         SaveManager.Instance.SetMoney(Mathf.Max(0, debugMoney));
 
+        InjectDebugModulesIntoSave(run);
+
         SaveManager.Instance.Save();
+
+        Debug.Log(
+            "[MainDebugStarterV3] Run injected" +
+            " | World=" + run.worldId +
+            " | Node=" + run.currentNodeIndex +
+            " | Ship=" + run.currentShipId +
+            " | Hull=" + currentHull +
+            " | ContractLives=" + Mathf.Max(0, debugContractLives) +
+            " | Money=" + Mathf.Max(0, debugMoney) +
+            " | RunScore=" + Mathf.Max(0, debugRunScore));
+
         return true;
     }
 
-    private int ResolveShipHullMax()
+    private void InjectDebugModulesIntoSave(RunStateData run)
     {
-        int fallback = 3;
+        EnsureDebugModuleArrayInitialized();
+
+        if (run == null || SaveManager.Instance == null)
+            return;
+
+        SaveManager.Instance.EnsureEquipmentArrays(RunEquipmentSlotCount);
+
+        if (run.equippedModuleIds == null || run.equippedModuleIds.Length != RunEquipmentSlotCount)
+            return;
+
+        for (int i = 0; i < run.equippedModuleIds.Length; i++)
+            run.equippedModuleIds[i] = null;
+
+        bool catalogLoaded = ModuleCatalogService.EnsureLoaded();
+        int equippedCount = 0;
+        HashSet<string> seenFamilies = new HashSet<string>(StringComparer.Ordinal);
+
+        for (int i = 0; i < debugEquippedModuleIds.Length; i++)
+        {
+            string moduleId = string.IsNullOrWhiteSpace(debugEquippedModuleIds[i])
+                ? null
+                : debugEquippedModuleIds[i].Trim();
+
+            if (string.IsNullOrEmpty(moduleId))
+                continue;
+
+            if (!catalogLoaded)
+            {
+                Debug.LogWarning("[MainDebugStarterV3] Debug module injection skipped: ModuleCatalog not loaded.");
+                break;
+            }
+
+            ModuleDefinition def = ModuleCatalogService.GetById(moduleId);
+            if (def == null)
+            {
+                Debug.LogWarning("[MainDebugStarterV3] Debug module ignored (unknown moduleId): " + moduleId);
+                continue;
+            }
+
+            if (!string.IsNullOrEmpty(def.familyId) && !seenFamilies.Add(def.familyId))
+            {
+                Debug.LogWarning("[MainDebugStarterV3] Debug module ignored (duplicate family): " + moduleId);
+                continue;
+            }
+
+            run.equippedModuleIds[equippedCount] = moduleId;
+            equippedCount++;
+        }
+
+        run.unlockedModuleSlotsInRun = Mathf.Max(0, equippedCount);
+    }
+
+    private int ResolveShipHullMax(string shipId)
+    {
+        const int fallbackHullMax = 3;
 
         if (ShipCatalogService.Catalog == null ||
             ShipCatalogService.Catalog.ships == null ||
             ShipCatalogService.Catalog.ships.Count == 0)
         {
-            return fallback;
+            return fallbackHullMax;
         }
 
-        string shipId = string.IsNullOrEmpty(debugShipId) ? "CORE_SCOUT" : debugShipId;
         var ship = ShipCatalogService.Catalog.ships.Find(s => s.id == shipId);
         if (ship == null)
-            return fallback;
+            return fallbackHullMax;
 
         return Mathf.Max(1, ship.maxHull);
     }
@@ -185,18 +273,6 @@ public class MainDebugStarterV3 : MonoBehaviour
             return Mathf.Max(1, debugCurrentHull);
 
         return Mathf.Max(1, shipHullMax);
-    }
-
-    private void ApplyRunConfigShip()
-    {
-        var runConfig = RunConfig.Instance;
-        if (runConfig == null)
-            return;
-
-        if (string.IsNullOrEmpty(debugShipId))
-            return;
-
-        runConfig.SetSelectedShip(debugShipId);
     }
 
     private void TryEnsureShipCatalogLoaded()
@@ -232,31 +308,8 @@ public class MainDebugStarterV3 : MonoBehaviour
         }
     }
 
-    private void EnsureDialogManagerForDebug()
-    {
-        if (!enableDialogsInDebug)
-            return;
-
-        var existing = FindFirstObjectByType<DialogManager>();
-        if (existing != null)
-            return;
-
-        if (dialogManagerPrefab == null)
-            return;
-
-        var dm = Instantiate(dialogManagerPrefab);
-        dm.name = "[Debug] DialogManager";
-    }
-
     private bool IsDebugActive()
     {
-#if UNITY_EDITOR
-        if (!debugEnabled) return false;
-        return PlayerPrefs.GetInt(playerPrefKeyDebug, 0) == 1;
-#else
-        if (!debugEnabled) return false;
-        if (!allowDebugInPlayer) return false;
-        return PlayerPrefs.GetInt(playerPrefKeyDebug, 0) == 1;
-#endif
+        return PlayerPrefs.GetInt(DebugPlayerPrefKey, 0) == 1;
     }
 }
