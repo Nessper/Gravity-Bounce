@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Source d'input clavier pour la fermeture des bacs.
-/// Utilise Shift gauche/droite en mode maintien.
+/// Utilise Space en mode maintien.
 /// Ne tourne pas sur mobile.
 /// </summary>
 public class CloseBinInputKeyboard : MonoBehaviour
@@ -21,9 +21,9 @@ public class CloseBinInputKeyboard : MonoBehaviour
         if (!inputEnabled || closeBin == null)
             return;
 
-        bool shiftDown = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        bool closePressed = Input.GetKey(KeyCode.Space);
 
-        closeBin.SetClosedFromInput(shiftDown);
+        closeBin.SetClosedFromInput(closePressed);
     }
 
     /// <summary>

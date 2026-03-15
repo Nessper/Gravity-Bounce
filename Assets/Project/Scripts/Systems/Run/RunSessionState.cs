@@ -439,9 +439,8 @@ public class RunSessionState : ScriptableObject
         int oldMax = Mathf.Max(1, hullMax);
 
         int shipBaseMax = GetShipBaseMaxHull();
-        int moduleBonus = GetHullMaxBonusFromEquippedModules();
 
-        int newMax = Mathf.Max(1, shipBaseMax + moduleBonus);
+        int newMax = Mathf.Max(1, shipBaseMax);
 
         hullMax = newMax;
 
@@ -458,6 +457,7 @@ public class RunSessionState : ScriptableObject
             SaveManager.Instance.SetRemainingHullInRun(hull);
     }
 
+
     private int GetShipBaseMaxHull()
     {
         ShipDefinition def = ShipCatalogService.GetById(shipId);
@@ -467,31 +467,6 @@ public class RunSessionState : ScriptableObject
         return Mathf.Max(1, def.maxHull);
     }
 
-    private int GetHullMaxBonusFromEquippedModules()
-    {
-        EnsureEquipmentInitialized();
-
-        int bonus = 0;
-
-        if (!ModuleCatalogService.EnsureLoaded())
-            return 0;
-
-        for (int i = 0; i < equippedModuleIds.Length; i++)
-        {
-            string id = equippedModuleIds[i];
-            if (string.IsNullOrEmpty(id))
-                continue;
-
-            ModuleDefinition mod = ModuleCatalogService.GetById(id);
-            if (mod == null)
-                continue;
-
-            if (string.Equals(mod.familyId, "HULL", StringComparison.Ordinal))
-                bonus += Mathf.Max(0, mod.hullMaxAdd);
-        }
-
-        return bonus;
-    }
 
     // ------------------------------------------------------------
     // SCAN -> Briefing Tier dérivé des modules équipés
@@ -1052,5 +1027,70 @@ public class RunSessionState : ScriptableObject
 
         return bonus;
     }
+
+
+    /// <summary>
+    /// Calcule les bonus de fin de level apportés par les modules de la famille H (Sustain).
+    ///
+    /// Design actuel :
+    /// H1 -> +1 Hull
+    /// H2 -> +1 Hull +1 Money
+    /// H3 -> +2 Hull +1 Money
+    ///
+    /// Important :
+    /// - Cette méthode NE modifie rien.
+    /// - Elle se contente de lire les modules équipés.
+    /// - L'application réelle des bonus se fait dans le flow de fin de niveau.
+    /// </summary>
+    public (int hullGain, int moneyGain) GetEndLevelSustainBonus()
+    {
+        EnsureEquipmentInitialized();
+
+        int hullGain = 0;
+        int moneyGain = 0;
+
+        // Sécurité : si le catalogue n'est pas chargé on ne donne aucun bonus
+        if (!ModuleCatalogService.EnsureLoaded())
+            return (0, 0);
+
+        // Parcours des modules équipés
+        for (int i = 0; i < equippedModuleIds.Length; i++)
+        {
+            string id = equippedModuleIds[i];
+
+            if (string.IsNullOrEmpty(id))
+                continue;
+
+            ModuleDefinition mod = ModuleCatalogService.GetById(id);
+
+            if (mod == null)
+                continue;
+
+            // On ne s'intéresse qu'à la famille H
+            if (!string.Equals(mod.familyId, "H", StringComparison.Ordinal))
+                continue;
+
+            // Application du design par tier
+            switch (mod.tier)
+            {
+                case 1:
+                    hullGain += 1;
+                    break;
+
+                case 2:
+                    hullGain += 1;
+                    moneyGain += 1;
+                    break;
+
+                case 3:
+                    hullGain += 2;
+                    moneyGain += 1;
+                    break;
+            }
+        }
+
+        return (hullGain, moneyGain);
+    }
+
 
 }

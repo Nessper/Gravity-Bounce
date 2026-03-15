@@ -1,37 +1,31 @@
 {
   "modules": [
     {
-      "id": "HULL_CORE_T1",
-      "familyId": "HULL",
-      "displayName": "Reinforced Hull",
-      "description": "+1 Maximum Hull",
+      "id": "H1",
+      "familyId": "H",
+      "displayName": "Hull Patch",
+      "description": "Repair +1 Hull after mission",
       "tier": 1,
       "cost": 4,
-      "iconPath": "Modules/Icons/hull_boost",
-      "hullMaxAdd": 1,
-      "scanTierSet": 0
+      "iconPath": "Modules/Icons/H"
     },
     {
-      "id": "HULL_CORE_T2",
-      "familyId": "HULL",
-      "displayName": "Reinforced Hull",
-      "description": "+2 Maximum Hull",
+      "id": "H2",
+      "familyId": "H",
+      "displayName": "Hull Patch",
+      "description": "Repair +1 Hull and gain +1 money after mission",
       "tier": 2,
-      "cost": 10,
-      "iconPath": "Modules/Icons/hull_boost",
-      "hullMaxAdd": 2,
-      "scanTierSet": 0
+      "cost": 8,
+      "iconPath": "Modules/Icons/H"
     },
     {
-      "id": "HULL_CORE_T3",
-      "familyId": "HULL",
-      "displayName": "Reinforced Hull",
-      "description": "+3 Maximum Hull",
+      "id": "H3",
+      "familyId": "H",
+      "displayName": "Hull Patch",
+      "description": "Repair +2 Hull and gain +1 money after mission",
       "tier": 3,
-      "cost": 16,
-      "iconPath": "Modules/Icons/hull_boost",
-      "hullMaxAdd": 3,
-      "scanTierSet": 0
+      "cost": 12,
+      "iconPath": "Modules/Icons/H"
     },
 
     {
@@ -41,7 +35,7 @@
       "description": "Briefing detail: T1",
       "tier": 1,
       "cost": 4,
-      "iconPath": "Modules/Icons/scan_array",
+      "iconPath": "Modules/Icons/S",
       "hullMaxAdd": 0,
       "scanTierSet": 1
     },
@@ -52,7 +46,7 @@
       "description": "Briefing detail: T2",
       "tier": 2,
       "cost": 10,
-      "iconPath": "Modules/Icons/scan_array",
+      "iconPath": "Modules/Icons/S",
       "hullMaxAdd": 0,
       "scanTierSet": 2
     },
@@ -63,7 +57,7 @@
       "description": "Briefing detail: T3",
       "tier": 3,
       "cost": 16,
-      "iconPath": "Modules/Icons/scan_array",
+      "iconPath": "Modules/Icons/S",
       "hullMaxAdd": 0,
       "scanTierSet": 3
     },
@@ -74,7 +68,7 @@
   "description": "Flush threshold +1 (bigger combos)",
   "tier": 1,
   "cost": 4,
-  "iconPath": "Modules/Icons/greed_coil",
+  "iconPath": "Modules/Icons/G",
   "hullMaxAdd": 0,
   "scanTierSet": 0,
   "flushMinBallsAdd": 1
@@ -85,8 +79,8 @@
   "displayName": "Greed Coil",
   "description": "Flush threshold +2 (bigger combos)",
   "tier": 2,
-  "cost": 10,
-  "iconPath": "Modules/Icons/greed_coil",
+  "cost": 8,
+  "iconPath": "Modules/Icons/G",
   "hullMaxAdd": 0,
   "scanTierSet": 0,
   "flushMinBallsAdd": 2
@@ -97,8 +91,8 @@
   "displayName": "Greed Coil",
   "description": "Flush threshold +3 (bigger combos)",
   "tier": 3,
-  "cost": 16,
-  "iconPath": "Modules/Icons/greed_coil",
+  "cost": 12,
+  "iconPath": "Modules/Icons/G",
   "hullMaxAdd": 0,
   "scanTierSet": 0,
   "flushMinBallsAdd": 3

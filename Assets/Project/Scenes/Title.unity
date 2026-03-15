@@ -2070,7 +2070,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "Move paddle \u2014 Mouse\nClose bins \u2014 Shift\nPause \u2014 Esc\nReport
+  m_text: "Move paddle \u2014 Mouse\nClose bins \u2014 Space\nPause \u2014 Esc\nReport
     bug \u2014 F8"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 557fa0b677526424fbfd32ea2a7079cc, type: 2}

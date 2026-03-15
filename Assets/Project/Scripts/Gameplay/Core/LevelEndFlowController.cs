@@ -229,7 +229,10 @@ public class LevelEndFlowController : MonoBehaviour
 
         int remainingContractLives = (runSessionState != null) ? runSessionState.ContractLives : 0;
 
-        // 1) Resolve le type de fin et applique la perte de vie de contrat si necessaire.
+        // ------------------------------------------------------------
+        // 1) Resolution du type de fin (Victory / Defeat / GameOver)
+        // ------------------------------------------------------------
+
         EndType endType = ResolveAndApplyEndTypeOnce(out remainingContractLives, outcome);
 
         lastEndType = endType;
@@ -240,12 +243,15 @@ public class LevelEndFlowController : MonoBehaviour
 
         int moneyBefore = ReadMoney();
         int moneyAfter = moneyBefore;
-        bool revealMoney = false;
 
+        bool revealMoney = false;
         bool runCompletedAfterCommit = false;
         bool commitAccepted = true;
 
-        // 2) Validation stricte du token pour les victoires.
+        // ------------------------------------------------------------
+        // 2) Validation du token (seulement pour Victory)
+        // ------------------------------------------------------------
+
         if (outcome.IsVictory)
         {
             if (!TryValidateTokenAgainstSave(token))
@@ -255,22 +261,36 @@ public class LevelEndFlowController : MonoBehaviour
             }
         }
 
-        // 3) En Defeat / GameOver, on marque le snapshot comme committed
-        // pour eviter qu'il soit rejoue apres quit / relaunch.
+        // ------------------------------------------------------------
+        // 3) En Defeat / GameOver
+        // on marque le snapshot comme committed pour éviter
+        // un replay apres quit / relaunch
+        // ------------------------------------------------------------
+
         if (!outcome.IsVictory && commitAccepted && SaveManager.Instance != null)
         {
             SaveManager.Instance.MarkPendingEndSnapshotCommitted(token);
         }
 
-        // 4) Rewards + progression seulement en victoire.
+        // ------------------------------------------------------------
+        // 4) Rewards + progression (uniquement en Victory)
+        // ------------------------------------------------------------
+
         if (outcome.IsVictory && commitAccepted)
         {
-            // Score de campagne.
+            // --------------------------------------------------------
+            // Score de campagne
+            // --------------------------------------------------------
+
             campaignAfter = campaignBefore + Mathf.Max(0, outcome.FinalScore);
             WriteCampaignScore(campaignAfter);
 
-            // Reward money.
+            // --------------------------------------------------------
+            // Reward argent basé sur la médaille
+            // --------------------------------------------------------
+
             int moneyReward = 0;
+
             if (economyConfig != null)
                 moneyReward = Mathf.Max(0, economyConfig.GetMoneyReward(outcome.BestMedal));
 
@@ -278,10 +298,39 @@ public class LevelEndFlowController : MonoBehaviour
             {
                 moneyAfter = moneyBefore + moneyReward;
                 revealMoney = true;
+
                 runSessionState.AddMoney(moneyReward);
             }
 
-            // Progression de run.
+            // --------------------------------------------------------
+            // MODULE H : Sustain
+            // Bonus de fin de niveau basé sur les modules équipés
+            // --------------------------------------------------------
+
+            if (runSessionState != null)
+            {
+                var sustain = runSessionState.GetEndLevelSustainBonus();
+
+                // Gain de Hull
+                if (sustain.hullGain > 0)
+                {
+                    runSessionState.RepairHull(sustain.hullGain);
+                }
+
+                // Gain d'argent supplémentaire
+                if (sustain.moneyGain > 0)
+                {
+                    runSessionState.AddMoney(sustain.moneyGain);
+
+                    moneyAfter += sustain.moneyGain;
+                    revealMoney = true;
+                }
+            }
+
+            // --------------------------------------------------------
+            // Progression de la run (node suivant)
+            // --------------------------------------------------------
+
             if (runSessionState == null)
             {
                 Debug.LogError("[LevelEndFlowController] RunSessionState manquant: impossible de commit la victoire.");
@@ -290,6 +339,7 @@ public class LevelEndFlowController : MonoBehaviour
             else
             {
                 bool ok = runSessionState.CommitVictoryAndAdvanceNode();
+
                 if (!ok)
                 {
                     commitAccepted = false;
@@ -299,7 +349,7 @@ public class LevelEndFlowController : MonoBehaviour
                 runSessionState.EnsurePlanLoaded();
                 runCompletedAfterCommit = runSessionState.IsRunCompleted;
 
-                // Marque le snapshot comme committed apres le commit metier.
+                // Marque le snapshot comme committed après le commit métier
                 if (commitAccepted && SaveManager.Instance != null)
                 {
                     SaveManager.Instance.MarkPendingEndSnapshotCommitted(token);
@@ -307,7 +357,15 @@ public class LevelEndFlowController : MonoBehaviour
             }
         }
 
+        // ------------------------------------------------------------
+        // 5) Choix de la séquence de dialogue
+        // ------------------------------------------------------------
+
         string sequenceId = ResolveSequenceId(endType, remainingContractLives);
+
+        // ------------------------------------------------------------
+        // 6) Snapshot final utilisé par l'UI
+        // ------------------------------------------------------------
 
         commitSnapshot = new FinalCommitSnapshot
         {
@@ -325,6 +383,7 @@ public class LevelEndFlowController : MonoBehaviour
 
         commitPrepared = true;
     }
+
 
     private bool TryValidateTokenAgainstSave(EndLevelToken token)
     {

@@ -147,7 +147,7 @@ public class ModulesDescription_Panel : MonoBehaviour
             string fam = string.IsNullOrEmpty(def.familyId) ? "?" : def.familyId;
             string name = string.IsNullOrEmpty(def.displayName) ? def.id : def.displayName;
 
-            headerText.text = $"{name} - T{t} - {fam}";
+            headerText.text = $"{name} - T{t}";
         }
 
         // DESCRIPTION JSON

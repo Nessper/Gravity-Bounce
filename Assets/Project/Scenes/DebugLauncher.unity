@@ -278,14 +278,14 @@ MonoBehaviour:
   debugEnabled: 1
   allowDebugInPlayer: 0
   playerPrefKeyDebug: VS_DEBUG_MAIN
-  startDestination: 2
+  startDestination: 0
   runHubSceneName: RunHub
   mainSceneName: Main
   creditsSceneName: CreditsScene
   debugWorldId: W1
-  debugNodeIndex: 7
+  debugNodeIndex: 3
   debugShipId: CORE_SCOUT
-  debugCurrentHull: 1
+  debugCurrentHull: 8
   debugContractLives: 3
   debugMoney: 200
   debugRunScore: 10000
