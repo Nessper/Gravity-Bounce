@@ -3,19 +3,20 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Gere la collecte (flush) des bacs gauche/droite :
-/// - detection des conditions de flush (seuil, force, delai),
-/// - construction d un BinSnapshot pour le ScoreManager / ComboEngine,
-/// - penalite de coque (Hull) en fonction des billes noires du lot,
-/// - declenchement des FX de flush,
-/// - declenchement des SFX de flush (normal / black),
+/// Gère la collecte (flush) des bacs gauche/droite :
+/// - détection des conditions de flush (seuil, force, délai),
+/// - construction d'un BinSnapshot pour le ScoreManager / ComboEngine,
+/// - pénalité de coque (Hull) en fonction des billes noires du lot,
+/// - déclenchement des FX de flush,
+/// - déclenchement des SFX de flush (normal / black),
 /// - recyclage des billes via le BallSpawner.
+///
+/// Important :
+/// - Le bonus de seuil de flush (modules GREED) vient désormais de ModuleRuntimeStats.
 /// </summary>
 public class BinCollector : MonoBehaviour
 {
-    [SerializeField] private RunSessionState runSession;
-
-    [Header("References")]
+    [Header("Références")]
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private ComboEngine comboEngine;
     [SerializeField] private BinTrigger leftBin;
@@ -23,7 +24,7 @@ public class BinCollector : MonoBehaviour
     [SerializeField] private BallSpawner spawner;
 
     [Header("Hull / Coque")]
-    [Tooltip("Systeme de gestion de la coque du vaisseau (Hull).")]
+    [Tooltip("Système de gestion de la coque du vaisseau (Hull).")]
     [SerializeField] private HullSystem hullSystem;
 
     [Header("FX de flush")]
@@ -37,18 +38,18 @@ public class BinCollector : MonoBehaviour
     [Tooltip("Petit lead time pour lancer le SFX juste avant le pic visuel du FX.")]
     [SerializeField] private float flushSfxLeadTime = 0.03f;
 
-    [Tooltip("Anti doublon: delai minimal entre deux sons de flush (utile quand left+right flush en meme temps).")]
+    [Tooltip("Anti-doublon : délai minimal entre deux sons de flush (utile quand left+right flush en même temps).")]
     [SerializeField] private float flushSfxCooldownSec = 0.05f;
 
     [Header("Options de flush")]
-    [Tooltip("Delai avant le flush en run normal (hors fin de niveau).")]
+    [Tooltip("Délai avant le flush en run normal (hors fin de niveau).")]
     [SerializeField] private float delayBeforeFlush = 1.2f;
 
-    // Etat de flush par cote (evite les debuts en double)
+    // État de flush par côté (évite les démarrages en double)
     private bool flushingLeft;
     private bool flushingRight;
 
-    // Anti doublon SFX (temps unscaled pour etre robuste aux timescales)
+    // Anti-doublon SFX (temps unscaled pour être robuste aux timescales)
     private float lastFlushSfxTimeUnscaled = -999f;
 
     /// <summary>
@@ -60,20 +61,24 @@ public class BinCollector : MonoBehaviour
     public bool IsRightFlushing() => flushingRight;
 
     /// <summary>
-    /// Active/desactive l auto-flush sur les deux bacs (utilise par la fin de niveau).
+    /// Active / désactive l'auto-flush sur les deux bacs
+    /// (utilisé par la fin de niveau).
     /// </summary>
     public void SetAutoFlushEnabled(bool enabled)
     {
-        if (leftBin != null) leftBin.SetAutoFlushEnabled(enabled);
-        if (rightBin != null) rightBin.SetAutoFlushEnabled(enabled);
+        if (leftBin != null)
+            leftBin.SetAutoFlushEnabled(enabled);
+
+        if (rightBin != null)
+            rightBin.SetAutoFlushEnabled(enabled);
     }
 
-    // ------------------------------------------------------------------------
-    // Public API
-    // ------------------------------------------------------------------------
+    // ------------------------------------------------------------
+    // API publique
+    // ------------------------------------------------------------
 
     /// <summary>
-    /// Demande un flush sur un cote specifique.
+    /// Demande un flush sur un côté spécifique.
     /// </summary>
     public void CollectFromBin(Side side, bool force = false, bool skipDelay = false, bool isFinalFlush = false)
     {
@@ -85,7 +90,7 @@ public class BinCollector : MonoBehaviour
     }
 
     /// <summary>
-    /// Demande un flush simultane des deux bacs (gauche et droit).
+    /// Demande un flush simultané des deux bacs (gauche et droit).
     /// </summary>
     public void CollectAll(bool force = false, bool skipDelay = false, bool isFinalFlush = false)
     {
@@ -93,9 +98,9 @@ public class BinCollector : MonoBehaviour
         CollectRight(force, skipDelay, isFinalFlush);
     }
 
-    // ------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // Pipelines internes
-    // ------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     private void CollectLeft(bool force, bool skipDelay, bool isFinalFlush)
     {
@@ -116,10 +121,10 @@ public class BinCollector : MonoBehaviour
     }
 
     /// <summary>
-    /// Pipeline complet de flush pour un cote donne :
-    /// - eventuel delai,
-    /// - verification du seuil (sauf force),
-    /// - pre-calcul FX + SFX avant disparition des billes,
+    /// Pipeline complet de flush pour un côté donné :
+    /// - éventuel délai,
+    /// - vérification du seuil (sauf force),
+    /// - pré-calcul FX + SFX avant disparition des billes,
     /// - snapshot logique (score, combos, hull) + purge du bin,
     /// - recyclage des billes.
     /// </summary>
@@ -127,7 +132,7 @@ public class BinCollector : MonoBehaviour
     {
         try
         {
-            // Delai avant flush en run normal
+            // Délai avant flush en run normal
             if (!skipDelay)
                 yield return new WaitForSecondsRealtime(delayBeforeFlush);
 
@@ -135,7 +140,8 @@ public class BinCollector : MonoBehaviour
             if (trigger == null)
                 yield break;
 
-            // En mode normal, on valide le seuil (avec Greed); en force (fin de niveau), on prend tout.
+            // En mode normal, on valide le seuil (avec bonus GREED).
+            // En force (fin de niveau), on prend tout.
             if (!force)
             {
                 int effectiveThreshold = GetEffectiveFlushThresholdFor(trigger);
@@ -143,9 +149,9 @@ public class BinCollector : MonoBehaviour
                     yield break;
             }
 
-            // ----------------------------------------------------------------
-            // 1) Pre-calcul pour le feedback AVANT disparition des billes
-            // ----------------------------------------------------------------
+            // --------------------------------------------------------
+            // 1) Pré-calcul pour le feedback AVANT disparition des billes
+            // --------------------------------------------------------
             int previewScore = trigger.PeekTotalPoints();
             bool hasBlack = trigger.ContainsBlack();
 
@@ -156,9 +162,9 @@ public class BinCollector : MonoBehaviour
 
             TriggerFlushFx(side, previewScore, hasBlack);
 
-            // ----------------------------------------------------------------
+            // --------------------------------------------------------
             // 2) Snapshot logique (score, combos, hull) + purge du bin
-            // ----------------------------------------------------------------
+            // --------------------------------------------------------
             List<BallState> lot = trigger.TakeSnapshotAndClear();
             if (lot == null || lot.Count == 0)
                 yield break;
@@ -166,13 +172,13 @@ public class BinCollector : MonoBehaviour
             int blackCount;
             BinSnapshot snapshot = BuildSnapshot(lot, side, out blackCount);
 
-            // NEW: phase courante (1-based) pour debug / objectifs secondaires par phase
+            // Phase courante (1-based) pour debug / objectifs secondaires par phase
             if (spawner != null)
                 snapshot.phaseIndex1Based = spawner.CurrentPhaseIndex + 1;
 
             snapshot.isFinalFlush = isFinalFlush;
 
-            // Penalite de coque : 1 point par bille noire dans ce flush
+            // Pénalité de coque : 1 point par bille noire dans ce flush
             if (hullSystem != null && blackCount > 0)
                 hullSystem.ApplyBlackPenalty(blackCount);
 
@@ -182,12 +188,12 @@ public class BinCollector : MonoBehaviour
             if (comboEngine != null)
                 comboEngine.OnFlush(snapshot);
 
-            // ----------------------------------------------------------------
+            // --------------------------------------------------------
             // 3) Recyclage
-            // ----------------------------------------------------------------
+            // --------------------------------------------------------
             if (spawner == null)
             {
-                Debug.LogError("[BinCollector] Spawner non assigne : impossible de recycler. (Fallback: Destroy)");
+                Debug.LogError("[BinCollector] Spawner non assigné : impossible de recycler. (Fallback : Destroy)");
 
                 for (int i = 0; i < lot.Count; i++)
                 {
@@ -209,7 +215,8 @@ public class BinCollector : MonoBehaviour
                     continue;
 
                 st.collected = true;
-                // On ne détache jamais à la racine. Le spawner/pool gère la vie de l’objet.
+                // On ne détache jamais à la racine.
+                // Le spawner / pool gère la vie de l’objet.
                 spawner.Recycle(st.gameObject, st.type, collected: true);
             }
         }
@@ -219,9 +226,9 @@ public class BinCollector : MonoBehaviour
         }
     }
 
-    // ------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // Utilitaires internes
-    // ------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     private BinSnapshot BuildSnapshot(List<BallState> lot, Side side, out int blackCount)
     {
@@ -277,8 +284,8 @@ public class BinCollector : MonoBehaviour
     }
 
     /// <summary>
-    /// SFX flush simplifie :
-    /// - FlushBlack si presence de bille noire,
+    /// SFX flush simplifié :
+    /// - FlushBlack si présence de bille noire,
     /// - sinon FlushNormal.
     /// </summary>
     private void TriggerFlushSfx(bool hasBlack)
@@ -318,6 +325,10 @@ public class BinCollector : MonoBehaviour
             flushingRight = value;
     }
 
+    /// <summary>
+    /// Retourne le seuil de flush effectif pour un bin donné :
+    /// seuil de base + bonus GREED agrégé.
+    /// </summary>
     public int GetEffectiveFlushThresholdFor(BinTrigger trigger)
     {
         if (trigger == null)
@@ -325,13 +336,10 @@ public class BinCollector : MonoBehaviour
 
         int baseThreshold = Mathf.Max(1, trigger.flushThreshold);
 
-        // Bonus Greed dérivé des modules équipés
         int bonus = 0;
-        if (runSession != null)
-            bonus = Mathf.Max(0, runSession.GetFlushMinBallsBonusFromModules());
+        if (ModuleRuntimeStats.Instance != null)
+            bonus = Mathf.Max(0, ModuleRuntimeStats.Instance.FlushMinBallsAdd);
 
         return Mathf.Max(1, baseThreshold + bonus);
     }
-
-
 }

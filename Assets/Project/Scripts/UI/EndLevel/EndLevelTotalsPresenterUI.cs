@@ -36,8 +36,8 @@ public class EndLevelTotalsPresenterUI : MonoBehaviour
 
     [Header("Animated Texts")]
     [SerializeField] private AnimatedIntText rawScoreAnimated;
-    [SerializeField] private AnimatedIntText goalsBonusAnimated;
-    [SerializeField] private AnimatedIntText combosBonusAnimated;
+    [SerializeField] private AnimatedIntText goalsBonusAnimated; 
+    [SerializeField] private AnimatedIntText bonusTotalAnimated;
     [SerializeField] private AnimatedIntText finalScoreAnimated;
 
     // ----------------------------------------------------------
@@ -121,7 +121,7 @@ public class EndLevelTotalsPresenterUI : MonoBehaviour
     {
         SetRawScoreInstant(0);
         SetGoalsBonusInstant(0);
-        SetCombosBonusInstant(0);
+        SetBonusTotalInstant(0);
         SetFinalScoreInstant(0);
     }
 
@@ -187,24 +187,24 @@ public class EndLevelTotalsPresenterUI : MonoBehaviour
     }
 
     // ----------------------------------------------------------
-    // COMBOS BONUS
+    // BONUS
     // ----------------------------------------------------------
 
-    public void SetCombosBonusInstant(int value)
+    public void SetBonusTotalInstant(int value)
     {
-        if (combosBonusAnimated != null)
+        if (bonusTotalAnimated != null)
         {
-            combosBonusAnimated.SetInstant(value);
+            bonusTotalAnimated.SetInstant(value);
             return;
         }
     }
 
-    public IEnumerator AnimateCombosBonus(int value)
+    public IEnumerator AnimateBonusTotal(int value)
     {
-        if (combosBonusAnimated != null)
+        if (bonusTotalAnimated != null)
         {
-            combosBonusAnimated.AnimateTo(value);
-            yield return StartCoroutine(WaitForLocalLineAnimation(combosBonusAnimated));
+            bonusTotalAnimated.AnimateTo(value);
+            yield return StartCoroutine(WaitForLocalLineAnimation(bonusTotalAnimated));
             yield break;
         }
     }

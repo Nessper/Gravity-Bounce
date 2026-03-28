@@ -19,5 +19,5 @@ public struct EndLevelOutcome
     public int SilverThreshold;
     public int GoldThreshold;
 
-    public EndMedal BestMedal;
+    public EndMedal FinalMedal;
 }

@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Gère l'accordéon Goals / Combos :
+/// Gère l'accordéon Goals / Bonus :
 /// - Expand/Collapse par animation de preferredHeight (LayoutElement)
 /// - Rotation des icônes de flèche
 /// - Anti-spam tap (cooldown)
@@ -11,7 +11,7 @@ using UnityEngine.UI;
 ///
 /// IMPORTANT :
 /// - Ne décide pas du "quand" (cérémonie) : c'est EndLevelUI.
-/// - Les boutons doivent être bind dans l'Inspector sur OnGoalsTitleClicked / OnCombosTitleClicked.
+/// - Les boutons doivent être bind dans l'Inspector sur OnGoalsTitleClicked / OnBonusTitleClicked.
 /// </summary>
 public class EndLevelAccordionUI : MonoBehaviour
 {
@@ -34,15 +34,15 @@ public class EndLevelAccordionUI : MonoBehaviour
     [SerializeField] private float goalsToggleDuration = 0.18f;
 
     // ----------------------------------------------------------
-    // COMBOS
+    // BONUS
     // ----------------------------------------------------------
 
-    [Header("Combos")]
-    [SerializeField] private Button combosTitleButton;
-    [SerializeField] private RectTransform combosLinesBlock;
-    [SerializeField] private LayoutElement combosLinesLayout;
-    [SerializeField] private RectTransform combosArrowIcon;
-    [SerializeField] private float combosToggleDuration = 0.18f;
+    [Header("Bonus")]
+    [SerializeField] private Button bonusTitleButton;
+    [SerializeField] private RectTransform bonusLinesBlock;
+    [SerializeField] private LayoutElement bonusLinesLayout;
+    [SerializeField] private RectTransform bonusArrowIcon;
+    [SerializeField] private float bonusToggleDuration = 0.18f;
 
     // ----------------------------------------------------------
     // ICONES
@@ -59,7 +59,7 @@ public class EndLevelAccordionUI : MonoBehaviour
     [SerializeField] private float toggleCooldownSec = 0.18f;
 
     private float nextGoalsToggleTime = 0f;
-    private float nextCombosToggleTime = 0f;
+    private float nextBonusToggleTime = 0f;
 
     // ----------------------------------------------------------
     // STATE
@@ -68,20 +68,20 @@ public class EndLevelAccordionUI : MonoBehaviour
     private bool togglesEnabled = false;
 
     private bool goalsExpanded = true;
-    private bool combosExpanded = true;
+    private bool bonusExpanded = true;
 
     private bool goalsIsAnimating = false;
-    private bool combosIsAnimating = false;
+    private bool bonusIsAnimating = false;
 
     private Coroutine goalsToggleRoutine;
-    private Coroutine combosToggleRoutine;
+    private Coroutine bonusToggleRoutine;
 
     // Coroutine d'accordéon (fermer puis ouvrir). On la stoppe avant d'en relancer une.
     private Coroutine accordionRoutine;
 
     // Cache de hauteur (utile car LayoutUtility peut être instable si l'objet est désactivé)
     private float cachedGoalsHeight = -1f;
-    private float cachedCombosHeight = -1f;
+    private float cachedBonusHeight = -1f;
 
     // ----------------------------------------------------------
     // PROPERTIES
@@ -92,9 +92,9 @@ public class EndLevelAccordionUI : MonoBehaviour
         get { return goalsToggleDuration; }
     }
 
-    public float CombosToggleDurationSec
+    public float BonusToggleDurationSec
     {
-        get { return combosToggleDuration; }
+        get { return bonusToggleDuration; }
     }
 
     // ----------------------------------------------------------
@@ -108,8 +108,8 @@ public class EndLevelAccordionUI : MonoBehaviour
         if (goalsTitleButton != null)
             goalsTitleButton.interactable = value;
 
-        if (combosTitleButton != null)
-            combosTitleButton.interactable = value;
+        if (bonusTitleButton != null)
+            bonusTitleButton.interactable = value;
     }
 
     public bool AreTogglesEnabled()
@@ -122,23 +122,23 @@ public class EndLevelAccordionUI : MonoBehaviour
         return goalsExpanded;
     }
 
-    public bool IsCombosExpanded()
+    public bool IsBonusExpanded()
     {
-        return combosExpanded;
+        return bonusExpanded;
     }
 
     public bool IsAnimating()
     {
-        return goalsIsAnimating || combosIsAnimating;
+        return goalsIsAnimating || bonusIsAnimating;
     }
 
     /// <summary>
     /// Permet à EndLevelUI de forcer un état au début/fin de cérémonie.
     /// </summary>
-    public void SetState(bool goalsExpandedValue, bool combosExpandedValue, bool instant)
+    public void SetState(bool goalsExpandedValue, bool bonusExpandedValue, bool instant)
     {
         SetGoalsExpanded(goalsExpandedValue, instant);
-        SetCombosExpanded(combosExpandedValue, instant);
+        SetBonusExpanded(bonusExpandedValue, instant);
     }
 
     /// <summary>
@@ -156,17 +156,17 @@ public class EndLevelAccordionUI : MonoBehaviour
     }
 
     /// <summary>
-    /// A appeler si le contenu Combos a changé (reveal),
+    /// A appeler si le contenu Bonus a changé (reveal),
     /// afin de recalculer la hauteur ouverte.
     /// </summary>
-    public void RefreshCombosCachedHeight()
+    public void RefreshBonusCachedHeight()
     {
-        if (combosLinesBlock == null)
+        if (bonusLinesBlock == null)
             return;
 
-        combosLinesBlock.gameObject.SetActive(true);
+        bonusLinesBlock.gameObject.SetActive(true);
         ForceLayoutRebuild();
-        cachedCombosHeight = Mathf.Max(0f, LayoutUtility.GetPreferredHeight(combosLinesBlock));
+        cachedBonusHeight = Mathf.Max(0f, LayoutUtility.GetPreferredHeight(bonusLinesBlock));
     }
 
     // ----------------------------------------------------------
@@ -182,69 +182,69 @@ public class EndLevelAccordionUI : MonoBehaviour
             return;
         nextGoalsToggleTime = Time.unscaledTime + toggleCooldownSec;
 
-        if (goalsIsAnimating || combosIsAnimating)
+        if (goalsIsAnimating || bonusIsAnimating)
             return;
 
         bool targetExpandGoals = !goalsExpanded;
 
-        // Si on veut ouvrir Goals alors que Combos est ouvert, on fait l'accordéon.
-        if (targetExpandGoals && combosExpanded)
+        // Si on veut ouvrir Goals alors que Bonus est ouvert, on fait l'accordéon.
+        if (targetExpandGoals && bonusExpanded)
         {
             if (accordionRoutine != null)
                 StopCoroutine(accordionRoutine);
 
-            accordionRoutine = StartCoroutine(CloseCombosThenOpenGoals());
+            accordionRoutine = StartCoroutine(CloseBonusThenOpenGoals());
             return;
         }
 
         SetGoalsExpanded(targetExpandGoals, instant: false);
     }
 
-    public void OnCombosTitleClicked()
+    public void OnBonusTitleClicked()
     {
         if (!togglesEnabled)
             return;
 
-        if (Time.unscaledTime < nextCombosToggleTime)
+        if (Time.unscaledTime < nextBonusToggleTime)
             return;
-        nextCombosToggleTime = Time.unscaledTime + toggleCooldownSec;
+        nextBonusToggleTime = Time.unscaledTime + toggleCooldownSec;
 
-        if (goalsIsAnimating || combosIsAnimating)
+        if (goalsIsAnimating || bonusIsAnimating)
             return;
 
-        bool targetExpandCombos = !combosExpanded;
+        bool targetExpandBonus = !bonusExpanded;
 
-        // Si on veut ouvrir Combos alors que Goals est ouvert, on fait l'accordéon.
-        if (targetExpandCombos && goalsExpanded)
+        // Si on veut ouvrir Bonus alors que Goals est ouvert, on fait l'accordéon.
+        if (targetExpandBonus && goalsExpanded)
         {
             if (accordionRoutine != null)
                 StopCoroutine(accordionRoutine);
 
-            accordionRoutine = StartCoroutine(CloseGoalsThenOpenCombos());
+            accordionRoutine = StartCoroutine(CloseGoalsThenOpenBonus());
             return;
         }
 
-        SetCombosExpanded(targetExpandCombos, instant: false);
+        SetBonusExpanded(targetExpandBonus, instant: false);
     }
 
     // ----------------------------------------------------------
     // ACCORDEON ROUTINES
     // ----------------------------------------------------------
 
-    private IEnumerator CloseGoalsThenOpenCombos()
+    private IEnumerator CloseGoalsThenOpenBonus()
     {
         SetGoalsExpanded(false, instant: false);
         yield return new WaitForSecondsRealtime(goalsToggleDuration);
 
-        SetCombosExpanded(true, instant: false);
+        SetBonusExpanded(true, instant: false);
 
         accordionRoutine = null;
     }
 
-    private IEnumerator CloseCombosThenOpenGoals()
+    private IEnumerator CloseBonusThenOpenGoals()
     {
-        SetCombosExpanded(false, instant: false);
-        yield return new WaitForSecondsRealtime(combosToggleDuration);
+        SetBonusExpanded(false, instant: false);
+        yield return new WaitForSecondsRealtime(bonusToggleDuration);
 
         SetGoalsExpanded(true, instant: false);
 
@@ -262,7 +262,6 @@ public class EndLevelAccordionUI : MonoBehaviour
             StopCoroutine(accordionRoutine);
             accordionRoutine = null;
         }
-
 
         if (goalsLinesBlock == null || goalsLinesLayout == null)
             return;
@@ -313,10 +312,10 @@ public class EndLevelAccordionUI : MonoBehaviour
     }
 
     // ----------------------------------------------------------
-    // EXPAND / COLLAPSE COMBOS
+    // EXPAND / COLLAPSE BONUS
     // ----------------------------------------------------------
 
-    public void SetCombosExpanded(bool expanded, bool instant)
+    public void SetBonusExpanded(bool expanded, bool instant)
     {
         if (accordionRoutine != null)
         {
@@ -324,51 +323,51 @@ public class EndLevelAccordionUI : MonoBehaviour
             accordionRoutine = null;
         }
 
-        if (combosLinesBlock == null || combosLinesLayout == null)
+        if (bonusLinesBlock == null || bonusLinesLayout == null)
             return;
 
-        combosExpanded = expanded;
-        UpdateArrowIcon(combosArrowIcon, combosExpanded, instant);
+        bonusExpanded = expanded;
+        UpdateArrowIcon(bonusArrowIcon, bonusExpanded, instant);
 
-        if (combosToggleRoutine != null)
-            StopCoroutine(combosToggleRoutine);
+        if (bonusToggleRoutine != null)
+            StopCoroutine(bonusToggleRoutine);
 
         if (expanded)
         {
-            combosLinesBlock.gameObject.SetActive(true);
+            bonusLinesBlock.gameObject.SetActive(true);
             ForceLayoutRebuild();
-            cachedCombosHeight = Mathf.Max(0f, LayoutUtility.GetPreferredHeight(combosLinesBlock));
+            cachedBonusHeight = Mathf.Max(0f, LayoutUtility.GetPreferredHeight(bonusLinesBlock));
         }
 
-        float from = combosLinesLayout.preferredHeight;
-        if (from <= 0f && combosLinesBlock.gameObject.activeSelf)
-            from = Mathf.Max(0f, LayoutUtility.GetPreferredHeight(combosLinesBlock));
+        float from = bonusLinesLayout.preferredHeight;
+        if (from <= 0f && bonusLinesBlock.gameObject.activeSelf)
+            from = Mathf.Max(0f, LayoutUtility.GetPreferredHeight(bonusLinesBlock));
 
-        float openHeight = (cachedCombosHeight > 0f) ? cachedCombosHeight : GetPreferredHeightSafe(combosLinesBlock);
+        float openHeight = (cachedBonusHeight > 0f) ? cachedBonusHeight : GetPreferredHeightSafe(bonusLinesBlock);
         float to = expanded ? openHeight : 0f;
 
         if (instant)
         {
-            combosIsAnimating = false;
+            bonusIsAnimating = false;
 
-            combosLinesLayout.preferredHeight = to;
+            bonusLinesLayout.preferredHeight = to;
             if (!expanded)
-                combosLinesBlock.gameObject.SetActive(false);
+                bonusLinesBlock.gameObject.SetActive(false);
 
             ForceLayoutRebuild();
             return;
         }
 
-        combosIsAnimating = true;
+        bonusIsAnimating = true;
 
-        combosToggleRoutine = StartCoroutine(AnimateSectionHeight(
-            layout: combosLinesLayout,
-            block: combosLinesBlock,
+        bonusToggleRoutine = StartCoroutine(AnimateSectionHeight(
+            layout: bonusLinesLayout,
+            block: bonusLinesBlock,
             from: from,
             to: to,
-            duration: combosToggleDuration,
+            duration: bonusToggleDuration,
             disableAtEnd: !expanded,
-            onDone: () => combosIsAnimating = false
+            onDone: () => bonusIsAnimating = false
         ));
     }
 

@@ -4,8 +4,13 @@ using UnityEngine;
 /// <summary>
 /// Affiche dans "SHIP STATUS" :
 /// - Money (icône + valeur) via TMP RichText
-/// - Hull via HullUI (même comportement couleurs que gameplay, feedback OFF),
+/// - Hull via HullUI (même comportement couleurs que gameplay, feedback dégâts OFF),
 ///   avec icône inline grâce à HullUI.prefixRichText.
+/// - En cas de réparation de coque : petit feedback visuel positif + SFX.
+///
+/// IMPORTANT :
+/// - Le shop écoute directement RunSessionState.
+/// - Le feedback de réparation est déclenché uniquement si le hull augmente.
 /// </summary>
 public class ShopShipStatusController : MonoBehaviour
 {
@@ -17,6 +22,9 @@ public class ShopShipStatusController : MonoBehaviour
 
     [Header("Hull (via HullUI)")]
     [SerializeField] private HullUI hullUI;
+
+    [Header("SFX")]
+    [SerializeField] private SfxId repairHullSfx = SfxId.AddHull;
 
     [Header("TMP Sprites")]
     [Tooltip("Nom EXACT du sprite dans le TMP SpriteAsset (ex: 'icon_money').")]
@@ -31,6 +39,9 @@ public class ShopShipStatusController : MonoBehaviour
 
     private bool hullPassiveModeApplied = false;
 
+    // Dernière valeur connue pour détecter un gain de hull
+    private int lastKnownHull = -1;
+
     private void OnEnable()
     {
         if (runSession != null)
@@ -41,6 +52,10 @@ public class ShopShipStatusController : MonoBehaviour
         }
 
         RefreshAll();
+
+        // Important : initialise la valeur de référence après le refresh initial
+        if (runSession != null)
+            lastKnownHull = Mathf.Max(0, runSession.Hull);
     }
 
     private void OnDisable()
@@ -59,6 +74,7 @@ public class ShopShipStatusController : MonoBehaviour
         int money = 0;
         if (runSession != null) money = runSession.Money;
         else if (SaveManager.Instance != null) money = SaveManager.Instance.GetMoney();
+
         RefreshMoney(money);
 
         // Hull
@@ -97,7 +113,17 @@ public class ShopShipStatusController : MonoBehaviour
         if (runSession == null)
             return;
 
-        RefreshHull(newValue, runSession.HullMax);
+        int clampedNew = Mathf.Max(0, newValue);
+        bool repaired = lastKnownHull >= 0 && clampedNew > lastKnownHull;
+
+        RefreshHull(clampedNew, runSession.HullMax);
+        lastKnownHull = clampedNew;
+
+        if (repaired)
+        {
+            BootRoot.Audio?.PlayUi(repairHullSfx);
+            hullUI?.PlayRepairFeedback();
+        }
     }
 
     private void HandleHullMaxChanged(int newValue)
@@ -116,7 +142,7 @@ public class ShopShipStatusController : MonoBehaviour
         int c = Mathf.Max(0, current);
         int m = Mathf.Max(1, max);
 
-        // Shop = mode passif (pas de punch/flash) (appliqué une fois)
+        // Shop = mode passif pour les dégâts (pas de flash rouge auto)
         if (!hullPassiveModeApplied)
         {
             hullUI.SetDamageFeedbackEnabled(false);

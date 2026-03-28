@@ -18,8 +18,10 @@ using UnityEngine.SceneManagement;
 /// - Une seule injection par session Play pour éviter les doubles initialisations.
 /// - Chaque lancement debug repart d'une nouvelle run (ResetRunState).
 /// - Le HullMax n'est jamais persisté ici : il reste dérivé du ship plus tard.
-/// - Les modules debug sont stockés comme vrais moduleId, puis injectés dans l'équipement de run.
-///
+/// - Les modules debug sont stockés comme vrais moduleId, puis injectés dans la run.
+/// - En debug, un module pré-équipé est aussi ajouté aux modules owned de la run,
+///   ainsi que ses tiers précédents dans la même famille.
+/// 
 /// Note Inspector :
 /// - debugWorldId, debugNodeIndex, debugShipId et debugEquippedModuleIds sont cachés.
 /// - Ils restent sérialisés pour stocker la config choisie via le Custom Editor.
@@ -94,7 +96,6 @@ public class MainDebugStarterV3 : MonoBehaviour
 
         s_hasAppliedThisPlaySession = true;
 
-        // Flag global runtime pour l'équipement debug des modules.
         RunSessionState.DebugTreatAllModulesAsOwnedGlobal = debugTreatAllModulesAsOwned;
 
         Debug.Log("[MainDebugStarterV3] Debug injection active. Destination=" + startDestination);
@@ -178,6 +179,7 @@ public class MainDebugStarterV3 : MonoBehaviour
         SaveManager.Instance.SetCurrentRunScore(Mathf.Max(0, debugRunScore));
         SaveManager.Instance.SetMoney(Mathf.Max(0, debugMoney));
 
+        InjectDebugOwnedModulesIntoSave(run);
         InjectDebugModulesIntoSave(run);
 
         SaveManager.Instance.Save();
@@ -193,6 +195,58 @@ public class MainDebugStarterV3 : MonoBehaviour
             " | RunScore=" + Mathf.Max(0, debugRunScore));
 
         return true;
+    }
+
+    private void InjectDebugOwnedModulesIntoSave(RunStateData run)
+    {
+        EnsureDebugModuleArrayInitialized();
+
+        if (run == null)
+            return;
+
+        if (run.ownedModuleIdsInRun == null)
+            run.ownedModuleIdsInRun = new List<string>();
+        else
+            run.ownedModuleIdsInRun.Clear();
+
+        if (!ModuleCatalogService.EnsureLoaded())
+            return;
+
+        HashSet<string> ownedIds = new HashSet<string>(StringComparer.Ordinal);
+
+        for (int i = 0; i < debugEquippedModuleIds.Length; i++)
+        {
+            string moduleId = string.IsNullOrWhiteSpace(debugEquippedModuleIds[i])
+                ? null
+                : debugEquippedModuleIds[i].Trim();
+
+            if (string.IsNullOrEmpty(moduleId))
+                continue;
+
+            ModuleDefinition equippedDef = ModuleCatalogService.GetById(moduleId);
+            if (equippedDef == null)
+                continue;
+
+            if (string.IsNullOrWhiteSpace(equippedDef.familyId))
+            {
+                ownedIds.Add(equippedDef.id);
+                continue;
+            }
+
+            List<ModuleDefinition> familyModules = ModuleCatalogService.GetModulesByFamily(equippedDef.familyId);
+            for (int j = 0; j < familyModules.Count; j++)
+            {
+                ModuleDefinition familyDef = familyModules[j];
+                if (familyDef == null)
+                    continue;
+
+                if (familyDef.tier <= equippedDef.tier)
+                    ownedIds.Add(familyDef.id);
+            }
+        }
+
+        foreach (string id in ownedIds)
+            run.ownedModuleIdsInRun.Add(id);
     }
 
     private void InjectDebugModulesIntoSave(RunStateData run)
@@ -241,6 +295,9 @@ public class MainDebugStarterV3 : MonoBehaviour
                 Debug.LogWarning("[MainDebugStarterV3] Debug module ignored (duplicate family): " + moduleId);
                 continue;
             }
+
+            if (equippedCount >= run.equippedModuleIds.Length)
+                break;
 
             run.equippedModuleIds[equippedCount] = moduleId;
             equippedCount++;

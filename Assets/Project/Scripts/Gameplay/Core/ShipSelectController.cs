@@ -1,3 +1,5 @@
+// Chemin recommandé (projet Unity) : Scripts/UI/ShipSelect/ShipSelectController.cs
+
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,6 +9,14 @@ using TMPro;
 /// Controle la scene Ship Select.
 /// Gere la navigation dans le catalogue, l affichage, le choix du vaisseau et l initialisation d une run.
 /// Les transitions de scene sont deleguees a GameFlowController via BootRoot.
+///
+/// Regle debug :
+/// - Les vaisseaux marques debugOnly ne doivent pas apparaitre en mode normal.
+/// - Ils restent visibles uniquement si le debug global est actif (PlayerPref VS_DEBUG_MAIN = 1).
+///
+/// Hypothese de design :
+/// - Ce controleur est le seul endroit du jeu ou le joueur choisit son vaisseau.
+/// - On applique donc ici un filtrage local, sans refactor plus large du catalogue.
 /// </summary>
 public class ShipSelectController : MonoBehaviour
 {
@@ -22,8 +32,11 @@ public class ShipSelectController : MonoBehaviour
     [SerializeField] private TMP_Text shieldText;
     [SerializeField] private TMP_Text paddleWidthText;
 
-    // Index du vaisseau courant dans le catalogue
+    // Index du vaisseau courant dans le catalogue brut.
     private int index = 0;
+
+    // Cle du PlayerPref utilisee par ton flow debug.
+    private const string DebugPlayerPrefKey = "VS_DEBUG_MAIN";
 
     private void Awake()
     {
@@ -32,6 +45,15 @@ public class ShipSelectController : MonoBehaviour
             ShipCatalogService.Catalog.ships.Count == 0)
         {
             Debug.LogError("[ShipSelectController] ShipCatalog non charge ou vide.");
+            enabled = false;
+            return;
+        }
+
+        // Securite : si aucun vaisseau visible n existe pour ce mode,
+        // on desactive le controleur pour eviter une navigation infinie.
+        if (!HasAnyVisibleShip())
+        {
+            Debug.LogError("[ShipSelectController] Aucun vaisseau visible pour le mode courant.");
             enabled = false;
             return;
         }
@@ -48,8 +70,15 @@ public class ShipSelectController : MonoBehaviour
         string savedId = ResolveInitialShipIdForUI();
 
         var ships = ShipCatalogService.Catalog.ships;
-        int found = ships.FindIndex(s => s.id == savedId);
+        int found = ships.FindIndex(s => s != null && s.id == savedId);
+
+        // Si on retrouve le ship sauvegarde, on s aligne dessus.
+        // Sinon fallback sur 0.
         index = (found >= 0) ? found : 0;
+
+        // Si l index tombe sur un ship debug non visible en mode normal,
+        // on avance jusqu au prochain ship autorise.
+        EnsureCurrentIndexIsVisible();
 
         RefreshUI();
     }
@@ -58,17 +87,45 @@ public class ShipSelectController : MonoBehaviour
     // Navigation callbacks (Inspector)
     // ---------------------------------------------------------
 
+    /// <summary>
+    /// Navigue vers le vaisseau precedent visible.
+    /// Les ships debugOnly sont ignores en mode normal.
+    /// </summary>
     public void OnPreviousPressed()
     {
-        int count = ShipCatalogService.Catalog.ships.Count;
-        index = (index - 1 + count) % count;
+        var ships = ShipCatalogService.Catalog.ships;
+        int count = ships.Count;
+
+        if (count == 0)
+            return;
+
+        do
+        {
+            index = (index - 1 + count) % count;
+        }
+        while (!IsShipVisibleAt(index));
+
         RefreshUI();
     }
 
+    /// <summary>
+    /// Navigue vers le vaisseau suivant visible.
+    /// Les ships debugOnly sont ignores en mode normal.
+    /// </summary>
     public void OnNextPressed()
     {
-        int count = ShipCatalogService.Catalog.ships.Count;
-        index = (index + 1) % count;
+        var ships = ShipCatalogService.Catalog.ships;
+        int count = ships.Count;
+
+        if (count == 0)
+            return;
+
+        do
+        {
+            index = (index + 1) % count;
+        }
+        while (!IsShipVisibleAt(index));
+
         RefreshUI();
     }
 
@@ -76,6 +133,10 @@ public class ShipSelectController : MonoBehaviour
     // Back button
     // ---------------------------------------------------------
 
+    /// <summary>
+    /// Retour au Title.
+    /// On indique au RunConfig de ne pas rejouer l intro title au retour.
+    /// </summary>
     public void OnBackPressed()
     {
         if (RunConfig.Instance != null)
@@ -88,6 +149,10 @@ public class ShipSelectController : MonoBehaviour
     // Start button + run init (NEW CONVENTION)
     // ---------------------------------------------------------
 
+    /// <summary>
+    /// Initialise une nouvelle run avec le ship actuellement selectionne,
+    /// puis lance le RunHub apres fade out de la musique.
+    /// </summary>
     public void OnStartPressed()
     {
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
@@ -96,7 +161,16 @@ public class ShipSelectController : MonoBehaviour
             return;
         }
 
+        EnsureCurrentIndexIsVisible();
+
         var ship = ShipCatalogService.Catalog.ships[index];
+
+        // Securite supplementaire : empeche le demarrage d un ship debug en mode normal.
+        if (ship != null && ship.debugOnly && !IsDebugActive())
+        {
+            Debug.LogWarning("[ShipSelectController] Tentative de demarrage avec un ship debug en mode normal.");
+            return;
+        }
 
         // 1) RunConfig (UI): utile pour l affichage et le flow Title, mais pas source de verite gameplay
         if (RunConfig.Instance != null)
@@ -127,11 +201,9 @@ public class ShipSelectController : MonoBehaviour
         // Ici on initialise simplement le hull courant "plein" sur la base du ship.
         run.remainingHullInRun = Mathf.Max(1, ship.maxHull);
 
-
         run.remainingContractLives = 3;
         run.currentRunScore = 0;
         run.nodesClearedInRun = 0;
-
 
         // Pas en gameplay
         run.levelInProgress = false;
@@ -147,6 +219,9 @@ public class ShipSelectController : MonoBehaviour
         StartCoroutine(StartAfterMusicFadeRoutine());
     }
 
+    /// <summary>
+    /// Attend le fade out de la musique du title avant de lancer le RunHub.
+    /// </summary>
     private IEnumerator StartAfterMusicFadeRoutine()
     {
         if (TitleMusicPlayer.Instance != null)
@@ -159,9 +234,19 @@ public class ShipSelectController : MonoBehaviour
     // UI refresh
     // ---------------------------------------------------------
 
+    /// <summary>
+    /// Rafraichit tout l affichage a partir du ship courant.
+    /// </summary>
     private void RefreshUI()
     {
+        EnsureCurrentIndexIsVisible();
+
         var ship = ShipCatalogService.Catalog.ships[index];
+        if (ship == null)
+        {
+            Debug.LogWarning("[ShipSelectController] Ship null a l index " + index);
+            return;
+        }
 
         if (shipNameText != null)
             shipNameText.text = ship.displayName;
@@ -193,12 +278,14 @@ public class ShipSelectController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Retire l extension d un nom de fichier, car Resources.Load ne veut pas ".png".
+    /// </summary>
     private string StripExtension(string fileName)
     {
         if (string.IsNullOrEmpty(fileName))
             return string.Empty;
 
-        // Resources.Load ne veut pas l extension (.png)
         int dot = fileName.LastIndexOf('.');
         if (dot <= 0)
             return fileName;
@@ -210,14 +297,17 @@ public class ShipSelectController : MonoBehaviour
     // Initial selection
     // ---------------------------------------------------------
 
+    /// <summary>
+    /// Determine quel ship doit etre selectionne a l ouverture de l ecran.
+    ///
+    /// Priorite:
+    /// 1) Ship de run si une run est en cours (resume)
+    /// 2) Dernier choix persistant du profil
+    /// 3) RunConfig (fallback dev)
+    /// 4) CORE_SCOUT
+    /// </summary>
     private string ResolveInitialShipIdForUI()
     {
-        // Priorite:
-        // 1) Ship de run si une run est en cours (resume)
-        // 2) Dernier choix persistant du profil
-        // 3) RunConfig (fallback dev)
-        // 4) CORE_SCOUT
-
         string id = "CORE_SCOUT";
 
         if (SaveManager.Instance != null && SaveManager.Instance.Current != null)
@@ -237,5 +327,78 @@ public class ShipSelectController : MonoBehaviour
         return id;
     }
 
-    
+    // ---------------------------------------------------------
+    // Debug visibility helpers
+    // ---------------------------------------------------------
+
+    /// <summary>
+    /// Retourne true si le debug global est actif.
+    /// </summary>
+    private bool IsDebugActive()
+    {
+        return PlayerPrefs.GetInt(DebugPlayerPrefKey, 0) == 1;
+    }
+
+    /// <summary>
+    /// Retourne true si le ship a l index donne est visible dans le mode courant.
+    /// </summary>
+    private bool IsShipVisibleAt(int shipIndex)
+    {
+        var ships = ShipCatalogService.Catalog.ships;
+
+        if (ships == null || shipIndex < 0 || shipIndex >= ships.Count)
+            return false;
+
+        ShipDefinition ship = ships[shipIndex];
+        if (ship == null)
+            return false;
+
+        if (ship.debugOnly && !IsDebugActive())
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Verifie qu il existe au moins un ship visible pour le mode courant.
+    /// Evite les boucles infinies dans Previous/Next.
+    /// </summary>
+    private bool HasAnyVisibleShip()
+    {
+        var ships = ShipCatalogService.Catalog.ships;
+        if (ships == null || ships.Count == 0)
+            return false;
+
+        for (int i = 0; i < ships.Count; i++)
+        {
+            if (IsShipVisibleAt(i))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Si l index courant pointe vers un ship non visible,
+    /// avance jusqu au prochain ship autorise.
+    /// </summary>
+    private void EnsureCurrentIndexIsVisible()
+    {
+        var ships = ShipCatalogService.Catalog.ships;
+        if (ships == null || ships.Count == 0)
+            return;
+
+        index = Mathf.Clamp(index, 0, ships.Count - 1);
+
+        if (IsShipVisibleAt(index))
+            return;
+
+        int startIndex = index;
+
+        do
+        {
+            index = (index + 1) % ships.Count;
+        }
+        while (!IsShipVisibleAt(index) && index != startIndex);
+    }
 }

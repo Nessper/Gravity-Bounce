@@ -10,8 +10,9 @@ public enum SfxId
     ShopBuy,
     ShopError,
     ShopReroll,
+    AddHull,
 
-    // Flow
+  
     CountdownTick,
     CountdownGo,
     EvacTick,
@@ -19,7 +20,6 @@ public enum SfxId
     Defeat,
     GameOver,
 
-    // Gameplay
     PaddleHit,
     WallHit,
     TopBinHit,
@@ -28,15 +28,17 @@ public enum SfxId
     FlushBlack,
     FlushNormal,
     CloseBin,
-    
-    // Dialogs
+
     DialogGlitch,
     
 
-    // Combos
     ComboBasic,
     ComboRare,
-    ComboFinal
+    ComboFinal,
+
+    AddMaxHull,
+    ModuleAddHull,
+    ModuleAddMaxHull
 }
 
 

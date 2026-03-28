@@ -100,6 +100,7 @@ public class LevelManager : MonoBehaviour
 
     [Header("Controllers")]
     [SerializeField] private LevelEvacuationController evacuationController;
+    [SerializeField] private LevelEndModuleBonusController endModuleBonusController;
 
     [Header("Flow Helpers")]
     [SerializeField] private LevelPauseFlowHandler pauseFlowHandler;
@@ -206,8 +207,14 @@ public class LevelManager : MonoBehaviour
         SetupObstacles();
 
         // 7) Evacuation
+        // 7) Evacuation
         if (evacuationController != null)
-            evacuationController.Configure(data);
+        {
+            evacuationController.Configure(
+                data,
+                onBeforeBoardOutroCb: PlayPreBoardOutroBonuses
+            );
+        }
 
         // 8) Briefing / intro
         levelMusicDirector?.SelectRandomPair();
@@ -589,7 +596,6 @@ public class LevelManager : MonoBehaviour
     private IEnumerator EndOfLevelFinalizeRoutine()
     {
         // On attend que le gameplay soit officiellement scelle (flush final fini)
-        // Normalement c est deja vrai ici, mais ce guard evite les races.
         float timeout = 2f;
         float t = 0f;
         while (!gameplaySealed && t < timeout)
@@ -607,10 +613,18 @@ public class LevelManager : MonoBehaviour
 
         ballSpawner?.LogStats();
 
-        // Evaluation + declenchement UI de fin (comme avant)
-        EvaluateLevelResult();
+        // Evaluation + declenchement UI de fin
+        yield return StartCoroutine(EvaluateLevelResultRoutine());
     }
 
+    private IEnumerator PlayPreBoardOutroBonuses()
+    {
+        if (endModuleBonusController == null)
+            yield break;
+
+        bool mainGoalAchieved = scoreManager != null && scoreManager.MainGoalAchieved;
+        yield return StartCoroutine(endModuleBonusController.PlayPreCeremonyBonuses(mainGoalAchieved));
+    }
 
     /// <summary>
     /// Hard stop (GameOver Hull <= 0) : stop gameplay immediat sans evacuation.
@@ -731,12 +745,12 @@ public class LevelManager : MonoBehaviour
     // EVALUATION (Resultats)
     // =====================================================================
 
-    private void EvaluateLevelResult()
+    private IEnumerator EvaluateLevelResultRoutine()
     {
         if (scoreManager == null || data == null)
         {
             Debug.LogWarning("[LevelManager] ScoreManager ou LevelData manquants, evaluation impossible.");
-            return;
+            yield break;
         }
 
         int elapsed = Mathf.RoundToInt(levelTimer != null ? levelTimer.GetElapsedTime() : 0f);
@@ -756,8 +770,9 @@ public class LevelManager : MonoBehaviour
         if (evalResult.Stats == null)
         {
             Debug.LogWarning("[LevelManager] Evaluation de fin de niveau invalide (Stats null).");
-            return;
+            yield break;
         }
+
 
         // ===================================================
         // TOKEN (source de vérité = SaveManager.runState)
@@ -804,12 +819,6 @@ public class LevelManager : MonoBehaviour
         // -----------------------------------------------
         if (SaveManager.Instance != null && endLevelToken.HasValue)
         {
-            // ============================================================
-            // NEW (SEALED) :
-            // On "scelle" explicitement le token dans la save.
-            // Sans ça, hasPendingEndToken n'est jamais vrai, et ton système
-            // anti double-commit / reprise n'a pas de pivot.
-            // ============================================================
             SaveManager.Instance.SetPendingEndToken(endLevelToken.Value);
 
             List<SecondaryObjectiveResult> secondary = GetSecondaryObjectiveResults();
@@ -845,7 +854,7 @@ public class LevelManager : MonoBehaviour
             if (runSessionState != null && runSessionState.Hull <= 0)
             {
                 Debug.Log("[LevelManager] EvaluateLevelResult -> ceremonie annulee (Hull <= 0)");
-                return;
+                yield break;
             }
 
             if (endLevelToken.HasValue)

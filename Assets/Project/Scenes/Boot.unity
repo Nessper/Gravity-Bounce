@@ -255,7 +255,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
-  m_Volume: 0.1
+  m_Volume: 0.2
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -499,7 +499,7 @@ MonoBehaviour:
     pitch: 1
     usePitchJitter: 0
     pitchJitter: 0
-  - id: 22
+  - id: 23
     clip: {fileID: 8300000, guid: 81e8184da8d110c40a386f418f9451b1, type: 3}
     volume: 1
     pitch: 1
@@ -511,31 +511,31 @@ MonoBehaviour:
     pitch: 1
     usePitchJitter: 0
     pitchJitter: 0
-  - id: 8
+  - id: 10
     clip: {fileID: 8300000, guid: 5a713f3d6cbc9a942a9223f54eb12abd, type: 3}
     volume: 1
     pitch: 1.2
     usePitchJitter: 0
     pitchJitter: 0
-  - id: 19
+  - id: 20
     clip: {fileID: 8300000, guid: 96608b02eb6d9ff4986a36b5a47b89f1, type: 3}
     volume: 1
     pitch: 1
     usePitchJitter: 0
     pitchJitter: 0
-  - id: 10
+  - id: 11
     clip: {fileID: 8300000, guid: 5a713f3d6cbc9a942a9223f54eb12abd, type: 3}
     volume: 1
     pitch: 1
     usePitchJitter: 0
     pitchJitter: 0
-  - id: 14
+  - id: 15
     clip: {fileID: 8300000, guid: c5bd504504525c94390e2eac0b771916, type: 3}
     volume: 0.6
     pitch: 1
     usePitchJitter: 0
     pitchJitter: 0
-  - id: 20
+  - id: 21
     clip: {fileID: 8300000, guid: 47a439ff7d8755e45b85297455757710, type: 3}
     volume: 1
     pitch: 1.1
@@ -559,7 +559,7 @@ MonoBehaviour:
     pitch: 1
     usePitchJitter: 0
     pitchJitter: 0
-  - id: 21
+  - id: 22
     clip: {fileID: 8300000, guid: 7f6dc26afade07a4b969382353629ada, type: 3}
     volume: 0.6
     pitch: 1
@@ -583,28 +583,28 @@ MonoBehaviour:
     pitch: 1
     usePitchJitter: 0
     pitchJitter: 0
-  - id: 0
-    clip: {fileID: 0}
-    volume: 0
-    pitch: 0
+  - id: 8
+    clip: {fileID: 8300000, guid: 77c9f664a137cfd45adfa8da2d038177, type: 3}
+    volume: 1
+    pitch: 1
+    usePitchJitter: 1
+    pitchJitter: 0
+  - id: 27
+    clip: {fileID: 8300000, guid: 77c9f664a137cfd45adfa8da2d038177, type: 3}
+    volume: 1
+    pitch: 0.8
     usePitchJitter: 0
     pitchJitter: 0
-  - id: 0
-    clip: {fileID: 0}
-    volume: 0
-    pitch: 0
+  - id: 28
+    clip: {fileID: 8300000, guid: 38270261942e28a44b1c9160a12e8031, type: 3}
+    volume: 1
+    pitch: 1
     usePitchJitter: 0
     pitchJitter: 0
-  - id: 0
-    clip: {fileID: 0}
-    volume: 0
-    pitch: 0
-    usePitchJitter: 0
-    pitchJitter: 0
-  - id: 0
-    clip: {fileID: 0}
-    volume: 0
-    pitch: 0
+  - id: 29
+    clip: {fileID: 8300000, guid: 38270261942e28a44b1c9160a12e8031, type: 3}
+    volume: 1
+    pitch: 1.3
     usePitchJitter: 0
     pitchJitter: 0
   - id: 0
@@ -679,6 +679,8 @@ Transform:
   - {fileID: 1063119616}
   - {fileID: 243999504}
   - {fileID: 1114376730}
+  - {fileID: 1229595829}
+  - {fileID: 1972592348}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1110301953
@@ -740,6 +742,59 @@ MonoBehaviour:
   analyticsEnabled: 1
   versionOverride: 0.1
   formResponseUrl: https://docs.google.com/forms/d/e/1FAIpQLSdmMNzi7Y0KsUdeFd0vISFq-b3CbZZa4uzg_XtzrGNLFBCAjw/formResponse
+--- !u!1 &1229595828
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1229595829}
+  - component: {fileID: 1229595830}
+  m_Layer: 0
+  m_Name: ModuleRuntimeStats
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1229595829
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1229595828}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1110301952}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1229595830
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1229595828}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 539910cdcf8469c45b21deef686b1ffa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ModuleRuntimeStats
+  runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
+  briefingScanTier: 0
+  hullMaxAdd: 0
+  flushMinBallsAdd: 0
+  sustainHullGainEndLevel: 0
+  sustainMoneyGainEndLevel: 0
+  OnStatsRebuilt:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1533193939
 GameObject:
   m_ObjectHideFlags: 0
@@ -1299,6 +1354,51 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlatformTuning
   desktopGravityMult: 1
   mobileGravityMult: 0.8
+--- !u!1 &1972592347
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1972592348}
+  - component: {fileID: 1972592349}
+  m_Layer: 0
+  m_Name: RunModuleEquipmentService
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1972592348
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1972592347}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1110301952}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1972592349
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1972592347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c23bfbc11e95e5489c2acd377df6dbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunModuleEquipmentService
+  runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
 --- !u!1 &2024650992
 GameObject:
   m_ObjectHideFlags: 0

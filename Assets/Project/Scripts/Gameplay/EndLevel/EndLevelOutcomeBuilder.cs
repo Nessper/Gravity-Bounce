@@ -10,16 +10,17 @@ public static class EndLevelOutcomeBuilder
 
         ExtractThresholds(levelData, out bronze, out silver, out gold);
 
-        EndMedal medal = ComputeBestMedal(finalScore, bronze, silver, gold);
+        int clampedFinalScore = Mathf.Max(0, finalScore);
+        EndMedal finalMedal = ComputeFinalMedal(clampedFinalScore, bronze, silver, gold);
 
         EndLevelOutcome outcome = new EndLevelOutcome
         {
             IsVictory = isVictory,
-            FinalScore = Mathf.Max(0, finalScore),
+            FinalScore = clampedFinalScore,
             BronzeThreshold = bronze,
             SilverThreshold = silver,
             GoldThreshold = gold,
-            BestMedal = medal
+            FinalMedal = finalMedal
         };
 
         return outcome;
@@ -55,7 +56,7 @@ public static class EndLevelOutcomeBuilder
         }
     }
 
-    private static EndMedal ComputeBestMedal(int score, int bronze, int silver, int gold)
+    private static EndMedal ComputeFinalMedal(int score, int bronze, int silver, int gold)
     {
         if (gold > 0 && score >= gold)
             return EndMedal.Gold;

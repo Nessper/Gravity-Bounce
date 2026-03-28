@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class LevelEndFlowController : MonoBehaviour
@@ -14,11 +15,14 @@ public class LevelEndFlowController : MonoBehaviour
     [Header("Root (parent de finalPanelUI)")]
     [SerializeField] private GameObject endLevelRoot;
 
-    [Header("HUD Gameplay (a masquer endLevelRoot)")]
+    [Header("HUD Gameplay (à masquer avant endLevelRoot)")]
     [SerializeField] private GameObject hudGameplay;
 
     [Header("Final Panel UI")]
     [SerializeField] private FinalPanelUI finalPanelUI;
+
+    [Header("Final Score Bar UI")]
+    [SerializeField] private FinalScoreBarUI finalScoreBarUI;
 
     [Header("Panels UI (switch HUD_Bottom -> Final_Panel)")]
     [SerializeField] private GameObject principalPanel;
@@ -44,6 +48,9 @@ public class LevelEndFlowController : MonoBehaviour
     [Header("Next Transition")]
     [SerializeField] private NextTransitionController nextTransition;
 
+    [Header("Cleanup")]
+    [SerializeField] private VoidScrappers.Gameplay.Balls.BallsCleanupService ballsCleanupService;
+
     private EndLevelOutcome lastOutcome;
     private bool hasOutcome;
 
@@ -52,7 +59,6 @@ public class LevelEndFlowController : MonoBehaviour
 
     private bool isRunning;
     private bool navigationLocked;
-
     private bool forcedGameOver;
 
     private EndType lastEndType;
@@ -61,14 +67,21 @@ public class LevelEndFlowController : MonoBehaviour
     private bool commitPrepared;
     private FinalCommitSnapshot commitSnapshot;
 
-    [Header("Cleanup")]
-    [SerializeField] private VoidScrappers.Gameplay.Balls.BallsCleanupService ballsCleanupService;
-
     private enum EndType
     {
         Victory,
         Defeat,
         GameOver
+    }
+
+    /// <summary>
+    /// Représente une ligne de récompense d'argent révélée
+    /// une par une dans le panneau final.
+    /// </summary>
+    private struct MoneyRewardLine
+    {
+        public string Label;
+        public int Amount;
     }
 
     private struct FinalCommitSnapshot
@@ -82,6 +95,7 @@ public class LevelEndFlowController : MonoBehaviour
         public int MoneyBefore;
         public int MoneyAfter;
         public bool RevealMoney;
+        public List<MoneyRewardLine> MoneyRewardLines;
 
         public string SequenceId;
 
@@ -109,7 +123,6 @@ public class LevelEndFlowController : MonoBehaviour
         commitPrepared = false;
         commitSnapshot = default;
 
-        // Signature avec token.
         endLevelUI.OnCeremonyFinished += HandleCeremonyFinished;
     }
 
@@ -120,7 +133,7 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Callback appele a la fin de la ceremonie normale.
+    /// Callback appelé à la fin de la cérémonie normale.
     /// </summary>
     private void HandleCeremonyFinished(EndLevelOutcome outcome, EndLevelToken token)
     {
@@ -135,18 +148,14 @@ public class LevelEndFlowController : MonoBehaviour
 
         PrepareAndCommitOnce(outcome, token);
 
-        // ==============================
-        // ANALYTICS
-        // ==============================
         if (AlphaAnalytics.Instance != null)
         {
             AlphaAnalytics.Instance.SendLevelEnd(
                 token.LevelId,
                 outcome.IsVictory ? "victory" : "defeat",
-                outcome.BestMedal.ToString().ToLower()
+                outcome.FinalMedal.ToString().ToLower()
             );
 
-            // Fin complete de la run par victoire finale
             if (commitSnapshot.RunCompletedAfterCommit)
             {
                 AlphaAnalytics.Instance.SendRunEnd(
@@ -155,7 +164,6 @@ public class LevelEndFlowController : MonoBehaviour
                     true
                 );
             }
-            // Fin de run par perte de la derniere vie de contrat
             else if (lastEndType == EndType.GameOver)
             {
                 AlphaAnalytics.Instance.SendRunEnd(
@@ -168,15 +176,14 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Annule explicitement toute ceremonie / flow de fin en cours.
-    /// Cette methode est utilisee par le GameOver Hull pour prendre la main.
+    /// Annule explicitement toute cérémonie / flow de fin en cours.
+    /// Cette méthode est utilisée par le GameOver Hull pour prendre la main.
     /// </summary>
     public void AbortPendingCeremony()
     {
         if (endLevelUI != null)
             endLevelUI.AbortCeremony();
 
-        // Coupe aussi toute coroutine locale potentielle du controller.
         StopAllCoroutines();
 
         isRunning = false;
@@ -193,7 +200,7 @@ public class LevelEndFlowController : MonoBehaviour
 
         if (!hasOutcome || !commitPrepared)
         {
-            Debug.LogWarning("[LevelEndFlowController] OnClickShowFinalPanel: outcome/commit non pret.");
+            Debug.LogWarning("[LevelEndFlowController] OnClickShowFinalPanel: outcome/commit non prêt.");
             return;
         }
 
@@ -219,8 +226,8 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Prepare les consequences de fin de niveau et les commits de progression.
-    /// Cette methode ne doit s'executer qu'une seule fois par fin de niveau.
+    /// Prépare les conséquences de fin de niveau et les commits de progression.
+    /// Cette méthode ne doit s'exécuter qu'une seule fois par fin de niveau.
     /// </summary>
     private void PrepareAndCommitOnce(EndLevelOutcome outcome, EndLevelToken token)
     {
@@ -228,10 +235,6 @@ public class LevelEndFlowController : MonoBehaviour
             return;
 
         int remainingContractLives = (runSessionState != null) ? runSessionState.ContractLives : 0;
-
-        // ------------------------------------------------------------
-        // 1) Resolution du type de fin (Victory / Defeat / GameOver)
-        // ------------------------------------------------------------
 
         EndType endType = ResolveAndApplyEndTypeOnce(out remainingContractLives, outcome);
 
@@ -248,92 +251,67 @@ public class LevelEndFlowController : MonoBehaviour
         bool runCompletedAfterCommit = false;
         bool commitAccepted = true;
 
-        // ------------------------------------------------------------
-        // 2) Validation du token (seulement pour Victory)
-        // ------------------------------------------------------------
-
-        if (outcome.IsVictory)
-        {
-            if (!TryValidateTokenAgainstSave(token))
-            {
-                commitAccepted = false;
-                Debug.LogError("[LevelEndFlowController] Token invalide vs save -> commit Victory refuse.");
-            }
-        }
-
-        // ------------------------------------------------------------
-        // 3) En Defeat / GameOver
-        // on marque le snapshot comme committed pour éviter
-        // un replay apres quit / relaunch
-        // ------------------------------------------------------------
+        List<MoneyRewardLine> moneyRewardLines = new List<MoneyRewardLine>();
 
         if (!outcome.IsVictory && commitAccepted && SaveManager.Instance != null)
         {
             SaveManager.Instance.MarkPendingEndSnapshotCommitted(token);
         }
 
-        // ------------------------------------------------------------
-        // 4) Rewards + progression (uniquement en Victory)
-        // ------------------------------------------------------------
-
         if (outcome.IsVictory && commitAccepted)
         {
-            // --------------------------------------------------------
-            // Score de campagne
-            // --------------------------------------------------------
-
             campaignAfter = campaignBefore + Mathf.Max(0, outcome.FinalScore);
             WriteCampaignScore(campaignAfter);
-
-            // --------------------------------------------------------
-            // Reward argent basé sur la médaille
-            // --------------------------------------------------------
 
             int moneyReward = 0;
 
             if (economyConfig != null)
-                moneyReward = Mathf.Max(0, economyConfig.GetMoneyReward(outcome.BestMedal));
+                moneyReward = Mathf.Max(0, economyConfig.GetMoneyReward(outcome.FinalMedal));
 
-            if (moneyReward > 0 && runSessionState != null)
+            if (moneyReward > 0)
             {
-                moneyAfter = moneyBefore + moneyReward;
-                revealMoney = true;
-
-                runSessionState.AddMoney(moneyReward);
+                moneyRewardLines.Add(new MoneyRewardLine
+                {
+                    Label = "Medal " + outcome.FinalMedal,
+                    Amount = moneyReward
+                });
             }
 
-            // --------------------------------------------------------
-            // MODULE H : Sustain
-            // Bonus de fin de niveau basé sur les modules équipés
-            // --------------------------------------------------------
-
-            if (runSessionState != null)
+            if (ModuleRuntimeStats.Instance != null)
             {
-                var sustain = runSessionState.GetEndLevelSustainBonus();
+                var sustain = ModuleRuntimeStats.Instance.GetEndLevelSustainBonus();
 
-                // Gain de Hull
-                if (sustain.hullGain > 0)
-                {
-                    runSessionState.RepairHull(sustain.hullGain);
-                }
-
-                // Gain d'argent supplémentaire
                 if (sustain.moneyGain > 0)
                 {
-                    runSessionState.AddMoney(sustain.moneyGain);
+                    ModuleDefinition sustainMod = ModuleRuntimeStats.Instance.GetEndLevelSustainModule();
 
-                    moneyAfter += sustain.moneyGain;
-                    revealMoney = true;
+                    string label = BuildModuleMoneyLabel(sustainMod);
+
+                    moneyRewardLines.Add(new MoneyRewardLine
+                    {
+                        Label = label,
+                        Amount = sustain.moneyGain
+                    });
                 }
             }
 
-            // --------------------------------------------------------
-            // Progression de la run (node suivant)
-            // --------------------------------------------------------
+            int totalMoneyReward = 0;
+            for (int i = 0; i < moneyRewardLines.Count; i++)
+            {
+                totalMoneyReward += Mathf.Max(0, moneyRewardLines[i].Amount);
+            }
+
+            if (totalMoneyReward > 0 && runSessionState != null)
+            {
+                runSessionState.AddMoney(totalMoneyReward);
+
+                moneyAfter = moneyBefore + totalMoneyReward;
+                revealMoney = true;
+            }
 
             if (runSessionState == null)
             {
-                Debug.LogError("[LevelEndFlowController] RunSessionState manquant: impossible de commit la victoire.");
+                Debug.LogError("[LevelEndFlowController] RunSessionState manquant : impossible de commit la victoire.");
                 commitAccepted = false;
             }
             else
@@ -343,13 +321,12 @@ public class LevelEndFlowController : MonoBehaviour
                 if (!ok)
                 {
                     commitAccepted = false;
-                    Debug.LogWarning("[LevelEndFlowController] CommitVictoryAndAdvanceNode a echoue.");
+                    Debug.LogWarning("[LevelEndFlowController] CommitVictoryAndAdvanceNode a échoué.");
                 }
 
                 runSessionState.EnsurePlanLoaded();
                 runCompletedAfterCommit = runSessionState.IsRunCompleted;
 
-                // Marque le snapshot comme committed après le commit métier
                 if (commitAccepted && SaveManager.Instance != null)
                 {
                     SaveManager.Instance.MarkPendingEndSnapshotCommitted(token);
@@ -357,15 +334,7 @@ public class LevelEndFlowController : MonoBehaviour
             }
         }
 
-        // ------------------------------------------------------------
-        // 5) Choix de la séquence de dialogue
-        // ------------------------------------------------------------
-
         string sequenceId = ResolveSequenceId(endType, remainingContractLives);
-
-        // ------------------------------------------------------------
-        // 6) Snapshot final utilisé par l'UI
-        // ------------------------------------------------------------
 
         commitSnapshot = new FinalCommitSnapshot
         {
@@ -376,6 +345,7 @@ public class LevelEndFlowController : MonoBehaviour
             MoneyBefore = moneyBefore,
             MoneyAfter = moneyAfter,
             RevealMoney = revealMoney,
+            MoneyRewardLines = moneyRewardLines,
             SequenceId = sequenceId,
             RunCompletedAfterCommit = runCompletedAfterCommit,
             CommitWasAccepted = commitAccepted
@@ -383,7 +353,6 @@ public class LevelEndFlowController : MonoBehaviour
 
         commitPrepared = true;
     }
-
 
     private bool TryValidateTokenAgainstSave(EndLevelToken token)
     {
@@ -410,7 +379,8 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Routine de reveal du panneau final simplifie (stamp, score, medal, money, boutons).
+    /// Routine de reveal du panneau final simplifiée
+    /// (stamp, score, medal, money, boutons).
     /// </summary>
     private IEnumerator FinalRoutine(EndLevelOutcome outcome, FinalCommitSnapshot snap)
     {
@@ -424,6 +394,7 @@ public class LevelEndFlowController : MonoBehaviour
         }
 
         finalPanelUI.ResetAll();
+        finalPanelUI.SetMedalInstant(EndMedal.None);
 
         yield return StartCoroutine(PlayDialogById(snap.SequenceId));
 
@@ -440,13 +411,32 @@ public class LevelEndFlowController : MonoBehaviour
             yield return StartCoroutine(finalPanelUI.AnimateCampaignScore(snap.CampaignBefore, snap.CampaignAfter));
 
         yield return StepDelay();
-        yield return StartCoroutine(finalPanelUI.ShowMedal(outcome.BestMedal));
+        yield return StartCoroutine(finalPanelUI.ShowMedal(outcome.FinalMedal));
 
         if (outcome.IsVictory && snap.RevealMoney)
         {
+            int currentMoney = snap.MoneyBefore;
+
             yield return StepDelay();
-            finalPanelUI.ShowMoneyPanelInstant(snap.MoneyBefore);
-            yield return StartCoroutine(finalPanelUI.AnimateMoney(snap.MoneyBefore, snap.MoneyAfter));
+            finalPanelUI.ShowMoneyPanelInstant(currentMoney);
+
+            if (snap.MoneyRewardLines != null && snap.MoneyRewardLines.Count > 0)
+            {
+                for (int i = 0; i < snap.MoneyRewardLines.Count; i++)
+                {
+                    MoneyRewardLine line = snap.MoneyRewardLines[i];
+                    if (line.Amount <= 0)
+                        continue;
+
+                    yield return StepDelay();
+                    yield return StartCoroutine(finalPanelUI.ShowMoneyRewardToast(line.Label, line.Amount));
+
+                    int nextMoney = currentMoney + line.Amount;
+                    yield return StartCoroutine(finalPanelUI.AnimateMoney(currentMoney, nextMoney));
+
+                    currentMoney = nextMoney;
+                }
+            }
         }
 
         yield return StepDelay();
@@ -475,7 +465,7 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Nettoie les billes restantes de maniere idempotente.
+    /// Nettoie les billes restantes de manière idempotente.
     /// </summary>
     private void CleanupBallsOnce()
     {
@@ -563,10 +553,10 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Resolve le type de fin.
+    /// Résout le type de fin.
     /// - Victory : aucune perte de vie de contrat.
     /// - Defeat : on retire 1 vie de contrat.
-    /// - GameOver force : priorite absolue.
+    /// - GameOver force : priorité absolue.
     /// </summary>
     private EndType ResolveAndApplyEndTypeOnce(out int remainingContractLives, EndLevelOutcome outcome)
     {
@@ -589,7 +579,7 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Joue une sequence de dialogue de fin si elle existe.
+    /// Joue une séquence de dialogue de fin si elle existe.
     /// </summary>
     private IEnumerator PlayDialogById(string sequenceId)
     {
@@ -714,18 +704,30 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Branche speciale GameOver Hull.
-    /// - force le type de fin a GameOver
-    /// - prepare un outcome minimal
-    /// - rafraichit le header de l overlay
-    /// - envoie les analytics de fin de niveau + fin de run
-    /// - affiche ensuite le panneau final
+    /// Construit le label lisible pour une ligne de récompense money issue d'un module.
     /// </summary>
+    private string BuildModuleMoneyLabel(ModuleDefinition mod)
+    {
+        if (mod == null)
+            return "Module";
+
+        string displayName = string.IsNullOrEmpty(mod.displayName)
+            ? "Unknown"
+            : mod.displayName;
+
+        int tier = Mathf.Max(0, mod.tier);
+
+        if (tier <= 0)
+            return "Module " + displayName;
+
+        return "Module " + displayName + " T" + tier;
+    }
+
     /// <summary>
-    /// Branche speciale GameOver Hull.
-    /// - force le type de fin a GameOver
-    /// - prepare un outcome minimal
-    /// - rafraichit le header de l'overlay
+    /// Branche spéciale GameOver Hull.
+    /// - force le type de fin à GameOver
+    /// - prépare un outcome minimal
+    /// - rafraîchit le header de l'overlay
     /// - affiche ensuite le panneau final
     /// </summary>
     public void TriggerGameOverFinalRoutine(int finalScore)
@@ -739,7 +741,7 @@ public class LevelEndFlowController : MonoBehaviour
             BronzeThreshold = 0,
             SilverThreshold = 0,
             GoldThreshold = 0,
-            BestMedal = EndMedal.None
+            FinalMedal = EndMedal.None
         };
 
         hasOutcome = true;
@@ -761,7 +763,6 @@ public class LevelEndFlowController : MonoBehaviour
                 finalLevelId = node.levelId;
         }
 
-        // Rafraichit explicitement le header de l'overlay de fin
         if (endLevelUI != null && !string.IsNullOrEmpty(finalLevelId))
         {
             if (LevelCatalogService.TryGet(finalLevelId, out var meta))
@@ -772,19 +773,14 @@ public class LevelEndFlowController : MonoBehaviour
 
         PrepareAndCommitOnce(lastOutcome, default);
 
-        // ==============================
-        // ANALYTICS
-        // ==============================
         if (AlphaAnalytics.Instance != null)
         {
-            // 1. Fin du niveau (GameOver)
             AlphaAnalytics.Instance.SendLevelEnd(
                 finalLevelId,
                 "gameover",
                 "none"
             );
 
-            // 2. Fin de la run
             AlphaAnalytics.Instance.SendRunEnd(
                 finalLevelId,
                 false,

@@ -1,19 +1,53 @@
+// Chemin recommandé (projet Unity) : Scripts/Systems/Run/RunSessionState.cs
+
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-using VoidScrappers.Briefing;
 
+/// <summary>
+/// RunSessionState
+/// ------------------------------------------------------------
+/// État runtime principal d'une run.
+///
+/// Responsabilités :
+/// - Miroir runtime du RunStateData persisté dans SaveManager.
+/// - Suivi de la progression dans le RunPlan (worldId, node courant, etc.).
+/// - Suivi des ressources de run (Hull, ContractLives, RunScore, Money).
+/// - Stockage bas niveau de l'équipement (slots, modules équipés).
+/// - Persistance minimale vers la save.
+/// - Exposition d'événements pour le reste du jeu.
+///
+/// Important :
+/// - Les règles métier d'équipement (ownership, tiers, exclusivité famille, sanitize)
+///   ne vivent plus ici : elles sont déléguées à RunModuleEquipmentService.
+/// - L'agrégation gameplay des effets modules ne vit plus ici : elle est gérée
+///   par ModuleRuntimeStats.
+/// </summary>
 [CreateAssetMenu(fileName = "RunSessionState", menuName = "Game/Run Session State")]
 public class RunSessionState : ScriptableObject
 {
     // ------------------------------------------------------------
-    // NODES / PLAN (source de verite: SaveManager.runState worldId + currentNodeIndex)
+    // DEBUG GLOBAL (runtime only)
+    // ------------------------------------------------------------
+
+    /// <summary>
+    /// Flag global de debug : si vrai, tous les modules sont considérés comme "owned"
+    /// pour les règles runtime d'équipement.
+    ///
+    /// Important :
+    /// - Runtime only
+    /// - Non persisté en save
+    /// - Piloté par MainDebugStarterV3
+    /// </summary>
+    public static bool DebugTreatAllModulesAsOwnedGlobal = false;
+
+    // ------------------------------------------------------------
+    // NODES / PLAN
+    // Source de vérité persistée : SaveManager.runState.worldId + currentNodeIndex
     // ------------------------------------------------------------
 
     [Header("Nodes / Plan (runtime)")]
     [SerializeField] private RunPlan currentRunPlan;
-
     [SerializeField] private string worldId = "W1";
     [SerializeField] private int currentNodeIndex = 0;
 
@@ -29,6 +63,7 @@ public class RunSessionState : ScriptableObject
         {
             if (currentRunPlan == null || !currentRunPlan.HasNodes)
                 return 0;
+
             return currentRunPlan.NodeCount;
         }
     }
@@ -39,6 +74,7 @@ public class RunSessionState : ScriptableObject
         {
             if (currentRunPlan == null || !currentRunPlan.HasNodes)
                 return false;
+
             return currentRunPlan.IsPlayableIndex;
         }
     }
@@ -49,6 +85,7 @@ public class RunSessionState : ScriptableObject
         {
             if (currentRunPlan == null || !currentRunPlan.HasNodes)
                 return false;
+
             return currentRunPlan.IsCompleted;
         }
     }
@@ -68,69 +105,71 @@ public class RunSessionState : ScriptableObject
     }
 
     // ------------------------------------------------------------
-    // SHIP (source de verite: SaveManager.runState.currentShipId)
+    // SHIP
+    // Source de vérité persistée : SaveManager.runState.currentShipId
     // ------------------------------------------------------------
 
     [Header("Ship")]
     [SerializeField] private string shipId = "CORE_SCOUT";
+
     public UnityEvent<string> OnShipChanged = new UnityEvent<string>();
+
     public string ShipId => shipId;
 
     // ------------------------------------------------------------
-    // RESSOURCES RUN (runtime mirror de la save)
+    // RESSOURCES DE RUN
+    // Miroir runtime de la save
     // ------------------------------------------------------------
 
     [Header("Hull")]
     [SerializeField] private int hull;
-    public UnityEvent<int> OnHullChanged = new UnityEvent<int>();
-    public int Hull => hull;
-
     [SerializeField] private int hullMax;
+
+    public UnityEvent<int> OnHullChanged = new UnityEvent<int>();
     public UnityEvent<int> OnHullMaxChanged = new UnityEvent<int>();
+
+    public int Hull => hull;
     public int HullMax => hullMax;
 
     [Header("Contract Strikes")]
     [SerializeField] private int contractLives;
+
     public UnityEvent<int> OnContractLivesChanged = new UnityEvent<int>();
+
     public int ContractLives => contractLives;
 
     [Header("Run Score")]
     [SerializeField] private int runScore;
+
     public UnityEvent<int> OnRunScoreChanged = new UnityEvent<int>();
+
     public int RunScore => runScore;
+
+    [SerializeField] private int bonusHullMaxInRun;
+    public int BonusHullMaxInRun => bonusHullMaxInRun;
 
     [Header("Money")]
     [SerializeField] private int money;
+
     public UnityEvent<int> OnMoneyChanged = new UnityEvent<int>();
+
     public int Money => money;
 
     // ------------------------------------------------------------
-    // EQUIPMENT
+    // ÉQUIPEMENT
+    // Stockage bas niveau des slots et des modules équipés
     // ------------------------------------------------------------
 
     [Header("Equipment")]
     [SerializeField] private int equipmentSlotCount = 6;
-
     [SerializeField] private string[] equippedModuleIds;
 
     public UnityEvent OnEquipmentChanged = new UnityEvent();
 
     public int EquipmentSlotCount => Mathf.Max(0, equipmentSlotCount);
 
-
-    /// <summary>
-    /// Flag global de debug : si vrai, tous les modules sont considérés comme owned
-    /// pour les règles d'équipement runtime.
-    /// 
-    /// Important :
-    /// - Runtime only
-    /// - Non persisté en save
-    /// - Piloté par MainDebugStarterV3
-    /// </summary>
-    public static bool DebugTreatAllModulesAsOwnedGlobal = false;
-
     // ------------------------------------------------------------
-    // DIAGNOSTIC (TUNING)
+    // DIAGNOSTIC TUNING
     // ------------------------------------------------------------
 
     public enum EquipFailReason
@@ -146,6 +185,9 @@ public class RunSessionState : ScriptableObject
     // FLOW API
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Recharge l'état runtime depuis la save.
+    /// </summary>
     public bool LoadFromSave()
     {
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
@@ -163,20 +205,27 @@ public class RunSessionState : ScriptableObject
 
         worldId = string.IsNullOrEmpty(run.worldId) ? "W1" : run.worldId;
         currentNodeIndex = Mathf.Max(0, run.currentNodeIndex);
-        Debug.Log($"[RunSessionState] LoadFromSave worldId={worldId} currentNodeIndex={currentNodeIndex} hasOngoingRun={run.hasOngoingRun} runId={run.runId}");
+
+        Debug.Log(
+            "[RunSessionState] LoadFromSave worldId=" + worldId +
+            " currentNodeIndex=" + currentNodeIndex +
+            " hasOngoingRun=" + run.hasOngoingRun +
+            " runId=" + run.runId);
 
         shipId = string.IsNullOrEmpty(run.currentShipId) ? "CORE_SCOUT" : run.currentShipId;
 
         hull = Mathf.Max(0, run.remainingHullInRun);
         contractLives = Mathf.Max(0, run.remainingContractLives);
         runScore = Mathf.Max(0, run.currentRunScore);
+        bonusHullMaxInRun = Mathf.Max(0, run.bonusHullMaxInRun);
         money = Mathf.Max(0, SaveManager.Instance.GetMoney());
 
         EnsureUnlockedSlotsInRunInitialized();
         PullEquipmentFromSave();
 
-        // Défensif: purge modules invalides / non possédés / tiers non respectés / doublons famille
-        SanitizeEquippedModulesRuntime();
+        // Défensif : purge l'équipement invalide si le service est présent.
+        if (RunModuleEquipmentService.Instance != null)
+            RunModuleEquipmentService.Instance.SanitizeEquippedModulesRuntime();
 
         RecomputeDerivedHullMax(applyDeltaToCurrentHull: false);
 
@@ -187,7 +236,16 @@ public class RunSessionState : ScriptableObject
         return true;
     }
 
-    public bool StartNewRun(string newWorldId, string initialShipId, int initialHull, int initialContractLives, int initialMoney, int initialRunScore)
+    /// <summary>
+    /// Initialise une nouvelle run complète côté runtime + save.
+    /// </summary>
+    public bool StartNewRun(
+        string newWorldId,
+        string initialShipId,
+        int initialHull,
+        int initialContractLives,
+        int initialMoney,
+        int initialRunScore)
     {
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
         {
@@ -203,6 +261,7 @@ public class RunSessionState : ScriptableObject
         contractLives = Mathf.Max(0, initialContractLives);
         money = Mathf.Max(0, initialMoney);
         runScore = Mathf.Max(0, initialRunScore);
+        bonusHullMaxInRun = 0;
 
         ResetUnlockedSlotsInRunToShipBase();
         ResetEquipmentEmpty();
@@ -211,7 +270,6 @@ public class RunSessionState : ScriptableObject
         hull = Mathf.Max(0, initialHull);
 
         RecomputeDerivedHullMax(applyDeltaToCurrentHull: false);
-
         hull = Mathf.Clamp(hull, 0, hullMax);
 
         SaveManager.Instance.SetRemainingContractLives(contractLives);
@@ -231,6 +289,9 @@ public class RunSessionState : ScriptableObject
     // PLAN / NODES API
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Garantit qu'un RunPlan runtime cohérent est chargé pour le worldId courant.
+    /// </summary>
     public bool EnsurePlanLoaded()
     {
         if (currentRunPlan != null &&
@@ -239,8 +300,10 @@ public class RunSessionState : ScriptableObject
         {
             int countCached = currentRunPlan.NodeCount;
             int clampedCached = Mathf.Clamp(currentNodeIndex, 0, Mathf.Max(0, countCached - 1));
+
             currentNodeIndex = clampedCached;
             currentRunPlan.currentIndex = clampedCached;
+
             return true;
         }
 
@@ -256,12 +319,16 @@ public class RunSessionState : ScriptableObject
 
         int count = currentRunPlan.NodeCount;
         int clamped = Mathf.Clamp(currentNodeIndex, 0, Mathf.Max(0, count - 1));
+
         currentNodeIndex = clamped;
         currentRunPlan.currentIndex = clamped;
 
         return true;
     }
 
+    /// <summary>
+    /// Valide une victoire et avance le node courant dans la run.
+    /// </summary>
     public bool CommitVictoryAndAdvanceNode()
     {
         if (currentRunPlan == null || !currentRunPlan.HasNodes)
@@ -273,7 +340,7 @@ public class RunSessionState : ScriptableObject
         bool advanced = RunNavigator.TryAdvance(currentRunPlan);
         if (!advanced)
         {
-            Debug.LogWarning("[RunSessionState] CommitVictory: TryAdvance a echoue (deja au-dela de la fin?).");
+            Debug.LogWarning("[RunSessionState] CommitVictory: TryAdvance a échoué.");
             return false;
         }
 
@@ -285,9 +352,13 @@ public class RunSessionState : ScriptableObject
     }
 
     // ------------------------------------------------------------
-    // PERSIST MINIMAL (progression + ship)
+    // PERSIST MINIMALE
+    // Progression + ship
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Persiste la progression minimale de run dans la save.
+    /// </summary>
     private void PersistProgressAndShip()
     {
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
@@ -304,6 +375,9 @@ public class RunSessionState : ScriptableObject
         SaveManager.Instance.Save();
     }
 
+    /// <summary>
+    /// Réémet tous les événements principaux après un chargement/rebuild.
+    /// </summary>
     private void RaiseAllChangedEvents()
     {
         OnNodeChanged.Invoke();
@@ -317,6 +391,9 @@ public class RunSessionState : ScriptableObject
         OnEquipmentChanged.Invoke();
     }
 
+    /// <summary>
+    /// Réémet les événements liés au Hull.
+    /// </summary>
     private void RaiseHullEvents()
     {
         OnHullMaxChanged.Invoke(hullMax);
@@ -327,6 +404,9 @@ public class RunSessionState : ScriptableObject
     // SHIP API
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Change le ship courant de la run.
+    /// </summary>
     public void SetShipId(string newShipId, bool persistToSave)
     {
         string resolved = string.IsNullOrEmpty(newShipId) ? "CORE_SCOUT" : newShipId;
@@ -340,7 +420,6 @@ public class RunSessionState : ScriptableObject
             PersistProgressAndShip();
 
         EnsureUnlockedSlotsInRunInitialized();
-
         RecomputeDerivedHullMax(applyDeltaToCurrentHull: false);
 
         OnShipChanged.Invoke(shipId);
@@ -352,10 +431,14 @@ public class RunSessionState : ScriptableObject
     // RESSOURCES API
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Retire du Hull courant.
+    /// </summary>
     public void RemoveHull(int amount)
     {
         int loss = Mathf.Max(1, amount);
         int prev = hull;
+
         hull = Mathf.Max(0, hull - loss);
 
         if (hull == prev)
@@ -367,6 +450,9 @@ public class RunSessionState : ScriptableObject
         OnHullChanged.Invoke(hull);
     }
 
+    /// <summary>
+    /// Répare du Hull courant.
+    /// </summary>
     public void RepairHull(int amount)
     {
         int add = Mathf.Max(1, amount);
@@ -383,6 +469,9 @@ public class RunSessionState : ScriptableObject
         OnHullChanged.Invoke(hull);
     }
 
+    /// <summary>
+    /// Écrit le RunScore courant.
+    /// </summary>
     public void SetRunScore(int value)
     {
         int v = Mathf.Max(0, value);
@@ -390,12 +479,16 @@ public class RunSessionState : ScriptableObject
             return;
 
         runScore = v;
+
         if (SaveManager.Instance != null)
             SaveManager.Instance.SetCurrentRunScore(runScore);
 
         OnRunScoreChanged.Invoke(runScore);
     }
 
+    /// <summary>
+    /// Ajoute de l'argent à la run.
+    /// </summary>
     public void AddMoney(int amount)
     {
         int add = Mathf.Max(0, amount);
@@ -403,12 +496,16 @@ public class RunSessionState : ScriptableObject
             return;
 
         money += add;
+
         if (SaveManager.Instance != null)
             SaveManager.Instance.SetMoney(money);
 
         OnMoneyChanged.Invoke(money);
     }
 
+    /// <summary>
+    /// Tente de dépenser de l'argent de run.
+    /// </summary>
     public bool TrySpendMoney(int amount)
     {
         int cost = Mathf.Max(0, amount);
@@ -427,10 +524,14 @@ public class RunSessionState : ScriptableObject
         return true;
     }
 
+    /// <summary>
+    /// Retire une ou plusieurs vies de contrat.
+    /// </summary>
     public void LoseContractLife(int amount = 1)
     {
         int loss = Mathf.Max(1, amount);
         int prev = contractLives;
+
         contractLives = Mathf.Max(0, contractLives - loss);
 
         if (contractLives == prev)
@@ -442,17 +543,70 @@ public class RunSessionState : ScriptableObject
         OnContractLivesChanged.Invoke(contractLives);
     }
 
+    /// <summary>
+    /// Ajoute un delta au score de run.
+    /// Le résultat final est clampé à 0 minimum.
+    /// </summary>
+    public void AddToRunScore(int delta)
+    {
+        int newValue = Mathf.Max(0, runScore + delta);
+        SetRunScore(newValue);
+    }
+
+    /// <summary>
+    /// Ajoute un bonus permanent de HullMax pour le reste de la run.
+    /// 
+    /// alsoRepairByDelta :
+    /// - true  -> si le max augmente, le Hull courant augmente du même delta
+    /// - false -> seul le max augmente, le Hull courant reste clampé
+    /// </summary>
+    public void AddBonusHullMaxInRun(int amount, bool alsoRepairByDelta)
+    {
+        int add = Mathf.Max(0, amount);
+        if (add <= 0)
+            return;
+
+        bonusHullMaxInRun += add;
+
+        if (SaveManager.Instance != null && SaveManager.Instance.Current != null)
+        {
+            RunStateData run = SaveManager.Instance.GetRunState();
+            if (run != null)
+            {
+                run.bonusHullMaxInRun = bonusHullMaxInRun;
+                SaveManager.Instance.Save();
+            }
+        }
+
+        RecomputeDerivedHullMax(applyDeltaToCurrentHull: alsoRepairByDelta);
+        RaiseHullEvents();
+    }
+
     // ------------------------------------------------------------
-    // HULL MAX DERIVE (Ship + Modules)
+    // HULL MAX DÉRIVÉ
+    // Pour l'instant : uniquement basé sur le ship
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Recalcule le Hull max dérivé.
+    ///
+    /// Important :
+    /// - Actuellement basé uniquement sur le ship.
+    /// - Les bonus modules de HullMax pourront être intégrés plus tard.
+    /// </summary>
     private void RecomputeDerivedHullMax(bool applyDeltaToCurrentHull)
     {
         int oldMax = Mathf.Max(1, hullMax);
 
         int shipBaseMax = GetShipBaseMaxHull();
 
-        int newMax = Mathf.Max(1, shipBaseMax);
+        int passiveModulesHullBonus = 0;
+        if (ModuleRuntimeStats.Instance != null)
+            passiveModulesHullBonus = Mathf.Max(0, ModuleRuntimeStats.Instance.HullMaxAdd);
+
+        int persistentRunHullBonus = Mathf.Max(0, bonusHullMaxInRun);
+
+        int newMax = Mathf.Max(1, shipBaseMax + passiveModulesHullBonus + persistentRunHullBonus);
 
         hullMax = newMax;
 
@@ -469,7 +623,9 @@ public class RunSessionState : ScriptableObject
             SaveManager.Instance.SetRemainingHullInRun(hull);
     }
 
-
+    /// <summary>
+    /// Retourne le Hull max de base du ship courant.
+    /// </summary>
     private int GetShipBaseMaxHull()
     {
         ShipDefinition def = ShipCatalogService.GetById(shipId);
@@ -479,44 +635,13 @@ public class RunSessionState : ScriptableObject
         return Mathf.Max(1, def.maxHull);
     }
 
-
     // ------------------------------------------------------------
-    // SCAN -> Briefing Tier dérivé des modules équipés
-    // ------------------------------------------------------------
-
-    public BriefingTier GetEffectiveBriefingTier()
-    {
-        BriefingTier tier = BriefingTier.T0;
-
-        EnsureEquipmentInitialized();
-
-        for (int i = 0; i < equippedModuleIds.Length; i++)
-        {
-            string id = equippedModuleIds[i];
-            if (string.IsNullOrEmpty(id))
-                continue;
-
-            ModuleDefinition mod = ModuleCatalogService.GetById(id);
-            if (mod == null)
-                continue;
-
-            if (!string.Equals(mod.familyId, "SCAN", StringComparison.Ordinal))
-                continue;
-
-            int t = Mathf.Clamp(mod.scanTierSet, 0, 3);
-
-            if (t >= 3) return BriefingTier.T3;
-            if (t == 2) tier = BriefingTier.T2;
-            else if (t == 1 && tier == BriefingTier.T0) tier = BriefingTier.T1;
-        }
-
-        return tier;
-    }
-
-    // ------------------------------------------------------------
-    // EQUIPMENT API
+    // ÉQUIPEMENT API BAS NIVEAU
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Garantit que le tableau runtime des modules équipés est initialisé.
+    /// </summary>
     private void EnsureEquipmentInitialized()
     {
         int count = Mathf.Max(0, equipmentSlotCount);
@@ -525,6 +650,9 @@ public class RunSessionState : ScriptableObject
             equippedModuleIds = new string[count];
     }
 
+    /// <summary>
+    /// Vide localement tous les slots d'équipement runtime.
+    /// </summary>
     private void ResetEquipmentEmpty()
     {
         EnsureEquipmentInitialized();
@@ -533,6 +661,9 @@ public class RunSessionState : ScriptableObject
             equippedModuleIds[i] = null;
     }
 
+    /// <summary>
+    /// Retourne le nombre de slots ouverts de base fourni par le ship.
+    /// </summary>
     private int GetBaseOpenSlotCountFromShip()
     {
         ShipDefinition def = ShipCatalogService.GetById(shipId);
@@ -542,6 +673,9 @@ public class RunSessionState : ScriptableObject
         return Mathf.Clamp(def.unlockedModuleSlots, 0, EquipmentSlotCount);
     }
 
+    /// <summary>
+    /// Lit le nombre de slots débloqués en run depuis la save.
+    /// </summary>
     private int GetUnlockedSlotsInRunFromSave()
     {
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
@@ -554,6 +688,9 @@ public class RunSessionState : ScriptableObject
         return Mathf.Max(0, run.unlockedModuleSlotsInRun);
     }
 
+    /// <summary>
+    /// Écrit le nombre de slots débloqués en run dans la save.
+    /// </summary>
     private void SetUnlockedSlotsInRunToSave(int value)
     {
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
@@ -567,6 +704,9 @@ public class RunSessionState : ScriptableObject
         SaveManager.Instance.Save();
     }
 
+    /// <summary>
+    /// Garantit que le nombre de slots ouverts en run est au moins égal au minimum du ship.
+    /// </summary>
     private void EnsureUnlockedSlotsInRunInitialized()
     {
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
@@ -586,20 +726,30 @@ public class RunSessionState : ScriptableObject
         }
     }
 
+    /// <summary>
+    /// Réinitialise le nombre de slots de run au minimum fourni par le ship.
+    /// </summary>
     private void ResetUnlockedSlotsInRunToShipBase()
     {
         int baseOpen = GetBaseOpenSlotCountFromShip();
         SetUnlockedSlotsInRunToSave(baseOpen);
     }
 
+    /// <summary>
+    /// Retourne le nombre effectif de slots ouverts pour la run courante.
+    /// </summary>
     private int GetOpenSlotCountEffective()
     {
         int baseOpen = GetBaseOpenSlotCountFromShip();
         int inRun = GetUnlockedSlotsInRunFromSave();
         int effective = Mathf.Max(baseOpen, inRun);
+
         return Mathf.Clamp(effective, 0, EquipmentSlotCount);
     }
 
+    /// <summary>
+    /// Indique si un slot d'équipement est verrouillé.
+    /// </summary>
     public bool IsEquipmentSlotLocked(int slotIndex)
     {
         EnsureEquipmentInitialized();
@@ -611,368 +761,114 @@ public class RunSessionState : ScriptableObject
         return slotIndex >= openCount;
     }
 
+    /// <summary>
+    /// Retourne le module équipé dans un slot donné.
+    /// </summary>
     public string GetEquippedModuleId(int slotIndex)
     {
         EnsureEquipmentInitialized();
+
         if (slotIndex < 0 || slotIndex >= equippedModuleIds.Length)
             return null;
 
         return equippedModuleIds[slotIndex];
     }
 
+    // ------------------------------------------------------------
+    // ÉQUIPEMENT API PUBLIQUE
+    // Wrappers temporaires vers RunModuleEquipmentService
+    // ------------------------------------------------------------
+
+    /// <summary>
+    /// Tente d'équiper un module dans un slot donné.
+    /// </summary>
     public bool TryEquipModuleToSlot(string moduleId, int slotIndex)
     {
-        EnsureEquipmentInitialized();
-
-        if (string.IsNullOrEmpty(moduleId))
+        if (RunModuleEquipmentService.Instance == null)
             return false;
 
-        if (slotIndex < 0 || slotIndex >= equippedModuleIds.Length)
-            return false;
-
-        if (IsEquipmentSlotLocked(slotIndex))
-            return false;
-
-        if (!ModuleCatalogService.EnsureLoaded())
-            return false;
-
-        ModuleDefinition newDef = ModuleCatalogService.GetById(moduleId);
-        if (newDef == null)
-            return false;
-
-        if (!IsOwnedRuntime(moduleId))
-            return false;
-
-        if (!MeetsTierChainPrerequisites(newDef, out string missingPrereqId))
-            return false;
-
-        // Exclusivité famille: auto-déséquipement
-        UnequipOtherModulesInSameFamily(newDef, slotIndex);
-
-        equippedModuleIds[slotIndex] = moduleId;
-        PushEquipmentToSave();
-
-        RecomputeDerivedHullMax(applyDeltaToCurrentHull: false);
-
-        OnEquipmentChanged.Invoke();
-        RaiseHullEvents();
-
-        return true;
+        return RunModuleEquipmentService.Instance.TryEquipModuleToSlot(moduleId, slotIndex);
     }
 
+    /// <summary>
+    /// Tente de déséquiper un slot.
+    /// </summary>
     public bool UnequipSlot(int slotIndex)
     {
-        EnsureEquipmentInitialized();
-
-        if (slotIndex < 0 || slotIndex >= equippedModuleIds.Length)
+        if (RunModuleEquipmentService.Instance == null)
             return false;
 
-        if (string.IsNullOrEmpty(equippedModuleIds[slotIndex]))
-            return false;
-
-        equippedModuleIds[slotIndex] = null;
-        PushEquipmentToSave();
-
-        RecomputeDerivedHullMax(applyDeltaToCurrentHull: false);
-
-        OnEquipmentChanged.Invoke();
-        RaiseHullEvents();
-
-        return true;
+        return RunModuleEquipmentService.Instance.UnequipSlot(slotIndex);
     }
 
+    /// <summary>
+    /// Vide tout l'équipement.
+    /// </summary>
     public void ClearAllEquippedModules()
     {
-        EnsureEquipmentInitialized();
-
-        bool changed = false;
-        for (int i = 0; i < equippedModuleIds.Length; i++)
-        {
-            if (!string.IsNullOrEmpty(equippedModuleIds[i]))
-            {
-                equippedModuleIds[i] = null;
-                changed = true;
-            }
-        }
-
-        if (!changed)
+        if (RunModuleEquipmentService.Instance == null)
             return;
 
-        PushEquipmentToSave();
-
-        RecomputeDerivedHullMax(applyDeltaToCurrentHull: true);
-
-        OnEquipmentChanged.Invoke();
-        RaiseHullEvents();
+        RunModuleEquipmentService.Instance.ClearAllEquippedModules();
     }
 
+    /// <summary>
+    /// Tente de débloquer un slot supplémentaire pendant la run.
+    /// </summary>
     public bool TryUnlockOneModuleSlotInRun()
     {
-        int open = GetOpenSlotCountEffective();
-        if (open >= EquipmentSlotCount)
+        if (RunModuleEquipmentService.Instance == null)
             return false;
 
-        int newOpen = open + 1;
-
-        SetUnlockedSlotsInRunToSave(newOpen);
-
-        OnEquipmentChanged.Invoke();
-        return true;
+        return RunModuleEquipmentService.Instance.TryUnlockOneModuleSlotInRun();
     }
 
     // ------------------------------------------------------------
-    // REGLES MODULES (runtime)
+    // API PUBLIQUE TUNING / SHOP
+    // Wrappers temporaires vers RunModuleEquipmentService
     // ------------------------------------------------------------
 
-    private bool IsOwnedRuntime(string moduleId)
-    {
-        if (DebugTreatAllModulesAsOwnedGlobal)
-            return true;
-
-        if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
-            return false;
-
-        return SaveManager.Instance.HasOwnedModule(moduleId);
-    }
-
-    private bool MeetsTierChainPrerequisites(ModuleDefinition def, out string missingPrereqId)
-    {
-        missingPrereqId = null;
-
-        if (def == null)
-            return false;
-
-        int tier = Mathf.Max(1, def.tier);
-
-        if (tier <= 1)
-            return true;
-
-        if (string.IsNullOrEmpty(def.familyId))
-            return true;
-
-        List<ModuleDefinition> modules = ModuleCatalogService.Catalog != null ? ModuleCatalogService.Catalog.modules : null;
-        if (modules == null)
-            return true;
-
-        for (int requiredTier = 1; requiredTier < tier; requiredTier++)
-        {
-            ModuleDefinition prereq = modules.Find(m =>
-                m != null &&
-                string.Equals(m.familyId, def.familyId, StringComparison.Ordinal) &&
-                m.tier == requiredTier);
-
-            if (prereq == null)
-                continue;
-
-            if (!IsOwnedRuntime(prereq.id))
-            {
-                missingPrereqId = prereq.id;
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private void UnequipOtherModulesInSameFamily(ModuleDefinition targetDef, int targetSlotIndex)
-    {
-        if (targetDef == null)
-            return;
-
-        if (string.IsNullOrEmpty(targetDef.familyId))
-            return;
-
-        for (int i = 0; i < equippedModuleIds.Length; i++)
-        {
-            if (i == targetSlotIndex)
-                continue;
-
-            string otherId = equippedModuleIds[i];
-            if (string.IsNullOrEmpty(otherId))
-                continue;
-
-            ModuleDefinition otherDef = ModuleCatalogService.GetById(otherId);
-            if (otherDef == null)
-                continue;
-
-            if (string.Equals(otherDef.familyId, targetDef.familyId, StringComparison.Ordinal))
-                equippedModuleIds[i] = null;
-        }
-    }
-
-    private void SanitizeEquippedModulesRuntime()
-    {
-        EnsureEquipmentInitialized();
-
-        if (!ModuleCatalogService.EnsureLoaded())
-            return;
-
-        bool changed = false;
-
-        for (int i = 0; i < equippedModuleIds.Length; i++)
-        {
-            string id = equippedModuleIds[i];
-            if (string.IsNullOrEmpty(id))
-                continue;
-
-            ModuleDefinition def = ModuleCatalogService.GetById(id);
-            if (def == null)
-            {
-                equippedModuleIds[i] = null;
-                changed = true;
-                continue;
-            }
-
-            if (!IsOwnedRuntime(id))
-            {
-                equippedModuleIds[i] = null;
-                changed = true;
-                continue;
-            }
-
-            if (!MeetsTierChainPrerequisites(def, out string missing))
-            {
-                equippedModuleIds[i] = null;
-                changed = true;
-                continue;
-            }
-        }
-
-        // Normalisation famille unique: premier slot garde, suivants virent
-        HashSet<string> seenFamilies = new HashSet<string>(StringComparer.Ordinal);
-        for (int i = 0; i < equippedModuleIds.Length; i++)
-        {
-            string id = equippedModuleIds[i];
-            if (string.IsNullOrEmpty(id))
-                continue;
-
-            ModuleDefinition def = ModuleCatalogService.GetById(id);
-            if (def == null || string.IsNullOrEmpty(def.familyId))
-                continue;
-
-            if (seenFamilies.Contains(def.familyId))
-            {
-                equippedModuleIds[i] = null;
-                changed = true;
-                continue;
-            }
-
-            seenFamilies.Add(def.familyId);
-        }
-
-        if (changed)
-        {
-            PushEquipmentToSave();
-            OnEquipmentChanged.Invoke();
-        }
-    }
-
-    // ------------------------------------------------------------
-    // API PUBLIQUE: SHOP (warning) - prerequis tiers manquant
-    // ------------------------------------------------------------
-
+    /// <summary>
+    /// Retourne le prérequis de tier manquant pour un module, si nécessaire.
+    /// </summary>
     public bool TryGetMissingTierPrerequisite(string moduleId, out string missingPrereqId)
     {
         missingPrereqId = null;
 
-        if (string.IsNullOrEmpty(moduleId))
+        if (RunModuleEquipmentService.Instance == null)
             return false;
 
-        if (!ModuleCatalogService.EnsureLoaded())
-            return false;
-
-        ModuleDefinition def = ModuleCatalogService.GetById(moduleId);
-        if (def == null)
-            return false;
-
-        int tier = Mathf.Max(1, def.tier);
-
-        if (tier <= 1)
-            return true;
-
-        if (string.IsNullOrEmpty(def.familyId))
-            return true;
-
-        List<ModuleDefinition> modules = ModuleCatalogService.Catalog != null ? ModuleCatalogService.Catalog.modules : null;
-        if (modules == null)
-            return true;
-
-        for (int requiredTier = 1; requiredTier < tier; requiredTier++)
-        {
-            ModuleDefinition prereq = modules.Find(m =>
-                m != null &&
-                string.Equals(m.familyId, def.familyId, StringComparison.Ordinal) &&
-                m.tier == requiredTier);
-
-            if (prereq == null)
-                continue;
-
-            if (!IsOwnedRuntime(prereq.id))
-            {
-                missingPrereqId = prereq.id;
-                return false;
-            }
-        }
-
-        return true;
+        return RunModuleEquipmentService.Instance.TryGetMissingTierPrerequisite(moduleId, out missingPrereqId);
     }
 
-    // ------------------------------------------------------------
-    // API PUBLIQUE: TUNING (message) - expliquer un échec d'équipement
-    // ------------------------------------------------------------
-
+    /// <summary>
+    /// Explique la raison d'un échec d'équipement.
+    /// </summary>
     public bool TryExplainEquipFailure(string moduleId, int slotIndex, out EquipFailReason reason, out string missingPrereqId)
     {
         reason = EquipFailReason.None;
         missingPrereqId = null;
 
-        EnsureEquipmentInitialized();
-
-        if (string.IsNullOrEmpty(moduleId))
+        if (RunModuleEquipmentService.Instance == null)
         {
             reason = EquipFailReason.InvalidModule;
-            return true;
+            return false;
         }
 
-        if (slotIndex < 0 || slotIndex >= equippedModuleIds.Length || IsEquipmentSlotLocked(slotIndex))
-        {
-            reason = EquipFailReason.SlotLocked;
-            return true;
-        }
-
-        if (!ModuleCatalogService.EnsureLoaded())
-        {
-            reason = EquipFailReason.InvalidModule;
-            return true;
-        }
-
-        ModuleDefinition def = ModuleCatalogService.GetById(moduleId);
-        if (def == null)
-        {
-            reason = EquipFailReason.InvalidModule;
-            return true;
-        }
-
-        if (!IsOwnedRuntime(moduleId))
-        {
-            reason = EquipFailReason.NotOwned;
-            return true;
-        }
-
-        if (!MeetsTierChainPrerequisites(def, out missingPrereqId))
-        {
-            reason = EquipFailReason.MissingPrerequisite;
-            return true;
-        }
-
-        reason = EquipFailReason.None;
-        return true;
+        return RunModuleEquipmentService.Instance.TryExplainEquipFailure(
+            moduleId,
+            slotIndex,
+            out reason,
+            out missingPrereqId);
     }
 
     // ------------------------------------------------------------
-    // EQUIPMENT PERSIST (equippedModuleIds)
+    // PERSISTENCE DE L'ÉQUIPEMENT
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Recharge l'équipement depuis la save.
+    /// </summary>
     private void PullEquipmentFromSave()
     {
         EnsureEquipmentInitialized();
@@ -1000,6 +896,9 @@ public class RunSessionState : ScriptableObject
         Array.Copy(run.equippedModuleIds, equippedModuleIds, EquipmentSlotCount);
     }
 
+    /// <summary>
+    /// Persiste l'équipement runtime vers la save.
+    /// </summary>
     private void PushEquipmentToSave()
     {
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
@@ -1013,99 +912,64 @@ public class RunSessionState : ScriptableObject
         SaveManager.Instance.Save();
     }
 
+    // ------------------------------------------------------------
+    // HELPERS INTERNES
+    // Utilisés par RunModuleEquipmentService
+    // ------------------------------------------------------------
+
     /// <summary>
-    /// Retourne le bonus de seuil de flush apporté par les modules GREED.
-    /// Ex: T1=+1, T2=+2, T3=+3.
+    /// Garantit l'initialisation du tableau d'équipement.
     /// </summary>
-    public int GetFlushMinBallsBonusFromModules()
+    internal void EnsureEquipmentInitialized_Internal()
+    {
+        EnsureEquipmentInitialized();
+    }
+
+    /// <summary>
+    /// Écrit directement un module dans un slot runtime, sans validation métier.
+    /// Réservé au service d'équipement.
+    /// </summary>
+    internal void SetEquippedModuleIdRaw_Internal(int slotIndex, string moduleId)
     {
         EnsureEquipmentInitialized();
 
-        if (!ModuleCatalogService.EnsureLoaded())
-            return 0;
+        if (slotIndex < 0 || slotIndex >= equippedModuleIds.Length)
+            return;
 
-        int bonus = 0;
-
-        for (int i = 0; i < equippedModuleIds.Length; i++)
-        {
-            string id = equippedModuleIds[i];
-            if (string.IsNullOrEmpty(id))
-                continue;
-
-            ModuleDefinition mod = ModuleCatalogService.GetById(id);
-            if (mod == null)
-                continue;
-
-            if (string.Equals(mod.familyId, "GREED", StringComparison.Ordinal))
-                bonus += Mathf.Max(0, mod.flushMinBallsAdd);
-        }
-
-        return bonus;
+        equippedModuleIds[slotIndex] = moduleId;
     }
-
 
     /// <summary>
-    /// Calcule les bonus de fin de level apportés par les modules de la famille H (Sustain).
-    ///
-    /// Design actuel :
-    /// H1 -> +1 Hull
-    /// H2 -> +1 Hull +1 Money
-    /// H3 -> +2 Hull +1 Money
-    ///
-    /// Important :
-    /// - Cette méthode NE modifie rien.
-    /// - Elle se contente de lire les modules équipés.
-    /// - L'application réelle des bonus se fait dans le flow de fin de niveau.
+    /// Persiste l'équipement courant dans la save.
     /// </summary>
-    public (int hullGain, int moneyGain) GetEndLevelSustainBonus()
+    internal void PushEquipmentToSave_Internal()
     {
-        EnsureEquipmentInitialized();
-
-        int hullGain = 0;
-        int moneyGain = 0;
-
-        // Sécurité : si le catalogue n'est pas chargé on ne donne aucun bonus
-        if (!ModuleCatalogService.EnsureLoaded())
-            return (0, 0);
-
-        // Parcours des modules équipés
-        for (int i = 0; i < equippedModuleIds.Length; i++)
-        {
-            string id = equippedModuleIds[i];
-
-            if (string.IsNullOrEmpty(id))
-                continue;
-
-            ModuleDefinition mod = ModuleCatalogService.GetById(id);
-
-            if (mod == null)
-                continue;
-
-            // On ne s'intéresse qu'à la famille H
-            if (!string.Equals(mod.familyId, "H", StringComparison.Ordinal))
-                continue;
-
-            // Application du design par tier
-            switch (mod.tier)
-            {
-                case 1:
-                    hullGain += 1;
-                    break;
-
-                case 2:
-                    hullGain += 1;
-                    moneyGain += 1;
-                    break;
-
-                case 3:
-                    hullGain += 2;
-                    moneyGain += 1;
-                    break;
-            }
-        }
-
-        return (hullGain, moneyGain);
+        PushEquipmentToSave();
     }
 
+    /// <summary>
+    /// Retourne le nombre effectif de slots ouverts.
+    /// </summary>
+    internal int GetOpenSlotCountEffective_Internal()
+    {
+        return GetOpenSlotCountEffective();
+    }
 
+    /// <summary>
+    /// Écrit le nombre de slots débloqués en run dans la save.
+    /// </summary>
+    internal void SetUnlockedSlotsInRunToSave_Internal(int value)
+    {
+        SetUnlockedSlotsInRunToSave(value);
+    }
+
+    /// <summary>
+    /// Réémet les événements liés à l'équipement après une modification.
+    /// </summary>
+    internal void NotifyEquipmentChanged_Internal()
+    {
+        OnEquipmentChanged.Invoke();
+        RecomputeDerivedHullMax(applyDeltaToCurrentHull: false);
+        RaiseHullEvents();
+    }
 }

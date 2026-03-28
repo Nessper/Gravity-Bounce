@@ -10,6 +10,7 @@ public class LevelTimer : MonoBehaviour
 
     public bool isOver => timeLeft <= 0f;
 
+    public event Action OnTimerStarted;
     public event Action OnTimerEnd;
 
     void Awake() => ResetTimer();
@@ -30,9 +31,10 @@ public class LevelTimer : MonoBehaviour
     // Lance un nouveau timer avec une durée donnée
     public void StartTimer(float duration)
     {
-
         levelDuration = Mathf.Max(0f, duration);
         timeLeft = levelDuration;
+
+        OnTimerStarted?.Invoke();
     }
 
     public void ResetTimer() => timeLeft = levelDuration;

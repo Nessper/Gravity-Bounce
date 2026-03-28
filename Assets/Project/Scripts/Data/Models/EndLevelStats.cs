@@ -12,11 +12,20 @@ public class EndLevelStats
     public int RawScore;         // "Score" (score brut)
     public int FinalScore;       // si tu veux l'afficher direct (peut = RawScore pour l’instant)
 
-    // Achievements (panneau jaune) — facultatif pour l’instant
+    // Achievements 
     [System.Serializable] public struct GoalLine { public string Label; public int Points; }
     public List<GoalLine> Goals = new();
 
-    // Combos finaux (panneau vert) — peut être vide
-    [System.Serializable] public struct ComboCalc { public string Label; public int Base; public float Mult; public int Total; }
-    public List<ComboCalc> Combos = new();
+
+    // Bonus (combos + modules score lines)
+    [System.Serializable]
+    public struct EndLevelBonusLine
+    {
+        public string Label;
+        public int Base;
+        public float Mult;
+        public int Total;
+    }
+
+    public List<EndLevelBonusLine> BonusLines = new();
 }

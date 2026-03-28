@@ -1,18 +1,36 @@
+// Chemin recommande (projet Unity) : Scripts/Gameplay/EndLevel/LevelResultEvaluator.cs
+
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// Service d'evaluation de fin de niveau.
-/// - Construit les EndLevelStats a partir du ScoreManager.
-/// - Evalue l'objectif principal.
-/// - Evalue les objectifs secondaires.
-/// - Evalue les combos finaux.
 /// 
-/// LevelManager l'utilise pour obtenir un bloc de donnees complet,
-/// puis emet l'event OnEndComputed.
+/// Responsabilites :
+/// - Construire les EndLevelStats a partir du ScoreManager.
+/// - Evaluer l'objectif principal.
+/// - Evaluer les objectifs secondaires.
+/// - Preparer les lignes de bonus de fin de niveau pour la ceremonie.
+///
+/// IMPORTANT :
+/// - La ceremonie consomme EndLevelStats comme source de verite.
+/// - Les bonus de fin affiches dans la section "bonus" sont prepares ici
+///   dans stats.BonusLines.
+/// - On y injecte actuellement :
+///   1) les final combos
+///   2) les lignes de score venant des modules
+///
+/// NOTE :
+/// - Les effets Hull / HullMax des modules H et C sont geres ailleurs,
+///   avant la ceremonie.
+/// - Ici, on ne gere que les lignes de score destinees a l'affichage
+///   et au calcul du total de la section bonus.
 /// </summary>
 public static class LevelResultEvaluator
 {
+    /// <summary>
+    /// Bloc de resultat complet retourne au flow de fin de niveau.
+    /// </summary>
     public struct Result
     {
         public EndLevelStats Stats;
@@ -27,7 +45,8 @@ public static class LevelResultEvaluator
         ScoreManager scoreManager,
         LevelData levelData,
         SecondaryObjectivesManager secondaryObjectivesManager,
-        int elapsedTimeSec, FinalComboConfig comboConfig)
+        int elapsedTimeSec,
+        FinalComboConfig comboConfig)
     {
         Result result = new Result
         {
@@ -53,21 +72,20 @@ public static class LevelResultEvaluator
         }
 
         // ------------------------------------------------------------------
-        // Objectif principal
+        // OBJECTIF PRINCIPAL
         // ------------------------------------------------------------------
-
         // On se cale sur la logique du ScoreManager :
-        // - seuil = ObjectiveThreshold (ThresholdCount configuré au début du niveau)
-        // - progression = TotalNonBlackBilles (billes NON NOIRES seulement)
+        // - seuil = ObjectiveThreshold
+        // - progression = TotalNonBlackBilles
         int required = Mathf.Max(0, scoreManager.ObjectiveThreshold);
         int collectedNonBlack = scoreManager.TotalNonBlackBilles;
 
-        // On recalcule le success avec EXACTEMENT la même règle que CheckGoalReached().
+        // Meme regle que CheckGoalReached().
         bool success = collectedNonBlack >= required;
 
-        var mainObj = new MainObjectiveResult
+        MainObjectiveResult mainObj = new MainObjectiveResult
         {
-            Text = levelData.MainObjective?.Text ?? string.Empty,
+            Text = levelData.MainObjective != null ? levelData.MainObjective.Text : string.Empty,
             ThresholdPct = 0,
             Required = required,
             Collected = collectedNonBlack,
@@ -77,14 +95,13 @@ public static class LevelResultEvaluator
                 : 0
         };
 
+        // ------------------------------------------------------------------
+        // STATS DE FIN DE NIVEAU
+        // ------------------------------------------------------------------
+        EndLevelStats stats = scoreManager.BuildEndLevelStats(elapsedTimeSec);
 
         // ------------------------------------------------------------------
-        // Stats de fin de niveau
-        // ------------------------------------------------------------------
-        var stats = scoreManager.BuildEndLevelStats(elapsedTimeSec);
-
-        // ------------------------------------------------------------------
-        // Objectifs secondaires
+        // OBJECTIFS SECONDAIRES
         // ------------------------------------------------------------------
         List<SecondaryObjectiveResult> secondaryResults = null;
 
@@ -100,44 +117,89 @@ public static class LevelResultEvaluator
                 Debug.Log("[LevelResultEvaluator] Secondary objectives reward total = " + totalReward);
             }
 
-            // IMPORTANT : on ne touche pas encore au score final ici.
-            // L'utilisation de AwardedScore sera geree plus tard dans la ceremonie.
+            // IMPORTANT :
+            // On ne touche pas ici au score final de la ceremonie.
+            // Les AwardedScore des objectifs secondaires seront utilises
+            // plus tard par l'UI de fin de niveau.
         }
 
         // ------------------------------------------------------------------
-        // Combos finaux (PerfectRun, WhiteMaster, etc.)
+        // BONUS DE FIN DE NIVEAU - SOURCE DE VERITE CEREMONIE
         // ------------------------------------------------------------------
-        if (stats.Combos == null)
-            stats.Combos = new List<EndLevelStats.ComboCalc>();
+        // On reconstruit ici la liste complete des lignes de bonus affichees
+        // dans la section bonus de la ceremonie.
+        if (stats.BonusLines == null)
+            stats.BonusLines = new List<EndLevelStats.EndLevelBonusLine>();
         else
-            stats.Combos.Clear();
+            stats.BonusLines.Clear();
 
-        var finalCtx = new FinalComboContext
+        // ------------------------------------------------------------------
+        // FINAL COMBOS
+        // ------------------------------------------------------------------
+        // Les final combos existants restent evalues ici, puis convertis
+        // en lignes de bonus de ceremonie.
+        FinalComboContext finalCtx = new FinalComboContext
         {
             timeElapsedSec = stats.TimeElapsedSec,
             totalBilles = stats.BallsCollected + stats.BallsLost
         };
 
-        var finalCombos = FinalComboEvaluator.Evaluate(scoreManager, finalCtx, comboConfig);
+        List<FinalComboResult> finalCombos = FinalComboEvaluator.Evaluate(
+            scoreManager,
+            finalCtx,
+            comboConfig);
 
         if (finalCombos != null && finalCombos.Count > 0)
         {
             for (int i = 0; i < finalCombos.Count; i++)
             {
-                var fc = finalCombos[i];
+                FinalComboResult fc = finalCombos[i];
 
-                var comboLine = new EndLevelStats.ComboCalc
+                EndLevelStats.EndLevelBonusLine bonusLine = new EndLevelStats.EndLevelBonusLine
                 {
-                    Label = fc.id,   // id technique (PerfectRun, WhiteMaster...)
+                    // Pour les final combos, on conserve l'id technique
+                    // comme label source. Le style provider UI s'occupe ensuite
+                    // de le transformer en texte joli si besoin.
+                    Label = fc.id,
                     Base = fc.points,
                     Mult = 1f,
                     Total = fc.points
                 };
 
-                stats.Combos.Add(comboLine);
+                stats.BonusLines.Add(bonusLine);
             }
         }
 
+        // ------------------------------------------------------------------
+        // BONUS MODULES (SCORE LINES UNIQUEMENT)
+        // ------------------------------------------------------------------
+        // Les modules peuvent injecter ici des lignes de score pour la ceremonie.
+        // Exemple actuel :
+        // - Core Growth T1/T2/T3 : delta de score de fin de niveau.
+        List<EndLevelBonusEntry> moduleBonusEntries = ModuleEndLevelBonusProvider.Evaluate();
+
+        if (moduleBonusEntries != null && moduleBonusEntries.Count > 0)
+        {
+            for (int i = 0; i < moduleBonusEntries.Count; i++)
+            {
+                EndLevelBonusEntry entry = moduleBonusEntries[i];
+
+                EndLevelStats.EndLevelBonusLine bonusLine = new EndLevelStats.EndLevelBonusLine
+                {
+                    // Pour les modules, le provider retourne deja un label affichable.
+                    Label = entry.label,
+                    Base = entry.points,
+                    Mult = 1f,
+                    Total = entry.points
+                };
+
+                stats.BonusLines.Add(bonusLine);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // RESULTAT FINAL
+        // ------------------------------------------------------------------
         result.Stats = stats;
         result.MainObjective = mainObj;
         result.SecondaryObjectives = secondaryResults;

@@ -1,25 +1,31 @@
+// Chemin recommandé : Scripts/UI/Overlays/IntroLevelUI.cs
+
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VoidScrappers.Briefing;
 
 /// <summary>
-/// Chemin recommande : Scripts/UI/Overlays/IntroLevelUI.cs
-///
 /// Ecran d intro de niveau (briefing).
-/// - Délègue le bloc briefing (header + phases + objectifs + score) à LevelBriefingPanelUI.
-/// - Gère le bloc Ship (image, nom, hull, shield).
-/// - Gère les boutons Start/Menu.
 ///
-/// IMPORTANT:
-/// - Hull et Shield affiches ici sont des VALEURS RUNTIME injectees (source de verite).
-/// - Le ShipCatalog sert uniquement a l affichage statique (nom + image).
-/// - Le tier de briefing effectif peut etre derive de la run (modules SCAN).
+/// Responsabilites :
+/// - Déléguer le bloc briefing (header + phases + objectifs + score) à LevelBriefingPanelUI.
+/// - Gérer le bloc Ship (image, nom, hull, shield).
+/// - Gérer les boutons Start / Menu.
+/// - Réagir aux changements runtime utiles (équipement modules, stats ship).
+///
+/// Important :
+/// - Hull et Shield affichés ici sont des VALEURS RUNTIME injectées (source de vérité).
+/// - Le ShipCatalog sert uniquement à l affichage statique (nom + image).
+/// - Le tier de briefing effectif vient désormais de ModuleRuntimeStats.
+/// - Le ship affiché vient de la run courante (RunSessionState), pas de RunConfig.
 /// </summary>
 public class IntroLevelUI : MonoBehaviour
 {
     [Header("Runtime (source de vérité)")]
     [SerializeField] private RunSessionState runSession;
+
+    private ModuleRuntimeStats moduleRuntimeStats => ModuleRuntimeStats.Instance;
 
     [Header("Root")]
     [SerializeField] private GameObject overlayIntro;
@@ -43,13 +49,13 @@ public class IntroLevelUI : MonoBehaviour
     [SerializeField] private Button menuButton;
 
     [Header("Briefing Tier (Debug)")]
-    [Tooltip("Fallback uniquement. En runtime, le tier effectif vient des modules SCAN si RunSessionState est present.")]
+    [Tooltip("Fallback uniquement si ModuleRuntimeStats n'est pas assigné.")]
     [SerializeField] private BriefingTier briefingTierFallback = BriefingTier.T3;
 
     private System.Action onStartCallback;
     private System.Action onMenuCallback;
 
-    // Valeurs runtime (source de verite) injectees par l orchestrateur.
+    // Valeurs runtime injectées par l orchestrateur.
     private int runtimeHull = -1;
     private int runtimeMaxHull = -1;
     private float runtimeShieldSeconds = -1f;
@@ -62,40 +68,35 @@ public class IntroLevelUI : MonoBehaviour
 
     private void OnEnable()
     {
-        // On écoute l équipement: si un module SCAN/HULL change,
-        // le briefing (tier) et/ou les stats (hull max) doivent se rafraîchir.
+        // Si l'équipement change, le briefing (SCAN) et potentiellement le Hull max
+        // doivent pouvoir se rafraîchir immédiatement si l'overlay est visible.
         if (runSession != null)
             runSession.OnEquipmentChanged.AddListener(HandleEquipmentChanged);
+
+        // Si les stats agrégées modules se rebuildent, on refresh aussi le briefing.
+        if (moduleRuntimeStats != null)
+            moduleRuntimeStats.OnStatsRebuilt.AddListener(HandleModuleStatsRebuilt);
+
+        // Si le ship courant change pendant que l'overlay est ouvert.
+        if (runSession != null)
+            runSession.OnShipChanged.AddListener(HandleShipChanged);
     }
 
     private void OnDisable()
     {
         if (runSession != null)
             runSession.OnEquipmentChanged.RemoveListener(HandleEquipmentChanged);
+
+        if (moduleRuntimeStats != null)
+            moduleRuntimeStats.OnStatsRebuilt.RemoveListener(HandleModuleStatsRebuilt);
+
+        if (runSession != null)
+            runSession.OnShipChanged.RemoveListener(HandleShipChanged);
     }
 
     /// <summary>
-    /// Appelé quand un module est équipé/déséquipé.
-    /// - Si l intro est ouverte, on refresh immédiatement.
-    /// - Sinon, rien: l état sera correct au prochain Show().
+    /// Injecte le Hull runtime à afficher.
     /// </summary>
-    private void HandleEquipmentChanged()
-    {
-        if (overlayIntro == null || !overlayIntro.activeInHierarchy)
-            return;
-
-        // 1) Refresh Ship stats
-        RefreshShipStatsTexts();
-
-        // 2) Refresh Briefing tier (SCAN)
-        if (briefingPanel != null)
-            briefingPanel.RefreshWithTier(GetEffectiveBriefingTier());
-    }
-
-    // ------------------------------------------------------------
-    // RUNTIME INJECTION (source de verite)
-    // ------------------------------------------------------------
-
     public void SetShipRuntimeHull(int currentHull, int maxHull)
     {
         runtimeHull = Mathf.Max(-1, currentHull);
@@ -105,6 +106,9 @@ public class IntroLevelUI : MonoBehaviour
             RefreshShipStatsTexts();
     }
 
+    /// <summary>
+    /// Injecte la valeur runtime du shield à afficher.
+    /// </summary>
     public void SetShipRuntimeShield(float shieldSeconds)
     {
         runtimeShieldSeconds = Mathf.Max(-1f, shieldSeconds);
@@ -131,16 +135,25 @@ public class IntroLevelUI : MonoBehaviour
         onStartCallback = onStart;
         onMenuCallback = onMenu;
 
-        // 1) Briefing (factorisé)
+        // 1) Briefing factorisé
         if (briefingPanel != null)
-            briefingPanel.Render(data, phasePlans, worldName, title, GetEffectiveBriefingTier());
+        {
+            briefingPanel.Render(
+                data,
+                phasePlans,
+                worldName,
+                title,
+                GetEffectiveBriefingTier());
+        }
         else
+        {
             Debug.LogWarning("[IntroLevelUI] briefingPanel est null. Le briefing ne sera pas affiché.");
+        }
 
-        // 2) Ship static (nom + image)
+        // 2) Ship statique (nom + image)
         FillShipStaticInfo();
 
-        // 3) Ship runtime (hull/shield)
+        // 3) Ship runtime (hull / shield)
         RefreshShipStatsTexts();
 
         if (overlayIntro != null)
@@ -153,14 +166,14 @@ public class IntroLevelUI : MonoBehaviour
             overlayIntro.SetActive(false);
     }
 
-    // A cabler dans l Inspector (Button OnClick)
+    // À câbler dans l Inspector (Button OnClick)
     public void OnStartClicked()
     {
         Debug.Log("[IntroLevelUI] OnStartClicked");
         onStartCallback?.Invoke();
     }
 
-    // A cabler dans l Inspector (Button OnClick)
+    // À câbler dans l Inspector (Button OnClick)
     public void OnMenuClicked()
     {
         Debug.Log("[IntroLevelUI] OnMenuClicked");
@@ -168,37 +181,91 @@ public class IntroLevelUI : MonoBehaviour
     }
 
     // ------------------------------------------------------------
-    // Tier effectif (SCAN)
+    // REFRESH RUNTIME
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Appelé quand l'équipement change.
+    /// - Si l'intro est visible, on refresh immédiatement.
+    /// - Sinon, rien : l'état sera correct au prochain Show().
+    /// </summary>
+    private void HandleEquipmentChanged()
+    {
+        if (overlayIntro == null || !overlayIntro.activeInHierarchy)
+            return;
+
+        RefreshShipStatsTexts();
+        RefreshBriefingTier();
+    }
+
+    /// <summary>
+    /// Appelé quand les stats modules runtime sont recalculées.
+    /// </summary>
+    private void HandleModuleStatsRebuilt()
+    {
+        if (overlayIntro == null || !overlayIntro.activeInHierarchy)
+            return;
+
+        RefreshBriefingTier();
+    }
+
+    /// <summary>
+    /// Appelé quand le ship courant de la run change.
+    /// </summary>
+    private void HandleShipChanged(string newShipId)
+    {
+        if (overlayIntro == null || !overlayIntro.activeInHierarchy)
+            return;
+
+        FillShipStaticInfo();
+        RefreshShipStatsTexts();
+    }
+
+    private void RefreshBriefingTier()
+    {
+        if (briefingPanel == null)
+            return;
+
+        briefingPanel.RefreshWithTier(GetEffectiveBriefingTier());
+    }
+
+    // ------------------------------------------------------------
+    // TIER EFFECTIF (SCAN)
+    // ------------------------------------------------------------
+
+    /// <summary>
+    /// Retourne le tier de briefing effectif.
+    /// Source principale : ModuleRuntimeStats.
+    /// Fallback : valeur inspector.
+    /// </summary>
     private BriefingTier GetEffectiveBriefingTier()
     {
-        // Par défaut: fallback inspector (debug)
-        BriefingTier tier = briefingTierFallback;
+        if (ModuleRuntimeStats.Instance != null)
+            return ModuleRuntimeStats.Instance.GetEffectiveBriefingTier();
 
-        // Si runSession présent: on dérive depuis les modules SCAN équipés
-        if (runSession != null)
-            tier = runSession.GetEffectiveBriefingTier();
-
-        return tier;
+        return briefingTierFallback;
     }
 
     // ------------------------------------------------------------
     // SHIP DISPLAY (Intro uniquement)
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Remplit le nom et l'image du ship courant à partir du ShipCatalog.
+    /// Source du ship courant : RunSessionState.
+    /// </summary>
     private void FillShipStaticInfo()
     {
-        if (RunConfig.Instance == null || ShipCatalogService.Catalog == null)
+        if (runSession == null || ShipCatalogService.Catalog == null)
             return;
 
         var catalog = ShipCatalogService.Catalog;
-        string selectedId = RunConfig.Instance.SelectedShipId;
-        var ship = catalog.ships.Find(s => s.id == selectedId);
+        string currentShipId = runSession.ShipId;
 
+        var ship = catalog.ships.Find(s => s.id == currentShipId);
         if (ship == null)
         {
-            Debug.LogWarning("[IntroLevelUI] Ship not found: " + selectedId);
+            Debug.LogWarning("[IntroLevelUI] Ship not found: " + currentShipId);
             return;
         }
 
@@ -219,14 +286,17 @@ public class IntroLevelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Rafraîchit les textes / UI du Hull et du Shield.
+    /// </summary>
     private void RefreshShipStatsTexts()
     {
-        // Hull (via HullUI si dispo)
+        // Hull via HullUI si dispo
         if (shipHullUI != null)
         {
             if (runtimeHull >= 0 && runtimeMaxHull > 0)
             {
-                shipHullUI.SetDamageFeedbackEnabled(false); // briefing = pas de feedback degats
+                shipHullUI.SetDamageFeedbackEnabled(false); // briefing = pas de feedback dégâts
                 shipHullUI.SetMaxHull(runtimeMaxHull);
                 shipHullUI.SetCurrentHull(runtimeHull);
             }
@@ -240,7 +310,7 @@ public class IntroLevelUI : MonoBehaviour
         }
         else
         {
-            // Fallback texte si HullUI pas assigné
+            // Fallback texte si HullUI n'est pas assigné
             if (shipHullText != null)
             {
                 if (runtimeHull >= 0 && runtimeMaxHull > 0)

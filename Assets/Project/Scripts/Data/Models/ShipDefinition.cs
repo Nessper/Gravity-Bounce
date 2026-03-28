@@ -14,6 +14,7 @@ public class ShipDefinition
     public bool binAutoFlushOnEvac;
     public string imageFile;
     public int unlockedModuleSlots; // ex: 3 => slots 0,1,2 ouverts ; 3,4,5 fermés
+    public bool debugOnly; 
 }
 
 

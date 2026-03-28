@@ -5,6 +5,6 @@ public struct EndLevelScoreBreakdown
 {
     public int RawScore;
     public int GoalsBonus;
-    public int CombosBonus;
+    public int BonusTotal;
     public int FinalScore;
 }

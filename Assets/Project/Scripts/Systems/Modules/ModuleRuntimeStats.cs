@@ -1,28 +1,35 @@
+// Chemin recommandé (projet Unity) : Scripts/Systems/Modules/ModuleRuntimeStats.cs
+
 using UnityEngine;
 using UnityEngine.Events;
 using VoidScrappers.Briefing;
 
 /// <summary>
 /// ModuleRuntimeStats
+/// ------------------------------------------------------------
+/// Service runtime global qui agrège les effets des modules équipés.
 ///
-/// Responsabilites :
-/// - Lire les modules equipes dans RunSessionState.
-/// - Charger leurs definitions via ModuleCatalogService.
-/// - Agreger les effets runtime utiles pour le gameplay.
+/// Responsabilités :
+/// - Lire les modules équipés dans RunSessionState.
+/// - Charger leurs définitions via ModuleCatalogService.
+/// - Agréger les effets runtime utiles pour le gameplay.
 /// - Exposer un snapshot simple pour le reste du jeu.
-/// - Se reconstruire quand l'equipement ou le ship changent.
+/// - Se reconstruire quand l'équipement ou le ship changent.
 ///
 /// Important :
 /// - Ce script ne persiste rien.
-/// - Ce script ne gere pas l'equipement.
-/// - Ce script ne fait qu'agreger des effets a partir de l'etat courant.
+/// - Ce script ne gère pas l'équipement.
+/// - Ce script ne fait qu'agréger des effets à partir de l'état courant.
+/// - Il vit une seule fois dans BootRoot et s'expose via Instance.
 /// </summary>
 public class ModuleRuntimeStats : MonoBehaviour
 {
-    [Header("References")]
+    public static ModuleRuntimeStats Instance { get; private set; }
+
+    [Header("Références")]
     [SerializeField] private RunSessionState runSessionState;
 
-    [Header("Debug / Read Only")]
+    [Header("Debug / Lecture seule")]
     [SerializeField] private int briefingScanTier = 0;
     [SerializeField] private int hullMaxAdd = 0;
     [SerializeField] private int flushMinBallsAdd = 0;
@@ -37,6 +44,17 @@ public class ModuleRuntimeStats : MonoBehaviour
     public int SustainHullGainEndLevel => sustainHullGainEndLevel;
     public int SustainMoneyGainEndLevel => sustainMoneyGainEndLevel;
 
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
     private void OnEnable()
     {
         SubscribeToRunState();
@@ -46,10 +64,13 @@ public class ModuleRuntimeStats : MonoBehaviour
     private void OnDisable()
     {
         UnsubscribeFromRunState();
+
+        if (Instance == this)
+            Instance = null;
     }
 
     /// <summary>
-    /// Recalcule tous les effets modules a partir des modules equipes.
+    /// Recalcule tous les effets modules à partir des modules équipés.
     /// </summary>
     public void Rebuild()
     {
@@ -85,6 +106,9 @@ public class ModuleRuntimeStats : MonoBehaviour
         OnStatsRebuilt.Invoke();
     }
 
+    /// <summary>
+    /// Remet toutes les stats agrégées à zéro avant reconstruction.
+    /// </summary>
     private void ResetAggregates()
     {
         briefingScanTier = 0;
@@ -94,33 +118,26 @@ public class ModuleRuntimeStats : MonoBehaviour
         sustainMoneyGainEndLevel = 0;
     }
 
+    /// <summary>
+    /// Agrège les effets d'un module unique.
+    /// </summary>
     private void AggregateOneModule(ModuleDefinition mod)
     {
         if (mod == null)
             return;
 
+        // SCAN
         briefingScanTier = Mathf.Max(briefingScanTier, Mathf.Max(0, mod.scanTierSet));
+
+        // Bonus passifs déclaratifs
         hullMaxAdd += Mathf.Max(0, mod.hullMaxAdd);
         flushMinBallsAdd += Mathf.Max(0, mod.flushMinBallsAdd);
 
+        // Sustain famille H
         if (string.Equals(mod.familyId, "H", System.StringComparison.Ordinal))
         {
-            switch (Mathf.Max(1, mod.tier))
-            {
-                case 1:
-                    sustainHullGainEndLevel += 1;
-                    break;
-
-                case 2:
-                    sustainHullGainEndLevel += 1;
-                    sustainMoneyGainEndLevel += 1;
-                    break;
-
-                case 3:
-                    sustainHullGainEndLevel += 2;
-                    sustainMoneyGainEndLevel += 1;
-                    break;
-            }
+            sustainHullGainEndLevel += Mathf.Max(0, mod.endLevelHullRepair);
+            sustainMoneyGainEndLevel += Mathf.Max(0, mod.endLevelMoneyGain);
         }
     }
 
@@ -148,24 +165,123 @@ public class ModuleRuntimeStats : MonoBehaviour
     }
 
     /// <summary>
-    /// Helper de compatibilite avec le systeme de briefing existant.
+    /// Helper de compatibilité avec le système de briefing existant.
     /// </summary>
     public BriefingTier GetEffectiveBriefingTier()
     {
         switch (briefingScanTier)
         {
-            case 3: return BriefingTier.T3;
-            case 2: return BriefingTier.T2;
-            case 1: return BriefingTier.T1;
-            default: return BriefingTier.T0;
+            case 3:
+                return BriefingTier.T3;
+
+            case 2:
+                return BriefingTier.T2;
+
+            case 1:
+                return BriefingTier.T1;
+
+            default:
+                return BriefingTier.T0;
         }
     }
 
     /// <summary>
-    /// Helper de compatibilite avec le flow end-level existant.
+    /// Helper de compatibilité avec le flow end-level existant.
     /// </summary>
     public (int hullGain, int moneyGain) GetEndLevelSustainBonus()
     {
         return (sustainHullGainEndLevel, sustainMoneyGainEndLevel);
+    }
+
+    /// <summary>
+    /// Retourne l'effet de fin de niveau de la famille C.
+    ///
+    /// Règle :
+    /// - le score delta est toujours appliqué
+    /// - le bonus HullMax ne doit être appliqué que si Hull plein,
+    ///   décision prise par le flow appelant
+    /// </summary>
+    public (int fullHullHullMaxAdd, int scoreDelta) GetEndLevelCoreGrowthEffect()
+    {
+        if (runSessionState == null)
+            return (0, 0);
+
+        if (!ModuleCatalogService.EnsureLoaded())
+            return (0, 0);
+
+        for (int i = 0; i < runSessionState.EquipmentSlotCount; i++)
+        {
+            string moduleId = runSessionState.GetEquippedModuleId(i);
+            if (string.IsNullOrEmpty(moduleId))
+                continue;
+
+            ModuleDefinition mod = ModuleCatalogService.GetById(moduleId);
+            if (mod == null)
+                continue;
+
+            if (!string.Equals(mod.familyId, "C", System.StringComparison.Ordinal))
+                continue;
+
+            return (
+                Mathf.Max(0, mod.endLevelFullHullHullMaxAdd),
+                mod.endLevelScoreDelta
+            );
+        }
+
+        return (0, 0);
+    }
+
+    public ModuleDefinition GetEndLevelCoreGrowthModule()
+    {
+        if (runSessionState == null)
+            return null;
+
+        if (!ModuleCatalogService.EnsureLoaded())
+            return null;
+
+        for (int i = 0; i < runSessionState.EquipmentSlotCount; i++)
+        {
+            string moduleId = runSessionState.GetEquippedModuleId(i);
+            if (string.IsNullOrEmpty(moduleId))
+                continue;
+
+            ModuleDefinition mod = ModuleCatalogService.GetById(moduleId);
+            if (mod == null)
+                continue;
+
+            if (!string.Equals(mod.familyId, "C", System.StringComparison.Ordinal))
+                continue;
+
+            return mod;
+        }
+
+        return null;
+    }
+
+    public ModuleDefinition GetEndLevelSustainModule()
+    {
+        if (runSessionState == null)
+            return null;
+
+        if (!ModuleCatalogService.EnsureLoaded())
+            return null;
+
+        for (int i = 0; i < runSessionState.EquipmentSlotCount; i++)
+        {
+            string moduleId = runSessionState.GetEquippedModuleId(i);
+            if (string.IsNullOrEmpty(moduleId))
+                continue;
+
+            ModuleDefinition mod = ModuleCatalogService.GetById(moduleId);
+            if (mod == null)
+                continue;
+
+            if (!string.Equals(mod.familyId, "H", System.StringComparison.Ordinal))
+                continue;
+
+            return mod;
+        }
+
+        return null;
     }
 }

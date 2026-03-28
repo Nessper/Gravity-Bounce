@@ -1,0 +1,37 @@
+{
+  "LevelID": "DBG-L1",
+  "MainObjective": {
+    "Text": "Collect at least 1 node.",
+    "ThresholdCount": 1,
+    "Bonus": 300
+  },
+  "ScoreGoals": [
+    { "Type": "Bronze", "Points": 200 },
+    { "Type": "Silver", "Points": 350 },
+    { "Type": "Gold", "Points": 500 }
+  ],
+  "SecondaryObjectives": [],
+  "Balls": [
+    { "Type": "White", "Points": 100 },
+    { "Type": "Blue", "Points": 150 },
+    { "Type": "Red", "Points": 200 },
+    { "Type": "Black", "Points": -120 }
+  ],
+  "Phases": [
+    {
+      "Name": "DEBUG PHASE",
+      "Weight": 1,
+      "Intervalle": 1.0,
+      "AngleMin": -4,
+      "AngleMax": 4,
+      "Mix": [
+        { "Type": "White", "Poids": 0.80 },
+        { "Type": "Blue", "Poids": 0.00 },
+        { "Type": "Red", "Poids": 0.00 },
+        { "Type": "Black", "Poids": 0.20 }
+      ]
+    }
+  ],
+  "Evacuation": { "Name": "Evacuation", "DurationSec": 2 },
+  "Obstacles": []
+}

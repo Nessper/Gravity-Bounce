@@ -1,14 +1,14 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.Events;
 
 /// <summary>
 /// Barre de score final segmentée (EndLevel).
-/// Très proche de SegmentedProgressBarUI, mais :
 /// - supporte 3 thresholds (Bronze / Silver / Gold),
-/// - la progression est basée sur un ratio [0..1] du score final (score / progressMax),
-///   calculé en dehors (FinalScoreBarUI).
+/// - la progression est basée sur un ratio [0..1] du score final,
+/// - expose la médaille actuellement affichée par la barre animée,
+///   y compris lors d'une redescente progressive.
 /// </summary>
 public class SegmentedFinalScoreBarUI : MonoBehaviour
 {
@@ -35,12 +35,6 @@ public class SegmentedFinalScoreBarUI : MonoBehaviour
     [SerializeField] private float pulseScale = 1.15f;
     [SerializeField] private float pulseDuration = 0.08f;
 
-    [Header("Events (médailles)")]
-    public UnityEvent OnBronzeSegmentLit;
-    public UnityEvent OnSilverSegmentLit;
-    public UnityEvent OnGoldSegmentLit;
-
-    // Infos runtime
     private int segmentCount;
     private int currentFilledSegments;
     private Coroutine stepRoutine;
@@ -51,24 +45,27 @@ public class SegmentedFinalScoreBarUI : MonoBehaviour
     private int silverIndex = -1;
     private int goldIndex = -1;
 
-    // Flags pour ne déclencher chaque médaille qu'une seule fois.
-    private bool bronzeFired = false;
-    private bool silverFired = false;
-    private bool goldFired = false;
+    private EndMedal displayedMedal = EndMedal.None;
 
     public int SegmentCount => segmentCount;
+    public EndMedal DisplayedMedal => displayedMedal;
+
+    /// <summary>
+    /// Event unique : la médaille actuellement affichée par la barre a changé.
+    /// </summary>
+    public event Action<EndMedal> OnDisplayedMedalChanged;
 
     private void Awake()
     {
         if (segments == null || segments.Length == 0)
-        {
             segments = GetComponentsInChildren<Image>();
-        }
 
-        segmentCount = segments.Length;
+        segmentCount = segments != null ? segments.Length : 0;
         segmentCount = Mathf.Max(0, segmentCount);
 
         currentFilledSegments = 0;
+        displayedMedal = EndMedal.None;
+
         UpdateVisual();
     }
 
@@ -76,31 +73,21 @@ public class SegmentedFinalScoreBarUI : MonoBehaviour
     // Configuration des thresholds (depuis les points de score)
     // --------------------------------------------------------------------
 
-    /// <summary>
-    /// Configure les thresholds à partir des points de médaille et du score max.
-    /// Exemple :
-    /// - bronzeScore, silverScore, goldScore : valeurs depuis LevelData.ScoreGoals
-    /// - maxScore : progressMax (ex: Gold * 1.2)
-    /// </summary>
     public void SetThresholdsFromGoals(int bronzeScore, int silverScore, int goldScore, int maxScore)
     {
         if (segmentCount <= 0 || maxScore <= 0)
         {
             bronzeIndex = silverIndex = goldIndex = -1;
-            bronzeFired = silverFired = goldFired = false;
+            currentFilledSegments = 0;
+            SetDisplayedMedalInternal(EndMedal.None);
             UpdateVisual();
             return;
         }
 
-        // Convertit un score en index du dernier segment allumé [0 .. segmentCount-1]
-        // en utilisant EXACTEMENT la même logique que SetProgress01.
         int ScoreToIndex(int score)
         {
             score = Mathf.Max(0, score);
             float ratio = Mathf.Clamp01((float)score / maxScore);
-
-            // Même logique que SetProgress01 :
-            // targetFilledSegments = FloorToInt(progress01 * segmentCount)
             int filledSegments = Mathf.FloorToInt(ratio * segmentCount);
 
             if (filledSegments <= 0)
@@ -113,10 +100,8 @@ public class SegmentedFinalScoreBarUI : MonoBehaviour
         silverIndex = (silverScore > 0) ? ScoreToIndex(silverScore) : -1;
         goldIndex = (goldScore > 0) ? ScoreToIndex(goldScore) : -1;
 
-        // On réarme les flags de déclenchement
-        bronzeFired = silverFired = goldFired = false;
-
         UpdateVisual();
+        RefreshDisplayedMedal();
     }
 
     // --------------------------------------------------------------------
@@ -135,14 +120,12 @@ public class SegmentedFinalScoreBarUI : MonoBehaviour
         {
             currentFilledSegments = targetFilledSegments;
             UpdateVisual();
+            RefreshDisplayedMedal();
             return;
         }
 
-        // On stoppe une éventuelle anim en cours
         if (stepRoutine != null)
-        {
             StopCoroutine(stepRoutine);
-        }
 
         stepRoutine = StartCoroutine(AnimateToTargetFilledSegments(targetFilledSegments));
     }
@@ -156,62 +139,46 @@ public class SegmentedFinalScoreBarUI : MonoBehaviour
         }
 
         currentFilledSegments = 0;
-
-        // On réarme aussi les flags ici au cas où on réutilise la barre
-        bronzeFired = silverFired = goldFired = false;
-
         UpdateVisual();
+        SetDisplayedMedalInternal(EndMedal.None);
     }
 
     // --------------------------------------------------------------------
-    // Animation : on allume les segments un par un
+    // Animation
     // --------------------------------------------------------------------
 
     private IEnumerator AnimateToTargetFilledSegments(int targetFilledSegments)
     {
         targetFilledSegments = Mathf.Clamp(targetFilledSegments, 0, segmentCount);
 
-        // Si on diminue (peu probable ici), on met à jour direct sans anim.
-        if (targetFilledSegments <= currentFilledSegments)
+        if (targetFilledSegments == currentFilledSegments)
         {
-            currentFilledSegments = targetFilledSegments;
-            UpdateVisual();
             stepRoutine = null;
             yield break;
         }
 
-        // On augmente: on allume les segments un par un.
+        // Montée progressive
         while (currentFilledSegments < targetFilledSegments)
         {
             currentFilledSegments++;
             UpdateVisual();
+            RefreshDisplayedMedal();
 
             int segmentIndex = currentFilledSegments - 1;
             if (segmentIndex >= 0 && segmentIndex < segments.Length)
-            {
                 StartCoroutine(PulseSegment(segments[segmentIndex]));
-            }
 
-            // Déclenchement des événements de médailles
-            if (!bronzeFired && bronzeIndex >= 0 && segmentIndex == bronzeIndex)
-            {
-                bronzeFired = true;
-                OnBronzeSegmentLit?.Invoke();
-            }
+            yield return new WaitForSecondsRealtime(stepDelay);
+        }
 
-            if (!silverFired && silverIndex >= 0 && segmentIndex == silverIndex)
-            {
-                silverFired = true;
-                OnSilverSegmentLit?.Invoke();
-            }
+        // Descente progressive
+        while (currentFilledSegments > targetFilledSegments)
+        {
+            currentFilledSegments--;
+            UpdateVisual();
+            RefreshDisplayedMedal();
 
-            if (!goldFired && goldIndex >= 0 && segmentIndex == goldIndex)
-            {
-                goldFired = true;
-                OnGoldSegmentLit?.Invoke();
-            }
-
-            yield return new WaitForSeconds(stepDelay);
+            yield return new WaitForSecondsRealtime(stepDelay);
         }
 
         stepRoutine = null;
@@ -227,28 +194,59 @@ public class SegmentedFinalScoreBarUI : MonoBehaviour
         Vector3 targetScale = baseScale * pulseScale;
 
         float halfDuration = pulseDuration * 0.5f;
-        float tTime = 0f;
+        float timer = 0f;
 
-        // Scale up
-        while (tTime < halfDuration)
+        while (timer < halfDuration)
         {
-            tTime += Time.unscaledDeltaTime;
-            float k = Mathf.Clamp01(tTime / halfDuration);
+            timer += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(timer / halfDuration);
             t.localScale = Vector3.Lerp(baseScale, targetScale, k);
             yield return null;
         }
 
-        // Scale down
-        tTime = 0f;
-        while (tTime < halfDuration)
+        timer = 0f;
+        while (timer < halfDuration)
         {
-            tTime += Time.unscaledDeltaTime;
-            float k = Mathf.Clamp01(tTime / halfDuration);
+            timer += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(timer / halfDuration);
             t.localScale = Vector3.Lerp(targetScale, baseScale, k);
             yield return null;
         }
 
         t.localScale = baseScale;
+    }
+
+    // --------------------------------------------------------------------
+    // Médaille actuellement affichée
+    // --------------------------------------------------------------------
+
+    private void RefreshDisplayedMedal()
+    {
+        SetDisplayedMedalInternal(ComputeDisplayedMedalFromFilledSegments(currentFilledSegments));
+    }
+
+    private EndMedal ComputeDisplayedMedalFromFilledSegments(int filledSegments)
+    {
+        // Un threshold est atteint si son index est dans les segments allumés.
+        if (goldIndex >= 0 && goldIndex < filledSegments)
+            return EndMedal.Gold;
+
+        if (silverIndex >= 0 && silverIndex < filledSegments)
+            return EndMedal.Silver;
+
+        if (bronzeIndex >= 0 && bronzeIndex < filledSegments)
+            return EndMedal.Bronze;
+
+        return EndMedal.None;
+    }
+
+    private void SetDisplayedMedalInternal(EndMedal medal)
+    {
+        if (displayedMedal == medal)
+            return;
+
+        displayedMedal = medal;
+        OnDisplayedMedalChanged?.Invoke(displayedMedal);
     }
 
     // --------------------------------------------------------------------
@@ -264,19 +262,17 @@ public class SegmentedFinalScoreBarUI : MonoBehaviour
         {
             bool isActive = i < currentFilledSegments;
             Image img = segments[i];
-            if (img == null) continue;
+            if (img == null)
+                continue;
 
-            // Cas Gold
             if (i == goldIndex && goldIndex >= 0)
             {
                 img.color = isActive ? goldReachedColor : goldColor;
             }
-            // Cas Silver
             else if (i == silverIndex && silverIndex >= 0)
             {
                 img.color = isActive ? silverReachedColor : silverColor;
             }
-            // Cas Bronze
             else if (i == bronzeIndex && bronzeIndex >= 0)
             {
                 img.color = isActive ? bronzeReachedColor : bronzeColor;

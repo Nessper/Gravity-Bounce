@@ -4,74 +4,93 @@ using UnityEngine;
 
 /// <summary>
 /// Affichage du Hull : current / max.
-/// - Couleur dynamique selon le pourcentage de Hull.
-/// - Feedback visuel optionnel en cas de dégâts (flash rouge + punch-scale).
-/// - Support optionnel d'un préfixe TMP RichText (ex: icône via SpriteAsset).
+/// Responsabilites :
+/// - afficher la valeur courante et max,
+/// - colorer selon l'etat,
+/// - jouer des feedbacks visuels uniquement sur demande explicite.
 ///
-/// Utilisation recommandée :
-/// - Gameplay : enableDamageFeedback = true, prefixRichText = ""
-/// - Shop / Briefing : enableDamageFeedback = false, prefixRichText = "<voffset=-6><sprite name=\"icon_hull\"></voffset> "
+/// Regle importante :
+/// - SetCurrentHull / SetMaxHull ne declenchent aucun feedback automatiquement.
+/// - Les feedbacks doivent etre demandes explicitement par le systeme appelant.
 /// </summary>
 public class HullUI : MonoBehaviour
 {
-    [Header("Références")]
+    [Header("References")]
     [SerializeField] private TMP_Text hullText;
     [SerializeField] private string separator = "/";
 
     [Header("Format (TMP Rich Text)")]
-    [Tooltip("Préfixe optionnel ajouté avant la valeur (ex: icône TMP). Exemple: <voffset=-6><sprite name=\"icon_hull\"></voffset> ")]
     [SerializeField] private string prefixRichText = "";
 
     [Header("Mode")]
-    [Tooltip("Si false, aucun feedback dégâts (pas de flash/punch). Recommandé hors gameplay.")]
     [SerializeField] private bool enableDamageFeedback = true;
 
-    [Header("Couleurs d'état")]
-    [Tooltip("Couleur normale (> 50%).")]
+    [Header("State Colors")]
     [SerializeField] private Color normalColor = Color.white;
-
-    [Tooltip("Couleur warning (<= 50%).")]
-    [SerializeField] private Color warningColor = new Color(1f, 0.6f, 0.1f); // orange
-
-    [Tooltip("Couleur critique (<= 20%).")]
+    [SerializeField] private Color warningColor = new Color(1f, 0.6f, 0.1f);
     [SerializeField] private Color criticalColor = Color.red;
 
-    [Header("Seuils (en %)")]
+    [Header("Positive Feedback Colors")]
+    [SerializeField] private Color repairFlashColor = new Color(0.35f, 1f, 0.45f);
+    [SerializeField] private Color maxHullFlashColor = new Color(0.72f, 0.95f, 0.35f);
+
+    [Header("Thresholds")]
     [Range(0f, 1f)]
     [SerializeField] private float warningThreshold = 0.5f;
 
     [Range(0f, 1f)]
     [SerializeField] private float criticalThreshold = 0.2f;
 
-    [Header("Feedback dégâts")]
+    [Header("Durations")]
     [SerializeField] private float damageFeedbackDuration = 0.25f;
+    [SerializeField] private float repairFeedbackDuration = 0.25f;
+    [SerializeField] private float maxHullFeedbackDuration = 0.35f;
 
-    [Header("Feedback scale")]
-    [Tooltip("Facteur de punch (0.3 = +30% de scale au pic).")]
-    [SerializeField] private float punchScaleAmount = 0.35f;
+    [Header("Scale")]
+    [SerializeField] private float damagePunchScaleAmount = 0.35f;
+    [SerializeField] private float repairPunchScaleAmount = 0.2f;
+    [SerializeField] private float maxHullPunchScaleAmount = 0.28f;
+
+    [Header("SFX")]
+    [SerializeField] private SfxId addHullSfx = SfxId.AddHull;
+    [SerializeField] private SfxId addMaxHullSfx = SfxId.AddMaxHull;
 
     private int currentHull = 0;
     private int maxHull = 1;
 
     private Coroutine feedbackRoutine;
-    private Vector3 baseScale;
+    private Vector3 baseScale = Vector3.one;
 
     private void Awake()
     {
         if (hullText == null)
-            Debug.LogError("[HullUI] hullText non assigné.", this);
+        {
+            Debug.LogError("[HullUI] hullText is not assigned.", this);
+            return;
+        }
 
-        baseScale = hullText != null
-            ? hullText.rectTransform.localScale
-            : Vector3.one;
+        RectTransform rt = hullText.rectTransform;
+
+        if (Mathf.Approximately(rt.localScale.x, 0f) ||
+            Mathf.Approximately(rt.localScale.y, 0f))
+        {
+            rt.localScale = Vector3.one;
+        }
+
+        baseScale = rt.localScale;
 
         RefreshText();
         RefreshStateColor(force: true);
     }
 
-    // --------------------------------------------------------------------
-    // API PUBLIQUE
-    // --------------------------------------------------------------------
+    private void OnEnable()
+    {
+        ResetVisualState();
+    }
+
+    // ------------------------------------------------------------
+    // Public API kept for compatibility
+    // ------------------------------------------------------------
 
     public void SetDamageFeedbackEnabled(bool enabled)
     {
@@ -81,39 +100,29 @@ public class HullUI : MonoBehaviour
         {
             StopCoroutine(feedbackRoutine);
             feedbackRoutine = null;
-
-            if (hullText != null)
-            {
-                hullText.fontStyle = FontStyles.Normal;
-                hullText.rectTransform.localScale = baseScale;
-            }
-
+            RestoreBaseVisualState();
             RefreshStateColor(force: true);
         }
     }
 
-    /// <summary>
-    /// Définit le préfixe TMP RichText (ex: icône via SpriteAsset).
-    /// Exemple: "<voffset=-6><sprite name=\"icon_hull\"></voffset> "
-    /// </summary>
     public void SetPrefixRichText(string prefix)
     {
-        prefixRichText = prefix ?? "";
+        prefixRichText = prefix ?? string.Empty;
         RefreshText();
     }
 
+    public void SetHull(int value)
+    {
+        SetCurrentHull(value);
+    }
+
+    // ------------------------------------------------------------
+    // Display only
+    // ------------------------------------------------------------
+
     public void SetMaxHull(int max)
     {
-        int newMax = Mathf.Max(1, max);
-
-        if (newMax == maxHull)
-        {
-            RefreshText();
-            RefreshStateColor(force: false);
-            return;
-        }
-
-        maxHull = newMax;
+        maxHull = Mathf.Max(1, max);
         currentHull = Mathf.Clamp(currentHull, 0, maxHull);
 
         RefreshText();
@@ -122,29 +131,60 @@ public class HullUI : MonoBehaviour
 
     public void SetCurrentHull(int newHull)
     {
-        int clamped = Mathf.Clamp(Mathf.Max(0, newHull), 0, maxHull);
-        bool tookDamage = clamped < currentHull;
-
-        currentHull = clamped;
+        currentHull = Mathf.Clamp(Mathf.Max(0, newHull), 0, maxHull);
 
         RefreshText();
         RefreshStateColor(force: false);
-
-        if (tookDamage && enableDamageFeedback)
-            PlayDamageFeedback();
     }
 
-    /// <summary>
-    /// Compatibilité avec l'ancien naming.
-    /// </summary>
-    public void SetHull(int value)
+    public void ResetVisualState()
     {
-        SetCurrentHull(value);
+        if (feedbackRoutine != null)
+        {
+            StopCoroutine(feedbackRoutine);
+            feedbackRoutine = null;
+        }
+
+        RestoreBaseVisualState();
+        RefreshStateColor(force: true);
     }
 
-    // --------------------------------------------------------------------
-    // AFFICHAGE
-    // --------------------------------------------------------------------
+    // ------------------------------------------------------------
+    // Explicit feedbacks only
+    // ------------------------------------------------------------
+
+    public void PlayDamageFeedback()
+    {
+        if (hullText == null || !gameObject.activeInHierarchy)
+            return;
+
+        if (!enableDamageFeedback)
+            return;
+
+        StartFeedbackRoutine(DamageFeedbackRoutine());
+    }
+
+    public void PlayRepairFeedback()
+    {
+        if (hullText == null || !gameObject.activeInHierarchy)
+            return;
+
+        BootRoot.Audio?.PlayUi(addHullSfx);
+        StartFeedbackRoutine(RepairFeedbackRoutine());
+    }
+
+    public void PlayMaxHullFeedback()
+    {
+        if (hullText == null || !gameObject.activeInHierarchy)
+            return;
+
+        BootRoot.Audio?.PlayUi(addMaxHullSfx);
+        StartFeedbackRoutine(MaxHullFeedbackRoutine());
+    }
+
+    // ------------------------------------------------------------
+    // Internal display helpers
+    // ------------------------------------------------------------
 
     private void RefreshText()
     {
@@ -183,16 +223,39 @@ public class HullUI : MonoBehaviour
         return normalColor;
     }
 
-    // --------------------------------------------------------------------
-    // FEEDBACK DÉGÂTS
-    // --------------------------------------------------------------------
+    // ------------------------------------------------------------
+    // Feedback internals
+    // ------------------------------------------------------------
 
-    private void PlayDamageFeedback()
+    private void StartFeedbackRoutine(IEnumerator routine)
     {
         if (feedbackRoutine != null)
             StopCoroutine(feedbackRoutine);
 
-        feedbackRoutine = StartCoroutine(DamageFeedbackRoutine());
+        RestoreBaseScaleOnly();
+        feedbackRoutine = StartCoroutine(routine);
+    }
+
+    private void RestoreBaseVisualState()
+    {
+        if (hullText == null)
+            return;
+
+        hullText.fontStyle = FontStyles.Normal;
+        RestoreBaseScaleOnly();
+    }
+
+    private void RestoreBaseScaleOnly()
+    {
+        if (hullText == null)
+            return;
+
+        RectTransform rt = hullText.rectTransform;
+
+        if (Mathf.Approximately(baseScale.x, 0f) || Mathf.Approximately(baseScale.y, 0f))
+            baseScale = Vector3.one;
+
+        rt.localScale = baseScale;
     }
 
     private IEnumerator DamageFeedbackRoutine()
@@ -204,7 +267,7 @@ public class HullUI : MonoBehaviour
         hullText.fontStyle = FontStyles.Bold;
 
         RectTransform rt = hullText.rectTransform;
-        rt.localScale = baseScale;
+        RestoreBaseScaleOnly();
 
         float elapsed = 0f;
         float duration = Mathf.Max(0.01f, damageFeedbackDuration);
@@ -214,18 +277,79 @@ public class HullUI : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
 
-            float punchT = Mathf.Sin(t * Mathf.PI); // 0 -> 1 -> 0
+            float punchT = Mathf.Sin(t * Mathf.PI);
             float damper = 1f - t;
-            float scaleFactor = 1f + punchScaleAmount * punchT * damper;
+            float scaleFactor = 1f + damagePunchScaleAmount * punchT * damper;
 
             rt.localScale = baseScale * scaleFactor;
-
             yield return null;
         }
 
-        hullText.fontStyle = FontStyles.Normal;
-        rt.localScale = baseScale;
+        RestoreBaseVisualState();
+        feedbackRoutine = null;
+        RefreshStateColor(force: true);
+    }
 
+    private IEnumerator RepairFeedbackRoutine()
+    {
+        if (hullText == null)
+            yield break;
+
+        hullText.color = repairFlashColor;
+        hullText.fontStyle = FontStyles.Bold;
+
+        RectTransform rt = hullText.rectTransform;
+        RestoreBaseScaleOnly();
+
+        float elapsed = 0f;
+        float duration = Mathf.Max(0.01f, repairFeedbackDuration);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+
+            float punchT = Mathf.Sin(t * Mathf.PI);
+            float damper = 1f - t;
+            float scaleFactor = 1f + repairPunchScaleAmount * punchT * damper;
+
+            rt.localScale = baseScale * scaleFactor;
+            yield return null;
+        }
+
+        RestoreBaseVisualState();
+        feedbackRoutine = null;
+        RefreshStateColor(force: true);
+    }
+
+    private IEnumerator MaxHullFeedbackRoutine()
+    {
+        if (hullText == null)
+            yield break;
+
+        hullText.color = maxHullFlashColor;
+        hullText.fontStyle = FontStyles.Bold;
+
+        RectTransform rt = hullText.rectTransform;
+        RestoreBaseScaleOnly();
+
+        float elapsed = 0f;
+        float duration = Mathf.Max(0.01f, maxHullFeedbackDuration);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+
+            float punchT = Mathf.Sin(t * Mathf.PI);
+            float damper = 1f - t;
+            float scaleFactor = 1f + maxHullPunchScaleAmount * punchT * damper;
+
+            rt.localScale = baseScale * scaleFactor;
+            yield return null;
+        }
+
+        RestoreBaseVisualState();
         feedbackRoutine = null;
         RefreshStateColor(force: true);
     }

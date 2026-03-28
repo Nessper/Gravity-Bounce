@@ -3,15 +3,16 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Construit et gère les listes de lignes Goals et Combos (bonus) :
+/// Construit et gère les listes de lignes Goals et Bonus de fin de niveau :
 /// - Clear des conteneurs
-/// - Ajout des lignes (objectif principal, objectifs secondaires)
-/// - Reveal des combos (avec délai par ligne)
-/// - Calcul des totaux (goals, combos)
+/// - Ajout des lignes d'objectifs (principal + secondaires)
+/// - Reveal des lignes bonus de cérémonie
+/// - Calcul des totaux (goals, bonus)
 ///
 /// IMPORTANT :
 /// - Ne gère pas la cérémonie (timings globaux, victoire/défaite).
 /// - Ne gère pas le score final ni la progress bar.
+/// - La source de vérité affichée pour la section bonus est EndLevelStats.BonusLines.
 /// </summary>
 public class EndLevelLinesBuilderUI : MonoBehaviour
 {
@@ -25,13 +26,13 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
     [SerializeField] private LineEntryFinalUI totalGoalsLine;
 
     // ----------------------------------------------------------
-    // COMBOS
+    // BONUS
     // ----------------------------------------------------------
 
-    [Header("Combos")]
-    [SerializeField] private RectTransform combosContent;
-    [SerializeField] private GameObject combosLinePrefab;
-    [SerializeField] private LineEntryFinalUI totalCombosLine;
+    [Header("Bonus")]
+    [SerializeField] private RectTransform bonusContent;
+    [SerializeField] private GameObject bonusLinePrefab;
+    [SerializeField] private LineEntryFinalUI totalBonusLine;
 
     [Header("Combos style")]
     [SerializeField] private FinalComboStyleProvider finalComboStyle;
@@ -47,11 +48,11 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
     // STATE
     // ----------------------------------------------------------
 
-    private int lastComboPoints = 0;
+    private int lastBonusPoints = 0;
 
-    public int LastComboPoints
+    public int LastBonusPoints
     {
-        get { return lastComboPoints; }
+        get { return lastBonusPoints; }
     }
 
     // ----------------------------------------------------------
@@ -61,7 +62,7 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
     public void ClearAll()
     {
         ClearGoals();
-        ClearCombos();
+        ClearBonusLines();
     }
 
     public void ClearGoals()
@@ -70,12 +71,12 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
             ClearChildren(goalsContent);
     }
 
-    public void ClearCombos()
+    public void ClearBonusLines()
     {
-        if (combosContent != null)
-            ClearChildren(combosContent);
+        if (bonusContent != null)
+            ClearChildren(bonusContent);
 
-        lastComboPoints = 0;
+        lastBonusPoints = 0;
     }
 
     public void AddMainObjectiveLine(MainObjectiveResult mainObj)
@@ -147,31 +148,37 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
             totalGoalsLine.value.text = "0";
     }
 
-    public void ShowCombosTotalLine()
+    public void ShowBonusTotalLine()
     {
-        if (totalCombosLine == null)
+        if (totalBonusLine == null)
             return;
 
-        totalCombosLine.gameObject.SetActive(true);
+        totalBonusLine.gameObject.SetActive(true);
 
-        if (totalCombosLine.label != null)
-            totalCombosLine.label.text = "Score";
+        if (totalBonusLine.label != null)
+            totalBonusLine.label.text = "Score";
 
-        if (totalCombosLine.value != null)
-            totalCombosLine.value.text = "0";
+        if (totalBonusLine.value != null)
+            totalBonusLine.value.text = "0";
     }
 
     /// <summary>
-    /// Révèle les combos ligne par ligne, en appliquant un délai constant.
-    /// Met à jour LastComboPoints.
+    /// Révèle les lignes bonus de fin de niveau, une par une,
+    /// en appliquant un délai constant.
+    ///
+    /// IMPORTANT :
+    /// - stats.BonusLines est la source de vérité de la section bonus.
+    /// - Certaines lignes correspondent à d'anciens final combos :
+    ///   dans ce cas, FinalComboStyleProvider peut convertir leur id
+    ///   technique en label UI plus propre.
+    /// - Les autres lignes (ex : modules) gardent simplement leur label brut.
     /// </summary>
-    public IEnumerator RevealCombos(EndLevelStats stats, float lineDelaySec)
+    public IEnumerator RevealBonusLines(EndLevelStats stats, float lineDelaySec)
     {
-        lastComboPoints = 0;
+        lastBonusPoints = 0;
 
-        // IMPORTANT : on conserve exactement ta logique "var" pour coller au type réel de stats.Combos
-        var combos = (stats != null) ? stats.Combos : null;
-        if (combos == null || combos.Count == 0)
+        var bonusLines = (stats != null) ? stats.BonusLines : null;
+        if (bonusLines == null || bonusLines.Count == 0)
         {
             if (lineDelaySec > 0f)
                 yield return new WaitForSecondsRealtime(lineDelaySec);
@@ -179,27 +186,57 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
             yield break;
         }
 
-        for (int i = 0; i < combos.Count; i++)
+        for (int i = 0; i < bonusLines.Count; i++)
         {
-            var comboData = combos[i];
+            var lineData = bonusLines[i];
 
-            GameObject go = Object.Instantiate(combosLinePrefab, combosContent);
+            GameObject go = Object.Instantiate(bonusLinePrefab, bonusContent);
             LineEntryUI ui = go.GetComponent<LineEntryUI>();
             if (ui != null)
             {
-                string displayLabel = comboData.Label;
-                if (finalComboStyle != null)
-                    displayLabel = finalComboStyle.GetLabel(comboData.Label);
+                string displayLabel = ResolveBonusDisplayLabel(lineData.Label);
 
                 ui.label.text = displayLabel;
-                ui.value.text = comboData.Total.ToString("N0");
+                ui.value.text = lineData.Total.ToString("N0");
             }
 
-            lastComboPoints += comboData.Total;
+            lastBonusPoints += lineData.Total;
 
             if (lineDelaySec > 0f)
                 yield return new WaitForSecondsRealtime(lineDelaySec);
         }
+    }
+
+    // ----------------------------------------------------------
+    // INTERNALS
+    // ----------------------------------------------------------
+
+    /// <summary>
+    /// Résout le label affiché pour une ligne bonus.
+    ///
+    /// Règle :
+    /// - si FinalComboStyleProvider connaît ce label, on utilise
+    ///   la version stylée ;
+    /// - sinon, on conserve le label brut.
+    ///
+    /// Cela permet de garder les anciens ids techniques de final combos
+    /// tout en affichant correctement les lignes déjà prêtes, comme
+    /// les bonus modules.
+    /// </summary>
+    private string ResolveBonusDisplayLabel(string rawLabel)
+    {
+        if (string.IsNullOrEmpty(rawLabel))
+            return string.Empty;
+
+        if (finalComboStyle == null)
+            return rawLabel;
+
+        string styled = finalComboStyle.GetLabel(rawLabel);
+
+        if (string.IsNullOrEmpty(styled))
+            return rawLabel;
+
+        return styled;
     }
 
     // ----------------------------------------------------------

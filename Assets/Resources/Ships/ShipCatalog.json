@@ -24,6 +24,20 @@
       "binAutoFlushOnEvac": true,
       "imageFile": "aether_runner.png",
       "unlockedModuleSlots": 3
+    },
+
+    {
+      "id": "DEBUG_SHIP",
+      "displayName": "Debug Ship",
+      "description": "Internal testing ship. Used for fast iteration and debugging.",
+      "maxHull": 10,
+      "levelDurationSec": 10,
+      "closeBinHoldGrace": 0.12,
+      "paddleWidthMult": 1.0,
+      "binAutoFlushOnEvac": true,
+      "imageFile": "core_scout.png",
+      "unlockedModuleSlots": 6,
+      "debugOnly": true
     }
   ]
 }

@@ -1,13 +1,13 @@
 using UnityEngine;
 
 /// <summary>
-/// Gère la coque (Hull) pour le niveau courant :
+/// Gere la coque (Hull) pour le niveau courant :
 /// - stocke la valeur max et courante (cache local pour l'UI),
-/// - met à jour la HullUI,
-/// - applique des pénalités (ex : billes noires par flush) via RunSessionState.
+/// - met a jour la HullUI,
+/// - applique des penalites via RunSessionState.
 ///
-/// Source de vérité runtime : RunSessionState (persiste via SaveManager).
-/// HullSystem ne persiste rien directement : il reflète l'état et drive l'UI/feedback.
+/// Source de verite runtime : RunSessionState.
+/// HullSystem ne persiste rien directement : il reflete l'etat et drive l'UI/feedback.
 /// </summary>
 public class HullSystem : MonoBehaviour
 {
@@ -17,41 +17,69 @@ public class HullSystem : MonoBehaviour
     [Header("Feedback")]
     [SerializeField] private HullDamageFeedbackController feedbackController;
 
-    [Header("Run (source de vérité)")]
+    [Header("Run (source de verite)")]
     [SerializeField] private RunSessionState runSessionState;
 
     private int currentHull;
     private int maxHull;
+    private int lastKnownHull;
+
+    // Empeche les faux feedbacks pendant la phase de sync initiale.
+    private bool isInitialized;
+
+    // True pendant l'application d'un bonus de Max Hull.
+    // Permet d'eviter qu'une hausse de Hull courant liee a ce bonus
+    // soit interpretee comme une simple reparation.
+    private bool isApplyingMaxHullUpgrade;
+
+    private void OnEnable()
+    {
+        isInitialized = false;
+        isApplyingMaxHullUpgrade = false;
+
+        if (runSessionState != null)
+        {
+            runSessionState.OnHullChanged.AddListener(HandleHullChanged);
+            runSessionState.OnHullMaxChanged.AddListener(HandleHullMaxChanged);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (runSessionState != null)
+        {
+            runSessionState.OnHullChanged.RemoveListener(HandleHullChanged);
+            runSessionState.OnHullMaxChanged.RemoveListener(HandleHullMaxChanged);
+        }
+
+        isInitialized = false;
+        isApplyingMaxHullUpgrade = false;
+    }
 
     // ------------------------------------------------------------
     // INIT / SYNC
     // ------------------------------------------------------------
 
-    /// <summary>
-    /// Initialise la coque pour ce niveau.
-    /// Appel recommandé au début du gameplay, après chargement de RunSessionState.
-    /// </summary>
     public void Initialize(int startHull, int max)
     {
+        isInitialized = false;
+
         maxHull = Mathf.Max(1, max);
         currentHull = Mathf.Clamp(startHull, 0, maxHull);
+        lastKnownHull = currentHull;
 
         RefreshUI(fullRefresh: true);
+
+        isInitialized = true;
     }
 
-    /// <summary>
-    /// Met à jour la valeur courante (sync externe).
-    /// </summary>
     public void SetCurrentHull(int value)
     {
         currentHull = Mathf.Clamp(Mathf.Max(0, value), 0, Mathf.Max(1, maxHull));
+        lastKnownHull = currentHull;
         RefreshUI(fullRefresh: false);
     }
 
-    /// <summary>
-    /// Met à jour la valeur maximale (sync externe).
-    /// Clamp la valeur courante, puis full refresh UI.
-    /// </summary>
     public void SetMaxHull(int max)
     {
         int newMax = Mathf.Max(1, max);
@@ -61,6 +89,36 @@ public class HullSystem : MonoBehaviour
 
         maxHull = newMax;
         currentHull = Mathf.Clamp(currentHull, 0, maxHull);
+        lastKnownHull = currentHull;
+
+        RefreshUI(fullRefresh: true);
+    }
+
+    private void HandleHullChanged(int newHull)
+    {
+        int clamped = Mathf.Clamp(Mathf.Max(0, newHull), 0, Mathf.Max(1, maxHull));
+
+        bool repaired = isInitialized && clamped > lastKnownHull;
+
+        currentHull = clamped;
+        RefreshUI(fullRefresh: false);
+
+        if (repaired && !isApplyingMaxHullUpgrade)
+            hullUI?.PlayRepairFeedback();
+
+        lastKnownHull = clamped;
+    }
+
+    private void HandleHullMaxChanged(int newMax)
+    {
+        maxHull = Mathf.Max(1, newMax);
+
+        if (runSessionState != null)
+            currentHull = Mathf.Clamp(runSessionState.Hull, 0, maxHull);
+        else
+            currentHull = Mathf.Clamp(currentHull, 0, maxHull);
+
+        lastKnownHull = currentHull;
 
         RefreshUI(fullRefresh: true);
     }
@@ -69,29 +127,42 @@ public class HullSystem : MonoBehaviour
     // GAMEPLAY PENALTIES
     // ------------------------------------------------------------
 
-    /// <summary>
-    /// Applique une pénalité de hull en fonction du nombre de billes noires.
-    /// Clamp à 0 pour éviter les valeurs négatives.
-    /// </summary>
     public void ApplyBlackPenalty(int blackCount)
     {
         if (blackCount <= 0)
             return;
 
-        // Feedback visuel (avant la maj du chiffre)
         if (feedbackController != null)
             feedbackController.PlayHullDamageFeedback(blackCount);
 
-        // Source de vérité : RunSessionState
         if (runSessionState != null)
         {
             runSessionState.RemoveHull(blackCount);
             return;
         }
 
-        // Fallback dev-only si RunSessionState absent
         currentHull = Mathf.Max(0, currentHull - blackCount);
+        lastKnownHull = currentHull;
         RefreshUI(fullRefresh: false);
+    }
+
+    // ------------------------------------------------------------
+    // MAX HULL UPGRADE FLOW
+    // ------------------------------------------------------------
+
+    public void BeginMaxHullUpgrade()
+    {
+        isApplyingMaxHullUpgrade = true;
+    }
+
+    public void EndMaxHullUpgrade()
+    {
+        isApplyingMaxHullUpgrade = false;
+    }
+
+    public void PlayMaxHullUpgradeFeedback()
+    {
+        hullUI?.PlayMaxHullFeedback();
     }
 
     // ------------------------------------------------------------

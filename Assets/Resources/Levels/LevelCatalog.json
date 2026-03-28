@@ -35,6 +35,12 @@
       "worldId": "W1",
       "title": "UNDER A BLACK RAIN",
       "gameplayPath": "Levels/W1-L6"
+    },
+    {
+      "levelId": "DBG-L1",
+      "worldId": "DBG",
+      "title": "DEBUG LEVEL",
+      "gameplayPath": "Levels/DBG-L1"
     }
   ]
 }

@@ -211,6 +211,8 @@ public class SaveManager : MonoBehaviour
         run.currentRunScore = 0;
         run.nodesClearedInRun = 0;
 
+        run.bonusHullMaxInRun = 0;
+
         run.levelInProgress = false;
         run.abortPenaltyArmed = false;
 
@@ -712,6 +714,7 @@ public class SaveManager : MonoBehaviour
         data.runState.remainingContractLives = 3;
         data.runState.currentRunScore = 0;
         data.runState.nodesClearedInRun = 0;
+        data.runState.bonusHullMaxInRun = 0;
 
         data.runState.levelInProgress = false;
         data.runState.abortPenaltyArmed = false;

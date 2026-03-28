@@ -1,74 +1,80 @@
 using UnityEngine;
 
 /// <summary>
-/// Contrôleur de la barre de score final (EndLevel).
-/// - Reçoit les infos de score (thresholds, progressMax, score courant).
-/// - Calcule le ratio et alimente SegmentedFinalScoreBarUI.
-/// - Expose une API simple pour EndLevelUI.
-/// 
-/// Hiérarchie attendue :
-/// FinalScoreBar (ce script)
-/// Child : Bar_Segment_Group (SegmentedFinalScoreBarUI)
+/// Contrôleur de la barre de score final.
+/// - Met à jour la barre segmentée
+/// - Répercute la médaille réellement affichée par la barre animée
+///   vers EndLevelMedalsUI
 /// </summary>
 public class FinalScoreBarUI : MonoBehaviour
 {
     [Header("Références")]
     [SerializeField] private SegmentedFinalScoreBarUI segmentedBar;
-    // segmentedBar : script visuel qui gère les segments (couleurs, animation step-by-step).
+    [SerializeField] private EndLevelMedalsUI medalsUI;
 
     [Header("Runtime")]
     [SerializeField] private int progressMax = 0;
-    // progressMax : valeur de score correspondant à 100% de la barre (ex : Gold * 1.2).
 
     private int currentScore = 0;
+    private int bronzeThreshold = 0;
+    private int silverThreshold = 0;
+    private int goldThreshold = 0;
 
     public int ProgressMax => progressMax;
     public int CurrentScore => currentScore;
 
     private void Awake()
     {
-        // Si la référence n'est pas renseignée, on essaie de la trouver automatiquement.
         if (segmentedBar == null)
             segmentedBar = GetComponentInChildren<SegmentedFinalScoreBarUI>();
+
+        if (medalsUI == null)
+            medalsUI = GetComponentInChildren<EndLevelMedalsUI>(true);
     }
 
-    /// <summary>
-    /// Configure la barre finale à partir des thresholds de médailles et du score max.
-    /// - bronzeThreshold / silverThreshold / goldThreshold : valeurs de LevelData.ScoreGoals.
-    /// - maxScore : souvent goldThreshold * 1.2f (déjà calculé dans EndLevelUI).
-    /// 
-    /// Ne lance pas encore d'animation, mais place les segments spéciaux Bronze/Silver/Gold.
-    /// </summary>
+    private void OnEnable()
+    {
+        if (segmentedBar != null)
+            segmentedBar.OnDisplayedMedalChanged += HandleDisplayedMedalChanged;
+    }
+
+    private void OnDisable()
+    {
+        if (segmentedBar != null)
+            segmentedBar.OnDisplayedMedalChanged -= HandleDisplayedMedalChanged;
+    }
+
     public void Configure(int bronzeThreshold, int silverThreshold, int goldThreshold, int maxScore)
     {
-        progressMax = Mathf.Max(1, maxScore); // éviter division par zéro.
+        this.bronzeThreshold = Mathf.Max(0, bronzeThreshold);
+        this.silverThreshold = Mathf.Max(0, silverThreshold);
+        this.goldThreshold = Mathf.Max(0, goldThreshold);
+
+        progressMax = Mathf.Max(1, maxScore);
 
         if (segmentedBar != null)
         {
-            segmentedBar.SetThresholdsFromGoals(bronzeThreshold, silverThreshold, goldThreshold, progressMax);
+            segmentedBar.SetThresholdsFromGoals(
+                this.bronzeThreshold,
+                this.silverThreshold,
+                this.goldThreshold,
+                progressMax);
         }
 
-        // On repart de zéro visuellement.
         ResetInstant();
     }
 
-    /// <summary>
-    /// Réinitialise la barre visuellement à 0, sans animation.
-    /// </summary>
     public void ResetInstant()
     {
         currentScore = 0;
 
         if (segmentedBar != null)
-        {
             segmentedBar.ResetInstant();
-        }
+
+        if (medalsUI != null)
+            medalsUI.ResetInstant();
     }
 
-    /// <summary>
-    /// Met à jour le score courant et la progression visuelle de la barre.
-    /// EndLevelUI l'appellera à chaque fois que le score cumulé "runningScore" change.
-    /// </summary>
     public void SetScore(int newScore)
     {
         currentScore = Mathf.Max(0, newScore);
@@ -80,5 +86,11 @@ public class FinalScoreBarUI : MonoBehaviour
         segmentedBar.SetProgress01(ratio);
     }
 
-    
+    private void HandleDisplayedMedalChanged(EndMedal medal)
+    {
+        if (medalsUI == null)
+            return;
+
+        medalsUI.SetDisplayedMedalInstant(medal);
+    }
 }

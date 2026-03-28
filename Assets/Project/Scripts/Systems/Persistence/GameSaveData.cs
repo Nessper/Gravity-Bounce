@@ -120,4 +120,9 @@ public class RunStateData
     // SHOP REROLL (pour fixer le prix du reroll)
     // ------------------------------------------------------------
     public int shopRerollCount = 0;
+
+    // ------------------------------------------------------------
+    // 
+    // ------------------------------------------------------------
+    public int bonusHullMaxInRun = 0;
 }

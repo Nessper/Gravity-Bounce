@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections;
 
 /// <summary>
 /// Orchestrateur de la phase d'evacuation.
@@ -7,7 +8,8 @@ using System;
 /// - Expose OnGameplaySealed (relai depuis EndSequenceController)
 ///
 /// Note :
-/// - Aucune logique musique ici (retour a l'ancien comportement).
+/// - Aucune logique musique ici.
+/// - Peut relayer un callback intermediaire avant fermeture du board.
 /// </summary>
 public class LevelEvacuationController : MonoBehaviour
 {
@@ -41,7 +43,7 @@ public class LevelEvacuationController : MonoBehaviour
         OnGameplaySealed?.Invoke();
     }
 
-    public void Configure(LevelData data)
+    public void Configure(LevelData data, Func<IEnumerator> onBeforeBoardOutroCb = null)
     {
         if (endSequence == null)
             return;
@@ -67,7 +69,8 @@ public class LevelEvacuationController : MonoBehaviour
                 if (evacTimerUI != null)
                     evacTimerUI.OnEvacTick(remaining);
             },
-            progressBar: progressBarUI
+            progressBar: progressBarUI,
+            onBeforeBoardOutroCb: onBeforeBoardOutroCb
         );
     }
 

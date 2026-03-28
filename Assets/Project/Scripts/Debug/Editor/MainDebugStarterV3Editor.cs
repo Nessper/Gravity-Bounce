@@ -12,6 +12,7 @@ using UnityEngine;
 /// Rôles :
 /// - Afficher l'inspector standard.
 /// - Proposer un Ship Picker basé sur ShipCatalog.
+/// - Proposer un World Picker basé sur WorldCatalog.
 /// - Proposer un Node Picker basé sur WorldCatalog.
 /// - Proposer un Debug Modules Picker (3 slots) basé sur ModuleCatalog.
 /// 
@@ -19,6 +20,8 @@ using UnityEngine;
 /// - Le runtime stocke les vrais moduleId dans debugEquippedModuleIds.
 /// - L'editor sert uniquement au confort de sélection (family + tier).
 /// - Les doublons de famille entre slots sont interdits.
+/// - Le WorldCatalog est lu directement depuis Resources pour éviter
+///   toute dépendance fragile au chargement runtime des services.
 /// </summary>
 [CustomEditor(typeof(MainDebugStarterV3))]
 public class MainDebugStarterV3Editor : Editor
@@ -43,6 +46,7 @@ public class MainDebugStarterV3Editor : Editor
         DrawDefaultInspector();
 
         DrawShipPicker();
+        DrawWorldPicker();
         DrawNodePicker();
         DrawModulesPicker();
 
@@ -84,10 +88,61 @@ public class MainDebugStarterV3Editor : Editor
         debugShipIdProp.stringValue = shipIds[newIndex];
     }
 
+    private void DrawWorldPicker()
+    {
+        GUILayout.Space(10);
+        EditorGUILayout.LabelField("World Picker (WorldCatalog)", EditorStyles.boldLabel);
+
+        DebugWorldCatalog catalog = LoadWorldCatalog();
+        if (catalog == null || catalog.worlds == null || catalog.worlds.Length == 0)
+        {
+            EditorGUILayout.HelpBox(
+                "WorldCatalog introuvable ou vide dans Resources.",
+                MessageType.Warning);
+            return;
+        }
+
+        string currentWorldId = string.IsNullOrWhiteSpace(debugWorldIdProp.stringValue)
+            ? catalog.worlds[0].worldId
+            : debugWorldIdProp.stringValue;
+
+        string[] worldIds = new string[catalog.worlds.Length];
+        int selectedIndex = 0;
+
+        for (int i = 0; i < catalog.worlds.Length; i++)
+        {
+            worldIds[i] = catalog.worlds[i] != null ? catalog.worlds[i].worldId : string.Empty;
+
+            if (string.Equals(worldIds[i], currentWorldId, StringComparison.Ordinal))
+                selectedIndex = i;
+        }
+
+        int newIndex = EditorGUILayout.Popup("World", selectedIndex, worldIds);
+        newIndex = Mathf.Clamp(newIndex, 0, Mathf.Max(0, worldIds.Length - 1));
+
+        string selectedWorldId = worldIds[newIndex];
+
+        // Si le monde change, on reset le nodeIndex pour repartir proprement du premier niveau.
+        if (!string.Equals(debugWorldIdProp.stringValue, selectedWorldId, StringComparison.Ordinal))
+        {
+            debugWorldIdProp.stringValue = selectedWorldId;
+            debugNodeIndexProp.intValue = 0;
+        }
+    }
+
     private void DrawNodePicker()
     {
         GUILayout.Space(10);
         EditorGUILayout.LabelField("Node Picker (WorldCatalog)", EditorStyles.boldLabel);
+
+        DebugWorldCatalog catalog = LoadWorldCatalog();
+        if (catalog == null || catalog.worlds == null || catalog.worlds.Length == 0)
+        {
+            EditorGUILayout.HelpBox(
+                "WorldCatalog introuvable ou vide dans Resources.",
+                MessageType.Warning);
+            return;
+        }
 
         string worldId = debugWorldIdProp != null ? debugWorldIdProp.stringValue : "";
         if (string.IsNullOrWhiteSpace(worldId))
@@ -96,16 +151,12 @@ public class MainDebugStarterV3Editor : Editor
             return;
         }
 
-        WorldCatalogService.WorldEntry world;
-        if (!WorldCatalogService.TryGetWorld(worldId, out world) ||
-            world.levelIds == null ||
-            world.levelIds.Length == 0)
+        DebugWorldEntry world = FindWorld(catalog, worldId);
+        if (world == null || world.levelIds == null || world.levelIds.Length == 0)
         {
             EditorGUILayout.HelpBox(
-                "WorldCatalogService has no world/levels for worldId=" + worldId + ".",
+                "Aucun niveau trouvé pour worldId=" + worldId + ".",
                 MessageType.Warning);
-            EditorGUILayout.LabelField(
-                "Tip: Open Boot once to initialize catalogs, or ensure WorldCatalogService is editor-ready.");
             return;
         }
 
@@ -289,6 +340,54 @@ public class MainDebugStarterV3Editor : Editor
         {
             return null;
         }
+    }
+
+    private DebugWorldCatalog LoadWorldCatalog()
+    {
+        TextAsset jsonAsset = Resources.Load<TextAsset>("Worlds/WorldCatalog");
+        if (jsonAsset == null)
+            return null;
+
+        try
+        {
+            return JsonUtility.FromJson<DebugWorldCatalog>(jsonAsset.text);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private DebugWorldEntry FindWorld(DebugWorldCatalog catalog, string worldId)
+    {
+        if (catalog == null || catalog.worlds == null)
+            return null;
+
+        for (int i = 0; i < catalog.worlds.Length; i++)
+        {
+            DebugWorldEntry world = catalog.worlds[i];
+            if (world == null)
+                continue;
+
+            if (string.Equals(world.worldId, worldId, StringComparison.Ordinal))
+                return world;
+        }
+
+        return null;
+    }
+
+    [Serializable]
+    private class DebugWorldCatalog
+    {
+        public DebugWorldEntry[] worlds;
+    }
+
+    [Serializable]
+    private class DebugWorldEntry
+    {
+        public string worldId;
+        public string displayName;
+        public string[] levelIds;
     }
 }
 #endif

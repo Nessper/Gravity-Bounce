@@ -228,7 +228,7 @@ public class EndLevelUI : MonoBehaviour
         if (accordionUI != null)
         {
             accordionUI.SetInteractable(false);
-            accordionUI.SetState(goalsExpandedValue: true, combosExpandedValue: true, instant: true);
+            accordionUI.SetState(goalsExpandedValue: true, bonusExpandedValue: true, instant: true);
         }
 
         SetupHeader(levelData);
@@ -240,7 +240,7 @@ public class EndLevelUI : MonoBehaviour
         EndLevelScoreBreakdown breakdown = new EndLevelScoreBreakdown();
         breakdown.RawScore = (stats != null) ? Mathf.Max(0, stats.RawScore) : 0;
         breakdown.GoalsBonus = 0;
-        breakdown.CombosBonus = 0;
+        breakdown.BonusTotal = 0;
         breakdown.FinalScore = breakdown.RawScore;
 
         yield return WaitBlockIntro();
@@ -368,7 +368,7 @@ public class EndLevelUI : MonoBehaviour
             bonusContainer.gameObject.SetActive(true);
 
         if (accordionUI != null)
-            accordionUI.SetCombosExpanded(true, instant: true);
+            accordionUI.SetBonusExpanded(true, instant: true);
 
         yield return WaitBlockIntro();
 
@@ -376,15 +376,15 @@ public class EndLevelUI : MonoBehaviour
             yield break;
 
         if (linesBuilder != null)
-            yield return StartCoroutine(linesBuilder.RevealCombos(stats, lineDelay));
+            yield return StartCoroutine(linesBuilder.RevealBonusLines(stats, lineDelay));
 
-        int totalComboPoints = (linesBuilder != null) ? linesBuilder.LastComboPoints : 0;
+        int totalBonusPoints = (linesBuilder != null) ? linesBuilder.LastBonusPoints : 0;
 
         if (accordionUI != null)
-            accordionUI.RefreshCombosCachedHeight();
+            accordionUI.RefreshBonusCachedHeight();
 
         if (linesBuilder != null)
-            linesBuilder.ShowCombosTotalLine();
+            linesBuilder.ShowBonusTotalLine();
 
         yield return new WaitForSecondsRealtime(lineDelay);
 
@@ -392,12 +392,12 @@ public class EndLevelUI : MonoBehaviour
             yield break;
 
         if (totalsPresenter != null)
-            yield return StartCoroutine(totalsPresenter.AnimateCombosBonus(totalComboPoints));
+            yield return StartCoroutine(totalsPresenter.AnimateBonusTotal(totalBonusPoints));
 
         yield return new WaitForSecondsRealtime(lineDelay);
 
-        breakdown.CombosBonus = Mathf.Max(0, totalComboPoints);
-        breakdown.FinalScore = breakdown.RawScore + breakdown.GoalsBonus + breakdown.CombosBonus;
+        breakdown.BonusTotal = totalBonusPoints;
+        breakdown.FinalScore = breakdown.RawScore + breakdown.GoalsBonus + breakdown.BonusTotal;
 
         if (ShouldAbortCeremony())
             yield break;

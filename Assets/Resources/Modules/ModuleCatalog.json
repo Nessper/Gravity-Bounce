@@ -1,43 +1,49 @@
 {
   "modules": [
     {
-      "id": "H1",
+      "id": "HULL_PATCH_1",
       "familyId": "H",
       "displayName": "Hull Patch",
-      "description": "Repair +1 Hull after mission",
+      "description": "Repair +1 Hull after each mission.",
       "tier": 1,
       "cost": 4,
-      "iconPath": "Modules/Icons/H"
+      "iconPath": "Modules/Icons/H",
+      "endLevelHullRepair": 1,
+      "endLevelMoneyGain": 0
     },
     {
-      "id": "H2",
+      "id": "HULL_PATCH_2",
       "familyId": "H",
       "displayName": "Hull Patch",
-      "description": "Repair +1 Hull and gain +1 money after mission",
+      "description": "Repair +1 Hull and gain +1 money after each mission.",
       "tier": 2,
-      "cost": 8,
-      "iconPath": "Modules/Icons/H"
+      "cost": 10,
+      "iconPath": "Modules/Icons/H",
+      "endLevelHullRepair": 1,
+      "endLevelMoneyGain": 1
     },
     {
-      "id": "H3",
+      "id": "HULL_PATCH_3",
       "familyId": "H",
       "displayName": "Hull Patch",
-      "description": "Repair +2 Hull and gain +1 money after mission",
+      "description": "Repair +2 Hull and gain +1 money after each mission.",
       "tier": 3,
-      "cost": 12,
-      "iconPath": "Modules/Icons/H"
+      "cost": 16,
+      "iconPath": "Modules/Icons/H",
+      "endLevelHullRepair": 2,
+      "endLevelMoneyGain": 1
     },
 
-    {
-      "id": "SCAN_ARRAY_T1",
-      "familyId": "SCAN",
-      "displayName": "Scan Array",
-      "description": "Briefing detail: T1",
-      "tier": 1,
-      "cost": 4,
-      "iconPath": "Modules/Icons/S",
-      "hullMaxAdd": 0,
-      "scanTierSet": 1
+        {
+          "id": "SCAN_ARRAY_T1",
+          "familyId": "SCAN",
+          "displayName": "Scan Array",
+          "description": "Briefing detail: T1",
+          "tier": 1,
+          "cost": 4,
+          "iconPath": "Modules/Icons/S",
+          "hullMaxAdd": 0,
+          "scanTierSet": 1
     },
     {
       "id": "SCAN_ARRAY_T2",
@@ -96,6 +102,40 @@
   "hullMaxAdd": 0,
   "scanTierSet": 0,
   "flushMinBallsAdd": 3
+},
+
+{
+  "id": "CORE_GROWTH_T1",
+  "familyId": "C",
+  "displayName": "Core Growth",
+  "description": "Final score -200. If Hull is full at end of level: +1 Max Hull.",
+  "tier": 1,
+  "cost": 4,
+  "iconPath": "Modules/Icons/C",
+  "endLevelFullHullHullMaxAdd": 1,
+  "endLevelScoreDelta": -200
+},
+{
+  "id": "CORE_GROWTH_T2",
+  "familyId": "C",
+  "displayName": "Core Growth",
+  "description": "Final score -100. If Hull is full at end of level: +1 Max Hull.",
+  "tier": 2,
+  "cost": 10,
+  "iconPath": "Modules/Icons/C",
+  "endLevelFullHullHullMaxAdd": 1,
+  "endLevelScoreDelta": -100
+},
+{
+  "id": "CORE_GROWTH_T3",
+  "familyId": "C",
+  "displayName": "Core Growth",
+  "description": "Final score +100. If Hull is full at end of level: +1 Max Hull.",
+  "tier": 3,
+  "cost": 16,
+  "iconPath": "Modules/Icons/C",
+  "endLevelFullHullHullMaxAdd": 1,
+  "endLevelScoreDelta": 100
 }
   ]
 }
