@@ -151,7 +151,7 @@ public class EndLevelTotalsPresenterUI : MonoBehaviour
             rawScoreLine.value.text = rawScore.ToString("N0");
     }
 
-    private void SetRawScoreInstant(int value)
+    public void SetRawScoreInstant(int value)
     {
         if (rawScoreAnimated != null)
         {

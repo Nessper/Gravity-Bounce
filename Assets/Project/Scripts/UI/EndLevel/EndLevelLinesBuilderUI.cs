@@ -251,4 +251,68 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
         for (int i = parent.childCount - 1; i >= 0; i--)
             Object.Destroy(parent.GetChild(i).gameObject);
     }
+
+    /// <summary>
+    /// Construit instantanement toute la section Goals :
+    /// - objectif principal
+    /// - objectifs secondaires
+    /// - ligne Total
+    /// </summary>
+    public void BuildGoalsInstant(MainObjectiveResult mainObj, List<SecondaryObjectiveResult> secondary)
+    {
+        ClearGoals();
+
+        AddMainObjectiveLine(mainObj);
+
+        if (secondary != null)
+        {
+            for (int i = 0; i < secondary.Count; i++)
+                AddSecondaryObjectiveLine(secondary[i]);
+        }
+
+        ShowGoalsTotalLine();
+
+        if (totalGoalsLine != null && totalGoalsLine.value != null)
+        {
+            int total = ComputeTotalGoalsBonus(mainObj, secondary);
+            totalGoalsLine.value.text = total.ToString();
+        }
+    }
+
+    /// <summary>
+    /// Construit instantanement toute la section Bonus :
+    /// - toutes les lignes BonusLines
+    /// - ligne Total
+    /// </summary>
+    public void BuildBonusInstant(EndLevelStats stats)
+    {
+        ClearBonusLines();
+
+        var bonusLines = (stats != null) ? stats.BonusLines : null;
+        lastBonusPoints = 0;
+
+        if (bonusLines != null && bonusLines.Count > 0)
+        {
+            for (int i = 0; i < bonusLines.Count; i++)
+            {
+                var lineData = bonusLines[i];
+
+                GameObject go = Object.Instantiate(bonusLinePrefab, bonusContent);
+                LineEntryUI ui = go.GetComponent<LineEntryUI>();
+                if (ui != null)
+                {
+                    string displayLabel = ResolveBonusDisplayLabel(lineData.Label);
+                    ui.label.text = displayLabel;
+                    ui.value.text = lineData.Total.ToString("N0");
+                }
+
+                lastBonusPoints += lineData.Total;
+            }
+        }
+
+        ShowBonusTotalLine();
+
+        if (totalBonusLine != null && totalBonusLine.value != null)
+            totalBonusLine.value.text = lastBonusPoints.ToString("N0");
+    }
 }

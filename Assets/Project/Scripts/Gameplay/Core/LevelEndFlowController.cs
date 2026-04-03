@@ -3,6 +3,23 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Gere tout le flow de fin de niveau :
+/// - recupere l outcome final depuis EndLevelUI
+/// - prepare et commit les consequences de run
+/// - affiche le panneau final
+/// - joue les dialogues de fin
+/// - revele score / campaign score / medal / money
+/// - affiche les boutons finaux
+///
+/// Cette version integre un hold-to-skip partage pour la reveal routine finale.
+/// Le skip :
+/// - coupe le dialogue si necessaire
+/// - coupe les delais
+/// - coupe les animations en cours
+/// - force le panneau final dans son etat final
+/// - affiche les boutons
+/// </summary>
 public class LevelEndFlowController : MonoBehaviour
 {
     [Header("Refs")]
@@ -12,10 +29,13 @@ public class LevelEndFlowController : MonoBehaviour
     [Header("Dialogs")]
     [SerializeField] private DialogSequenceRunner dialogSequenceRunner;
 
+    [Header("Hold To Skip")]
+    [SerializeField] private HoldToSkipOverlayUI holdToSkipOverlay;
+
     [Header("Root (parent de finalPanelUI)")]
     [SerializeField] private GameObject endLevelRoot;
 
-    [Header("HUD Gameplay (à masquer avant endLevelRoot)")]
+    [Header("HUD Gameplay (a masquer avant endLevelRoot)")]
     [SerializeField] private GameObject hudGameplay;
 
     [Header("Final Panel UI")]
@@ -67,6 +87,9 @@ public class LevelEndFlowController : MonoBehaviour
     private bool commitPrepared;
     private FinalCommitSnapshot commitSnapshot;
 
+    // Etat runtime du hold-to-skip pour la reveal finale.
+    private bool revealSkipRequested;
+
     private enum EndType
     {
         Victory,
@@ -75,7 +98,7 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Représente une ligne de récompense d'argent révélée
+    /// Represente une ligne de recompense d argent revelee
     /// une par une dans le panneau final.
     /// </summary>
     private struct MoneyRewardLine
@@ -123,6 +146,8 @@ public class LevelEndFlowController : MonoBehaviour
         commitPrepared = false;
         commitSnapshot = default;
 
+        revealSkipRequested = false;
+
         endLevelUI.OnCeremonyFinished += HandleCeremonyFinished;
     }
 
@@ -130,10 +155,13 @@ public class LevelEndFlowController : MonoBehaviour
     {
         if (endLevelUI != null)
             endLevelUI.OnCeremonyFinished -= HandleCeremonyFinished;
+
+        if (holdToSkipOverlay != null)
+            holdToSkipOverlay.Hide(this);
     }
 
     /// <summary>
-    /// Callback appelé à la fin de la cérémonie normale.
+    /// Callback appele a la fin de la ceremonie normale.
     /// </summary>
     private void HandleCeremonyFinished(EndLevelOutcome outcome, EndLevelToken token)
     {
@@ -176,8 +204,8 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Annule explicitement toute cérémonie / flow de fin en cours.
-    /// Cette méthode est utilisée par le GameOver Hull pour prendre la main.
+    /// Annule explicitement toute ceremonie / flow de fin en cours.
+    /// Cette methode est utilisee par le GameOver Hull pour prendre la main.
     /// </summary>
     public void AbortPendingCeremony()
     {
@@ -186,6 +214,13 @@ public class LevelEndFlowController : MonoBehaviour
 
         StopAllCoroutines();
 
+        if (dialogSequenceRunner != null)
+            dialogSequenceRunner.StopAndHide();
+
+        if (holdToSkipOverlay != null)
+            holdToSkipOverlay.Hide(this);
+
+        revealSkipRequested = false;
         isRunning = false;
         navigationLocked = false;
     }
@@ -200,7 +235,7 @@ public class LevelEndFlowController : MonoBehaviour
 
         if (!hasOutcome || !commitPrepared)
         {
-            Debug.LogWarning("[LevelEndFlowController] OnClickShowFinalPanel: outcome/commit non prêt.");
+            Debug.LogWarning("[LevelEndFlowController] OnClickShowFinalPanel: outcome/commit non pret.");
             return;
         }
 
@@ -221,13 +256,40 @@ public class LevelEndFlowController : MonoBehaviour
 
         endLevelButtonsUI?.HideAll();
         CleanupBallsOnce();
+
         StopAllCoroutines();
+
+        if (dialogSequenceRunner != null)
+            dialogSequenceRunner.StopAndHide();
+
+        if (holdToSkipOverlay != null)
+            holdToSkipOverlay.Hide(this);
+
+        revealSkipRequested = false;
+
         StartCoroutine(FinalRoutine(lastOutcome, commitSnapshot));
     }
 
     /// <summary>
-    /// Prépare les conséquences de fin de niveau et les commits de progression.
-    /// Cette méthode ne doit s'exécuter qu'une seule fois par fin de niveau.
+    /// Callback du hold-to-skip pendant la reveal finale.
+    /// </summary>
+    public void OnFinalRevealSkipRequested()
+    {
+        if (!isRunning || revealSkipRequested)
+            return;
+
+        revealSkipRequested = true;
+
+        if (dialogSequenceRunner != null)
+            dialogSequenceRunner.StopAndHide();
+
+        if (holdToSkipOverlay != null)
+            holdToSkipOverlay.Hide(this);
+    }
+
+    /// <summary>
+    /// Prepare les consequences de fin de niveau et les commits de progression.
+    /// Cette methode ne doit s executer qu une seule fois par fin de niveau.
     /// </summary>
     private void PrepareAndCommitOnce(EndLevelOutcome outcome, EndLevelToken token)
     {
@@ -321,7 +383,7 @@ public class LevelEndFlowController : MonoBehaviour
                 if (!ok)
                 {
                     commitAccepted = false;
-                    Debug.LogWarning("[LevelEndFlowController] CommitVictoryAndAdvanceNode a échoué.");
+                    Debug.LogWarning("[LevelEndFlowController] CommitVictoryAndAdvanceNode a echoue.");
                 }
 
                 runSessionState.EnsurePlanLoaded();
@@ -379,12 +441,14 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Routine de reveal du panneau final simplifiée
-    /// (stamp, score, medal, money, boutons).
+    /// Routine de reveal du panneau final.
+    /// Le hold-to-skip est arme pendant toute cette routine.
+    /// Si le joueur skip, on force l etat final du panneau.
     /// </summary>
     private IEnumerator FinalRoutine(EndLevelOutcome outcome, FinalCommitSnapshot snap)
     {
         isRunning = true;
+        revealSkipRequested = false;
 
         if (finalPanelUI == null)
         {
@@ -396,28 +460,96 @@ public class LevelEndFlowController : MonoBehaviour
         finalPanelUI.ResetAll();
         finalPanelUI.SetMedalInstant(EndMedal.None);
 
-        yield return StartCoroutine(PlayDialogById(snap.SequenceId));
+        if (holdToSkipOverlay != null)
+            holdToSkipOverlay.Show(this, OnFinalRevealSkipRequested);
 
-        yield return StepDelay();
-        yield return StartCoroutine(finalPanelUI.ShowStamp(Convert(snap.EndType)));
+        yield return StartCoroutine(PlayDialogByIdSkippable(snap.SequenceId));
 
-        yield return StepDelay();
+        if (revealSkipRequested)
+        {
+            ApplyFinalRevealState(outcome, snap);
+            EndFinalRoutine();
+            yield break;
+        }
+
+        yield return StartCoroutine(StepDelaySkippable());
+        if (revealSkipRequested)
+        {
+            ApplyFinalRevealState(outcome, snap);
+            EndFinalRoutine();
+            yield break;
+        }
+
+        yield return StartCoroutine(RunSkippable(finalPanelUI.ShowStamp(Convert(snap.EndType))));
+        if (revealSkipRequested)
+        {
+            ApplyFinalRevealState(outcome, snap);
+            EndFinalRoutine();
+            yield break;
+        }
+
+        yield return StartCoroutine(StepDelaySkippable());
+        if (revealSkipRequested)
+        {
+            ApplyFinalRevealState(outcome, snap);
+            EndFinalRoutine();
+            yield break;
+        }
+
         finalPanelUI.ShowLevelScorePanel(outcome.FinalScore);
 
-        yield return StepDelay();
+        yield return StartCoroutine(StepDelaySkippable());
+        if (revealSkipRequested)
+        {
+            ApplyFinalRevealState(outcome, snap);
+            EndFinalRoutine();
+            yield break;
+        }
+
         finalPanelUI.ShowCampaignScorePanelInstant(snap.CampaignBefore);
 
         if (snap.CampaignAfter != snap.CampaignBefore)
-            yield return StartCoroutine(finalPanelUI.AnimateCampaignScore(snap.CampaignBefore, snap.CampaignAfter));
+        {
+            yield return StartCoroutine(
+                RunSkippable(finalPanelUI.AnimateCampaignScore(snap.CampaignBefore, snap.CampaignAfter))
+            );
 
-        yield return StepDelay();
-        yield return StartCoroutine(finalPanelUI.ShowMedal(outcome.FinalMedal));
+            if (revealSkipRequested)
+            {
+                ApplyFinalRevealState(outcome, snap);
+                EndFinalRoutine();
+                yield break;
+            }
+        }
+
+        yield return StartCoroutine(StepDelaySkippable());
+        if (revealSkipRequested)
+        {
+            ApplyFinalRevealState(outcome, snap);
+            EndFinalRoutine();
+            yield break;
+        }
+
+        yield return StartCoroutine(RunSkippable(finalPanelUI.ShowMedal(outcome.FinalMedal)));
+        if (revealSkipRequested)
+        {
+            ApplyFinalRevealState(outcome, snap);
+            EndFinalRoutine();
+            yield break;
+        }
 
         if (outcome.IsVictory && snap.RevealMoney)
         {
             int currentMoney = snap.MoneyBefore;
 
-            yield return StepDelay();
+            yield return StartCoroutine(StepDelaySkippable());
+            if (revealSkipRequested)
+            {
+                ApplyFinalRevealState(outcome, snap);
+                EndFinalRoutine();
+                yield break;
+            }
+
             finalPanelUI.ShowMoneyPanelInstant(currentMoney);
 
             if (snap.MoneyRewardLines != null && snap.MoneyRewardLines.Count > 0)
@@ -428,27 +560,146 @@ public class LevelEndFlowController : MonoBehaviour
                     if (line.Amount <= 0)
                         continue;
 
-                    yield return StepDelay();
-                    yield return StartCoroutine(finalPanelUI.ShowMoneyRewardToast(line.Label, line.Amount));
+                    yield return StartCoroutine(StepDelaySkippable());
+                    if (revealSkipRequested)
+                    {
+                        ApplyFinalRevealState(outcome, snap);
+                        EndFinalRoutine();
+                        yield break;
+                    }
+
+                    yield return StartCoroutine(
+                        RunSkippable(finalPanelUI.ShowMoneyRewardToast(line.Label, line.Amount))
+                    );
+
+                    if (revealSkipRequested)
+                    {
+                        ApplyFinalRevealState(outcome, snap);
+                        EndFinalRoutine();
+                        yield break;
+                    }
 
                     int nextMoney = currentMoney + line.Amount;
-                    yield return StartCoroutine(finalPanelUI.AnimateMoney(currentMoney, nextMoney));
+
+                    yield return StartCoroutine(
+                        RunSkippable(finalPanelUI.AnimateMoney(currentMoney, nextMoney))
+                    );
+
+                    if (revealSkipRequested)
+                    {
+                        ApplyFinalRevealState(outcome, snap);
+                        EndFinalRoutine();
+                        yield break;
+                    }
 
                     currentMoney = nextMoney;
                 }
             }
         }
 
-        yield return StepDelay();
-        ShowEndButtons(snap.EndType);
+        yield return StartCoroutine(StepDelaySkippable());
+        if (revealSkipRequested)
+        {
+            ApplyFinalRevealState(outcome, snap);
+            EndFinalRoutine();
+            yield break;
+        }
 
-        isRunning = false;
+        ShowEndButtons(snap.EndType);
+        EndFinalRoutine();
     }
 
-    private IEnumerator StepDelay()
+    /// <summary>
+    /// Termine proprement la reveal routine.
+    /// </summary>
+    private void EndFinalRoutine()
     {
-        if (revealStepDelay > 0f)
-            yield return new WaitForSecondsRealtime(revealStepDelay);
+        if (holdToSkipOverlay != null)
+            holdToSkipOverlay.Hide(this);
+
+        isRunning = false;
+        revealSkipRequested = false;
+    }
+
+    /// <summary>
+    /// Force le panneau final dans son etat final.
+    /// Utilise les methodes instantanees disponibles.
+    /// Pour le stamp, faute de methode instantanee, on relance son animation
+    /// sans attendre, afin qu il apparaisse quand meme.
+    /// </summary>
+    private void ApplyFinalRevealState(EndLevelOutcome outcome, FinalCommitSnapshot snap)
+    {
+        if (finalPanelUI == null)
+            return;
+
+        if (dialogSequenceRunner != null)
+            dialogSequenceRunner.StopAndHide();
+
+        finalPanelUI.ResetAll();
+        finalPanelUI.SetStampInstant(Convert(snap.EndType));
+        finalPanelUI.ShowLevelScorePanel(outcome.FinalScore);
+        finalPanelUI.ShowCampaignScorePanelInstant(snap.CampaignAfter);
+        finalPanelUI.SetMedalInstant(outcome.FinalMedal);
+
+        if (outcome.IsVictory && snap.RevealMoney)
+            finalPanelUI.ShowMoneyPanelInstant(snap.MoneyAfter);
+
+        ShowEndButtons(snap.EndType);
+    }
+
+    /// <summary>
+    /// Attend un delai unscaled, mais peut etre interrompu par le skip.
+    /// </summary>
+    private IEnumerator StepDelaySkippable()
+    {
+        if (revealStepDelay <= 0f)
+            yield break;
+
+        float elapsed = 0f;
+        while (elapsed < revealStepDelay)
+        {
+            if (revealSkipRequested)
+                yield break;
+
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+    }
+
+    /// <summary>
+    /// Execute une coroutine skippable.
+    /// Si le skip arrive, on stoppe la coroutine enfant immediatement.
+    /// </summary>
+    private IEnumerator RunSkippable(IEnumerator routine)
+    {
+        if (routine == null)
+            yield break;
+
+        bool done = false;
+
+        Coroutine child = StartCoroutine(WrapRoutine(routine, () => done = true));
+
+        while (!done)
+        {
+            if (revealSkipRequested)
+            {
+                if (child != null)
+                    StopCoroutine(child);
+
+                yield break;
+            }
+
+            yield return null;
+        }
+    }
+
+    /// <summary>
+    /// Wrapper utilitaire pour savoir quand une coroutine est terminee.
+    /// </summary>
+    private IEnumerator WrapRoutine(IEnumerator routine, Action onDone)
+    {
+        yield return StartCoroutine(routine);
+        onDone?.Invoke();
     }
 
     private void ShowEndButtons(EndType endType)
@@ -465,7 +716,7 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Nettoie les billes restantes de manière idempotente.
+    /// Nettoie les billes restantes de maniere idempotente.
     /// </summary>
     private void CleanupBallsOnce()
     {
@@ -553,10 +804,10 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Résout le type de fin.
+    /// Resout le type de fin.
     /// - Victory : aucune perte de vie de contrat.
     /// - Defeat : on retire 1 vie de contrat.
-    /// - GameOver force : priorité absolue.
+    /// - GameOver force : priorite absolue.
     /// </summary>
     private EndType ResolveAndApplyEndTypeOnce(out int remainingContractLives, EndLevelOutcome outcome)
     {
@@ -579,9 +830,10 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Joue une séquence de dialogue de fin si elle existe.
+    /// Joue une sequence de dialogue de fin si elle existe.
+    /// Cette version est skippable via le hold-to-skip.
     /// </summary>
-    private IEnumerator PlayDialogById(string sequenceId)
+    private IEnumerator PlayDialogByIdSkippable(string sequenceId)
     {
         if (dialogSequenceRunner == null)
             yield break;
@@ -594,7 +846,12 @@ public class LevelEndFlowController : MonoBehaviour
             yield break;
 
         while (!dialogManager.IsReady)
+        {
+            if (revealSkipRequested)
+                yield break;
+
             yield return null;
+        }
 
         DialogSequence seq = dialogManager.GetSequenceById(sequenceId);
         if (seq == null)
@@ -605,10 +862,23 @@ public class LevelEndFlowController : MonoBehaviour
             yield break;
 
         bool done = false;
-        dialogSequenceRunner.Play(lines, () => done = true);
+
+        dialogSequenceRunner.Play(
+            lines,
+            DialogSequenceRunner.PlaybackMode.Interactive,
+            () => done = true
+        );
 
         while (!done)
+        {
+            if (revealSkipRequested)
+            {
+                dialogSequenceRunner.StopAndHide();
+                yield break;
+            }
+
             yield return null;
+        }
     }
 
     private string ResolveSequenceId(EndType type, int remainingContractLives)
@@ -704,7 +974,7 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Construit le label lisible pour une ligne de récompense money issue d'un module.
+    /// Construit le label lisible pour une ligne de recompense money issue d un module.
     /// </summary>
     private string BuildModuleMoneyLabel(ModuleDefinition mod)
     {
@@ -724,10 +994,10 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Branche spéciale GameOver Hull.
-    /// - force le type de fin à GameOver
-    /// - prépare un outcome minimal
-    /// - rafraîchit le header de l'overlay
+    /// Branche speciale GameOver Hull.
+    /// - force le type de fin a GameOver
+    /// - prepare un outcome minimal
+    /// - rafraichit le header de l overlay
     /// - affiche ensuite le panneau final
     /// </summary>
     public void TriggerGameOverFinalRoutine(int finalScore)

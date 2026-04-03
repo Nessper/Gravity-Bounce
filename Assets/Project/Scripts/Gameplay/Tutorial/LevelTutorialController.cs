@@ -11,6 +11,10 @@ using UnityEngine;
 /// - Si le joueur rate, on rejoue simplement la meme etape.
 /// - Aucune pollution du score, des objectifs, du hull ou des stats.
 /// - Le tuto ne se joue qu une seule fois par sauvegarde.
+///
+/// Architecture dialogue :
+/// - Le tuto passe par DialogSequenceRunner, comme le reste du jeu.
+/// - Les messages tuto sont joues en mode interactif.
 /// </summary>
 public class LevelTutorialController : MonoBehaviour
 {
@@ -23,7 +27,7 @@ public class LevelTutorialController : MonoBehaviour
     [SerializeField] private BinTrigger rightBinTrigger;
 
     [Header("References UI")]
-    [SerializeField] private DialogUI dialogUI;
+    [SerializeField] private DialogSequenceRunner dialogRunner;
     [SerializeField] private CanvasGroup darkOverlay;
 
     [Header("Configuration generale")]
@@ -117,8 +121,8 @@ public class LevelTutorialController : MonoBehaviour
 
         SetOverlayVisible(false);
 
-        if (dialogUI != null)
-            dialogUI.Hide();
+        if (dialogRunner != null)
+            dialogRunner.StopAndHide();
     }
 
     /// <summary>
@@ -237,19 +241,37 @@ public class LevelTutorialController : MonoBehaviour
 
     /// <summary>
     /// Affiche un message de tuto avec overlay sombre.
+    /// Le message passe par DialogSequenceRunner en mode interactif.
     /// </summary>
     private IEnumerator ShowStepMessage(string text)
     {
         SetOverlayVisible(true);
 
-        if (dialogUI != null)
-            yield return StartCoroutine(dialogUI.PlayLine(null, text));
+        bool dialogDone = false;
+
+        if (dialogRunner != null)
+        {
+            DialogLine[] lines = new DialogLine[]
+            {
+                new DialogLine
+                {
+                    speakerId = string.Empty,
+                    text = text
+                }
+            };
+
+            dialogRunner.Play(
+                lines,
+                DialogSequenceRunner.PlaybackMode.Interactive,
+                () => dialogDone = true
+            );
+
+            while (!dialogDone)
+                yield return null;
+        }
 
         if (pauseAfterDialogSec > 0f)
             yield return new WaitForSeconds(pauseAfterDialogSec);
-
-        if (dialogUI != null)
-            dialogUI.Hide();
 
         SetOverlayVisible(false);
     }

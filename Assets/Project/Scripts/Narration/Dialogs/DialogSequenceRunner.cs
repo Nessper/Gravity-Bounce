@@ -3,70 +3,61 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Exécute une séquence de dialogues (DialogLine[]) avec la même UI et les mêmes timings
-/// partout dans le jeu (intro, phases, post-level, events, etc.).
+/// Execute une sequence de dialogues (DialogLine[]) avec la meme UI partout dans le jeu.
 ///
-/// Responsabilités :
-/// - Reçoit un tableau de DialogLine (préparé ailleurs, par un DialogManager par exemple).
-/// - Résout les personnages via CrewDatabase.
-/// - Affiche chaque ligne avec IntroDialogUI, dans l'ordre.
-/// - Applique les timings (delay initial, entre lignes, après la dernière).
-/// - Notifie le code appelant via callback quand la séquence est terminée.
-/// - Peut être stoppé brutalement (skip, changement d'état) via StopAndHide().
+/// Cette classe ne choisit pas quelle sequence charger.
+/// Elle recoit simplement des lignes deja preparees et les joue dans l'ordre.
 ///
-/// Ne s'occupe PAS de :
-/// - choisir QUELLE séquence charger (intro, phase, post-level) : c'est le rôle du contrôleur appelant.
-/// - gérer les contrôles, le flash, le HUD, etc.
+/// Deux modes de lecture sont supportes :
+/// - Auto : pour les dialogues pendant le gameplay (phases, evacuation, etc.)
+/// - Interactive : pour intro, outro, tuto, ou tout autre moment ou le joueur doit cliquer
+///
+/// Responsabilites :
+/// - Resoudre le speaker via CrewDatabase
+/// - Jouer chaque ligne dans l'ordre
+/// - Appliquer un delai initial avant la premiere ligne
+/// - Notifier le code appelant a la fin
+/// - Pouvoir stopper brutalement une sequence en cours
 /// </summary>
 public class DialogSequenceRunner : MonoBehaviour
 {
-    // ============================
-    // REFS
-    // ============================
-    [Header("Références")]
+    public enum PlaybackMode
+    {
+        Auto,
+        Interactive
+    }
+
+    [Header("References")]
     [SerializeField] private CrewDatabase crewDatabase;
     [SerializeField] private DialogUI dialogUI;
 
-    // ============================
-    // CONFIGURATION
-    // ============================
     [Header("Timings")]
-    [Tooltip("Délai avant d'afficher la première ligne.")]
+    [Tooltip("Delai avant d'afficher la premiere ligne.")]
     [SerializeField] private float initialDelay = 0.5f;
 
-    [Tooltip("Délai entre chaque ligne.")]
-    [SerializeField] private float delayBetweenLines = 0.3f;
-
-    [Tooltip("Délai après la dernière ligne avant de cacher la boîte de dialogue.")]
-    [SerializeField] private float endHoldDelay = 0.8f;
-
-    // ============================
-    // STATE
-    // ============================
+    // Coroutine de sequence actuellement en cours
     private Coroutine currentRoutine;
 
-
-
-    // ============================
-    // PUBLIC API
-    // ============================
-
     /// <summary>
-    /// Lance l'exécution d'une séquence de dialogues.
-    /// Le tableau de lignes doit être fourni par un autre système (DialogManager, etc.).
+    /// API par defaut : lecture en mode Auto.
+    /// Pratique pour les dialogues gameplay existants.
     /// </summary>
-    /// <param name="lines">Lignes de dialogue à jouer dans l'ordre.</param>
-    /// <param name="onComplete">Callback appelé à la fin de la séquence (ou immédiatement si rien à jouer).</param>
     public void Play(DialogLine[] lines, Action onComplete)
     {
-        // Si une séquence est déjà en cours, on la stoppe proprement
+        Play(lines, PlaybackMode.Auto, onComplete);
+    }
+
+    /// <summary>
+    /// Lance la lecture d'une sequence complete avec le mode demande.
+    /// </summary>
+    public void Play(DialogLine[] lines, PlaybackMode mode, Action onComplete)
+    {
         if (currentRoutine != null)
         {
             StopCoroutine(currentRoutine);
             currentRoutine = null;
         }
 
-        // Si aucune ligne, on nettoie l'UI et on termine immédiatement
         if (lines == null || lines.Length == 0)
         {
             if (dialogUI != null)
@@ -76,13 +67,11 @@ public class DialogSequenceRunner : MonoBehaviour
             return;
         }
 
-        currentRoutine = StartCoroutine(PlayRoutine(lines, onComplete));
+        currentRoutine = StartCoroutine(PlayRoutine(lines, mode, onComplete));
     }
 
     /// <summary>
-    /// Stoppe immédiatement la séquence de dialogue en cours (si présente)
-    /// et cache la boîte de dialogue.
-    /// À utiliser pour les cas de Skip ou de changement brutal d'état.
+    /// Stoppe immediatement la sequence en cours et masque la UI.
     /// </summary>
     public void StopAndHide()
     {
@@ -93,21 +82,14 @@ public class DialogSequenceRunner : MonoBehaviour
         }
 
         if (dialogUI != null)
-        {
-            dialogUI.StopImmediate();
             dialogUI.Hide();
-        }
-
     }
 
-
-
-    // ============================
-    // INTERNAL COROUTINE
-    // ============================
-    private IEnumerator PlayRoutine(DialogLine[] lines, Action onComplete)
+    /// <summary>
+    /// Coroutine interne de lecture de sequence.
+    /// </summary>
+    private IEnumerator PlayRoutine(DialogLine[] lines, PlaybackMode mode, Action onComplete)
     {
-        // Délai initial avant la première ligne
         if (initialDelay > 0f)
             yield return new WaitForSeconds(initialDelay);
 
@@ -115,37 +97,23 @@ public class DialogSequenceRunner : MonoBehaviour
         {
             DialogLine line = lines[i];
 
-            // Résolution du personnage à partir de l'ID
             CrewCharacter character = null;
             if (crewDatabase != null && !string.IsNullOrEmpty(line.speakerId))
-            {
                 character = crewDatabase.GetCharacter(line.speakerId);
-            }
 
             if (dialogUI != null)
             {
-                // IntroDialogUI gère l'affichage complet de la ligne (typewriter, glitch, etc.)
-                yield return StartCoroutine(dialogUI.PlayLine(character, line.text));
-
-                // Délai entre les lignes (sauf après la dernière)
-                if (i < lines.Length - 1 && delayBetweenLines > 0f)
-                    yield return new WaitForSeconds(delayBetweenLines);
+                if (mode == PlaybackMode.Interactive)
+                    yield return StartCoroutine(dialogUI.PlayLineInteractive(character, line.text));
+                else
+                    yield return StartCoroutine(dialogUI.PlayLineAuto(character, line.text));
             }
             else
             {
-                // Fallback console si jamais l'UI n'est pas branchée
                 Debug.Log("[DialogSequenceRunner] [" + line.speakerId + "] " + line.text);
-
-                if (i < lines.Length - 1 && delayBetweenLines > 0f)
-                    yield return new WaitForSeconds(delayBetweenLines);
             }
         }
 
-        // Délai après la dernière ligne
-        if (endHoldDelay > 0f)
-            yield return new WaitForSeconds(endHoldDelay);
-
-        // On cache la UI à la fin
         if (dialogUI != null)
             dialogUI.Hide();
 

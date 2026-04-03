@@ -2,6 +2,18 @@ using System.Collections;
 using UnityEngine;
 using TMPro;
 
+/// <summary>
+/// Gere l affichage du panneau final de fin de niveau :
+/// - stamp Victory / Defeat / GameOver
+/// - level score
+/// - campaign score
+/// - medal
+/// - money
+/// - toast(s) de reward money
+///
+/// Cette version expose aussi des methodes instantanees
+/// pour permettre un skip propre de la reveal routine.
+/// </summary>
 public class FinalPanelUI : MonoBehaviour
 {
     [Header("Panels")]
@@ -61,10 +73,21 @@ public class FinalPanelUI : MonoBehaviour
     private float lastMoneyTickSfxTime;
     private int lastMoneyAnimatedValue;
 
+    private Vector3 moneyRewardToastBaseScale = Vector3.one;
+    private Vector3 stampVictoryBaseScale = Vector3.one;
+    private Vector3 stampDefeatBaseScale = Vector3.one;
+    private Vector3 stampGameOverBaseScale = Vector3.one;
+    private Vector3 medalBronzeBaseScale = Vector3.one;
+    private Vector3 medalSilverBaseScale = Vector3.one;
+    private Vector3 medalGoldBaseScale = Vector3.one;
+
     private void Awake()
     {
         ResolveMoneyText();
+        CacheBaseScales();
         HideAllMedals();
+        HideAllStamps();
+        ResetMoneyRewardToastInstant();
     }
 
     private void OnEnable()
@@ -79,6 +102,9 @@ public class FinalPanelUI : MonoBehaviour
             moneyAnimated.OnValueStep -= HandleMoneyValueStep;
     }
 
+    /// <summary>
+    /// Recupere le TMP du compteur money pour les FX runtime.
+    /// </summary>
     private void ResolveMoneyText()
     {
         if (moneyAnimated == null)
@@ -93,10 +119,42 @@ public class FinalPanelUI : MonoBehaviour
             moneyBaseColor = moneyValueText.color;
     }
 
+    /// <summary>
+    /// Memorise les scales de base pour pouvoir remettre l UI propre
+    /// apres une anim interrompue ou un skip.
+    /// </summary>
+    private void CacheBaseScales()
+    {
+        if (moneyRewardCG != null)
+            moneyRewardToastBaseScale = moneyRewardCG.transform.localScale;
+
+        if (stampVictory != null)
+            stampVictoryBaseScale = stampVictory.transform.localScale;
+
+        if (stampDefeat != null)
+            stampDefeatBaseScale = stampDefeat.transform.localScale;
+
+        if (stampGameOver != null)
+            stampGameOverBaseScale = stampGameOver.transform.localScale;
+
+        if (medalBronze != null)
+            medalBronzeBaseScale = medalBronze.transform.localScale;
+
+        if (medalSilver != null)
+            medalSilverBaseScale = medalSilver.transform.localScale;
+
+        if (medalGold != null)
+            medalGoldBaseScale = medalGold.transform.localScale;
+    }
+
     // =========================================================
     // RESET
     // =========================================================
 
+    /// <summary>
+    /// Remet tout le panneau final a zero.
+    /// Utilise les methodes instantanees pour garantir un etat stable.
+    /// </summary>
     public void ResetAll()
     {
         if (levelScorePanel != null)
@@ -109,7 +167,6 @@ public class FinalPanelUI : MonoBehaviour
             moneyPanel.SetActive(false);
 
         ResetMoneyRewardToastInstant();
-
         HideAllStamps();
         HideAllMedals();
 
@@ -142,42 +199,57 @@ public class FinalPanelUI : MonoBehaviour
             moneyValueText.color = moneyBaseColor;
             moneyValueText.transform.localScale = Vector3.one;
         }
+
+        RestoreAllKnownScales();
     }
 
     // =========================================================
     // STAMP
     // =========================================================
 
-    public IEnumerator ShowStamp(FinalEndType type)
+    /// <summary>
+    /// Affiche instantanement le stamp correspondant.
+    /// Cette methode est essentielle pour les skips de reveal.
+    /// </summary>
+    public void SetStampInstant(FinalEndType type)
     {
         HideAllStamps();
 
         if (stampRoot != null)
             stampRoot.SetActive(true);
 
-        GameObject target = null;
-
-        if (type == FinalEndType.Victory)
-            target = stampVictory;
-        else if (type == FinalEndType.Defeat)
-            target = stampDefeat;
-        else
-            target = stampGameOver;
-
+        GameObject target = GetStampTarget(type);
         if (target == null)
         {
-            Debug.LogError("[FinalPanelUI] Stamp target manquant pour type=" + type);
-            yield break;
+            Debug.LogError("[FinalPanelUI] SetStampInstant: target manquant pour type=" + type);
+            return;
         }
 
         target.SetActive(true);
-        yield return StartCoroutine(PopRoutine(target.transform));
+        RestoreStampScale(type);
+    }
+
+    /// <summary>
+    /// Affiche le stamp avec une petite animation pop.
+    /// </summary>
+    public IEnumerator ShowStamp(FinalEndType type)
+    {
+        SetStampInstant(type);
+
+        GameObject target = GetStampTarget(type);
+        if (target == null)
+            yield break;
+
+        yield return StartCoroutine(PopRoutine(target.transform, GetStampBaseScale(type)));
     }
 
     // =========================================================
     // SCORE PANELS
     // =========================================================
 
+    /// <summary>
+    /// Affiche instantanement le score du niveau.
+    /// </summary>
     public void ShowLevelScorePanel(int levelScore)
     {
         if (levelScorePanel != null)
@@ -192,6 +264,9 @@ public class FinalPanelUI : MonoBehaviour
         levelScoreAnimated.SetInstant(levelScore);
     }
 
+    /// <summary>
+    /// Affiche instantanement le campaign score.
+    /// </summary>
     public void ShowCampaignScorePanelInstant(int value)
     {
         if (campaignScorePanel != null)
@@ -206,6 +281,9 @@ public class FinalPanelUI : MonoBehaviour
         campaignScoreAnimated.SetInstant(value);
     }
 
+    /// <summary>
+    /// Anime le campaign score de from vers to.
+    /// </summary>
     public IEnumerator AnimateCampaignScore(int from, int to)
     {
         if (campaignScorePanel != null)
@@ -228,6 +306,9 @@ public class FinalPanelUI : MonoBehaviour
     // MONEY
     // =========================================================
 
+    /// <summary>
+    /// Affiche instantanement le panneau money a une valeur donnee.
+    /// </summary>
     public void ShowMoneyPanelInstant(int value)
     {
         if (moneyPanel != null)
@@ -244,6 +325,10 @@ public class FinalPanelUI : MonoBehaviour
         lastMoneyAnimatedValue = clampedValue;
     }
 
+    /// <summary>
+    /// Anime la valeur money de from vers to,
+    /// avec pulse visuel et petits ticks SFX.
+    /// </summary>
     public IEnumerator AnimateMoney(int from, int to)
     {
         if (moneyPanel != null)
@@ -282,6 +367,10 @@ public class FinalPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Joue un tick SFX quand la valeur money augmente,
+    /// avec un cooldown minimal pour eviter le spam.
+    /// </summary>
     private void HandleMoneyValueStep(int value)
     {
         if (value <= lastMoneyAnimatedValue)
@@ -300,6 +389,9 @@ public class FinalPanelUI : MonoBehaviour
         BootRoot.Audio?.PlayUi(moneyTickSfx);
     }
 
+    /// <summary>
+    /// Affiche un toast temporaire de reward money.
+    /// </summary>
     public IEnumerator ShowMoneyRewardToast(string label, int amount)
     {
         if (moneyRewardCG == null)
@@ -319,7 +411,7 @@ public class FinalPanelUI : MonoBehaviour
         moneyRewardCG.alpha = 0f;
         moneyRewardCG.interactable = false;
         moneyRewardCG.blocksRaycasts = false;
-        t.localScale = Vector3.one;
+        t.localScale = moneyRewardToastBaseScale;
 
         float fadeDur = Mathf.Max(0.01f, moneyRewardFadeDuration);
         float timer = 0f;
@@ -334,7 +426,7 @@ public class FinalPanelUI : MonoBehaviour
 
         moneyRewardCG.alpha = 1f;
 
-        yield return StartCoroutine(PopRoutine(t));
+        yield return StartCoroutine(PopRoutine(t, moneyRewardToastBaseScale));
 
         if (moneyRewardHoldSec > 0f)
             yield return new WaitForSecondsRealtime(moneyRewardHoldSec);
@@ -351,9 +443,12 @@ public class FinalPanelUI : MonoBehaviour
         moneyRewardCG.alpha = 0f;
         moneyRewardCG.interactable = false;
         moneyRewardCG.blocksRaycasts = false;
-        t.localScale = Vector3.one;
+        t.localScale = moneyRewardToastBaseScale;
     }
 
+    /// <summary>
+    /// Remet instantanement le toast money a zero.
+    /// </summary>
     private void ResetMoneyRewardToastInstant()
     {
         if (moneyRewardCG == null)
@@ -362,9 +457,12 @@ public class FinalPanelUI : MonoBehaviour
         moneyRewardCG.alpha = 0f;
         moneyRewardCG.interactable = false;
         moneyRewardCG.blocksRaycasts = false;
-        moneyRewardCG.transform.localScale = Vector3.one;
+        moneyRewardCG.transform.localScale = moneyRewardToastBaseScale;
     }
 
+    /// <summary>
+    /// Petit pulse visuel sur la valeur money pendant son animation.
+    /// </summary>
     private IEnumerator CoMoneyPulseFx()
     {
         if (moneyValueText == null)
@@ -409,6 +507,9 @@ public class FinalPanelUI : MonoBehaviour
     // MEDAL
     // =========================================================
 
+    /// <summary>
+    /// Affiche instantanement la medal demandee.
+    /// </summary>
     public void SetMedalInstant(EndMedal medal)
     {
         HideAllMedals();
@@ -418,8 +519,12 @@ public class FinalPanelUI : MonoBehaviour
             return;
 
         SetAlpha(target, 1f);
+        RestoreMedalScale(medal);
     }
 
+    /// <summary>
+    /// Affiche la medal avec un pop.
+    /// </summary>
     public IEnumerator ShowMedal(EndMedal medal)
     {
         SetMedalInstant(medal);
@@ -428,7 +533,7 @@ public class FinalPanelUI : MonoBehaviour
         if (target == null)
             yield break;
 
-        yield return StartCoroutine(PopRoutine(target.transform));
+        yield return StartCoroutine(PopRoutine(target.transform, GetMedalBaseScale(medal)));
     }
 
     private CanvasGroup GetMedalCanvasGroup(EndMedal medal)
@@ -449,6 +554,9 @@ public class FinalPanelUI : MonoBehaviour
     // INTERNALS
     // =========================================================
 
+    /// <summary>
+    /// Cache tous les stamps.
+    /// </summary>
     private void HideAllStamps()
     {
         if (stampRoot != null)
@@ -462,15 +570,29 @@ public class FinalPanelUI : MonoBehaviour
 
         if (stampGameOver != null)
             stampGameOver.SetActive(false);
+
+        RestoreStampScale(FinalEndType.Victory);
+        RestoreStampScale(FinalEndType.Defeat);
+        RestoreStampScale(FinalEndType.GameOver);
     }
 
+    /// <summary>
+    /// Cache toutes les medals.
+    /// </summary>
     private void HideAllMedals()
     {
         SetAlpha(medalBronze, 0f);
         SetAlpha(medalSilver, 0f);
         SetAlpha(medalGold, 0f);
+
+        RestoreMedalScale(EndMedal.Bronze);
+        RestoreMedalScale(EndMedal.Silver);
+        RestoreMedalScale(EndMedal.Gold);
     }
 
+    /// <summary>
+    /// Regle alpha + interaction d un CanvasGroup.
+    /// </summary>
     private void SetAlpha(CanvasGroup cg, float alpha)
     {
         if (cg == null)
@@ -481,12 +603,102 @@ public class FinalPanelUI : MonoBehaviour
         cg.blocksRaycasts = false;
     }
 
-    private IEnumerator PopRoutine(Transform t)
+    /// <summary>
+    /// Renvoie le GameObject du stamp cible.
+    /// </summary>
+    private GameObject GetStampTarget(FinalEndType type)
+    {
+        if (type == FinalEndType.Victory)
+            return stampVictory;
+
+        if (type == FinalEndType.Defeat)
+            return stampDefeat;
+
+        return stampGameOver;
+    }
+
+    /// <summary>
+    /// Renvoie le scale de base du stamp cible.
+    /// </summary>
+    private Vector3 GetStampBaseScale(FinalEndType type)
+    {
+        if (type == FinalEndType.Victory)
+            return stampVictoryBaseScale;
+
+        if (type == FinalEndType.Defeat)
+            return stampDefeatBaseScale;
+
+        return stampGameOverBaseScale;
+    }
+
+    /// <summary>
+    /// Remet le scale du stamp cible a sa valeur de base.
+    /// </summary>
+    private void RestoreStampScale(FinalEndType type)
+    {
+        GameObject target = GetStampTarget(type);
+        if (target == null)
+            return;
+
+        target.transform.localScale = GetStampBaseScale(type);
+    }
+
+    /// <summary>
+    /// Renvoie le scale de base de la medal cible.
+    /// </summary>
+    private Vector3 GetMedalBaseScale(EndMedal medal)
+    {
+        if (medal == EndMedal.Bronze)
+            return medalBronzeBaseScale;
+
+        if (medal == EndMedal.Silver)
+            return medalSilverBaseScale;
+
+        if (medal == EndMedal.Gold)
+            return medalGoldBaseScale;
+
+        return Vector3.one;
+    }
+
+    /// <summary>
+    /// Remet le scale de la medal cible a sa valeur de base.
+    /// </summary>
+    private void RestoreMedalScale(EndMedal medal)
+    {
+        CanvasGroup target = GetMedalCanvasGroup(medal);
+        if (target == null)
+            return;
+
+        target.transform.localScale = GetMedalBaseScale(medal);
+    }
+
+    /// <summary>
+    /// Remet tous les objets poppables a leur scale de base.
+    /// </summary>
+    private void RestoreAllKnownScales()
+    {
+        if (moneyRewardCG != null)
+            moneyRewardCG.transform.localScale = moneyRewardToastBaseScale;
+
+        RestoreStampScale(FinalEndType.Victory);
+        RestoreStampScale(FinalEndType.Defeat);
+        RestoreStampScale(FinalEndType.GameOver);
+
+        RestoreMedalScale(EndMedal.Bronze);
+        RestoreMedalScale(EndMedal.Silver);
+        RestoreMedalScale(EndMedal.Gold);
+    }
+
+    /// <summary>
+    /// Petite animation pop generique.
+    /// Le scale de base est passe explicitement pour eviter
+    /// de supposer que tout est a Vector3.one.
+    /// </summary>
+    private IEnumerator PopRoutine(Transform t, Vector3 baseScale)
     {
         if (t == null)
             yield break;
 
-        Vector3 baseScale = Vector3.one;
         t.localScale = baseScale;
 
         Vector3 targetScale = baseScale * popScaleMult;

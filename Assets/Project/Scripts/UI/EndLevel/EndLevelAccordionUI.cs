@@ -3,15 +3,16 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Gère l'accordéon Goals / Bonus :
-/// - Expand/Collapse par animation de preferredHeight (LayoutElement)
-/// - Rotation des icônes de flèche
-/// - Anti-spam tap (cooldown)
-/// - Règle accordéon : si on ouvre l'un, on ferme l'autre avant (évite double resize)
+/// Gere l accordéon Goals / Bonus :
+/// - Expand / Collapse via preferredHeight (LayoutElement)
+/// - Rotation des fleches
+/// - Anti-spam
+/// - Regle d accordéon : si on ouvre l un, on ferme l autre avant
 ///
 /// IMPORTANT :
-/// - Ne décide pas du "quand" (cérémonie) : c'est EndLevelUI.
-/// - Les boutons doivent être bind dans l'Inspector sur OnGoalsTitleClicked / OnBonusTitleClicked.
+/// - Ce composant ne decide pas du timing de ceremonie.
+/// - Il expose juste des operations d UI coherentes.
+/// - Les boutons doivent etre bindes dans l Inspector.
 /// </summary>
 public class EndLevelAccordionUI : MonoBehaviour
 {
@@ -68,7 +69,7 @@ public class EndLevelAccordionUI : MonoBehaviour
     private bool togglesEnabled = false;
 
     private bool goalsExpanded = true;
-    private bool bonusExpanded = true;
+    private bool bonusExpanded = false;
 
     private bool goalsIsAnimating = false;
     private bool bonusIsAnimating = false;
@@ -76,10 +77,10 @@ public class EndLevelAccordionUI : MonoBehaviour
     private Coroutine goalsToggleRoutine;
     private Coroutine bonusToggleRoutine;
 
-    // Coroutine d'accordéon (fermer puis ouvrir). On la stoppe avant d'en relancer une.
+    // Coroutine d accordéon : fermer puis ouvrir.
     private Coroutine accordionRoutine;
 
-    // Cache de hauteur (utile car LayoutUtility peut être instable si l'objet est désactivé)
+    // Cache de hauteur pour eviter les surprises si l objet est desactive.
     private float cachedGoalsHeight = -1f;
     private float cachedBonusHeight = -1f;
 
@@ -101,6 +102,9 @@ public class EndLevelAccordionUI : MonoBehaviour
     // API
     // ----------------------------------------------------------
 
+    /// <summary>
+    /// Active ou desactive l interaction utilisateur sur les titres.
+    /// </summary>
     public void SetInteractable(bool value)
     {
         togglesEnabled = value;
@@ -133,7 +137,9 @@ public class EndLevelAccordionUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Permet à EndLevelUI de forcer un état au début/fin de cérémonie.
+    /// Helper simple.
+    /// Pour un etat final de ceremonie robuste, preferer
+    /// ForceCeremonyStartStateInstant ou ForceCeremonyEndStateInstant.
     /// </summary>
     public void SetState(bool goalsExpandedValue, bool bonusExpandedValue, bool instant)
     {
@@ -142,8 +148,94 @@ public class EndLevelAccordionUI : MonoBehaviour
     }
 
     /// <summary>
-    /// A appeler si le contenu Goals a changé (ajout/suppression de lignes),
-    /// afin de recalculer la hauteur ouverte.
+    /// Etat de depart normal de la ceremonie :
+    /// - Goals ouvert
+    /// - Bonus ferme
+    ///
+    /// Methode atomique : ne passe pas par deux setters separes.
+    /// </summary>
+    public void ForceCeremonyStartStateInstant()
+    {
+        StopAllAccordionRoutines();
+
+        goalsExpanded = true;
+        bonusExpanded = false;
+
+        if (goalsLinesBlock != null)
+            goalsLinesBlock.gameObject.SetActive(true);
+
+        if (bonusLinesBlock != null)
+            bonusLinesBlock.gameObject.SetActive(true);
+
+        ForceLayoutRebuild();
+
+        cachedGoalsHeight = GetPreferredHeightSafe(goalsLinesBlock);
+        cachedBonusHeight = GetPreferredHeightSafe(bonusLinesBlock);
+
+        if (goalsLinesLayout != null)
+            goalsLinesLayout.preferredHeight = cachedGoalsHeight;
+
+        if (bonusLinesLayout != null)
+            bonusLinesLayout.preferredHeight = 0f;
+
+        if (goalsLinesBlock != null)
+            goalsLinesBlock.gameObject.SetActive(true);
+
+        if (bonusLinesBlock != null)
+            bonusLinesBlock.gameObject.SetActive(false);
+
+        UpdateArrowIcon(goalsArrowIcon, true, true);
+        UpdateArrowIcon(bonusArrowIcon, false, true);
+
+        ForceLayoutRebuild();
+    }
+
+    /// <summary>
+    /// Etat final normal vise en fin de ceremonie :
+    /// - Goals replie
+    /// - Bonus ouvert
+    ///
+    /// Methode atomique reservee au skip de ceremonie.
+    /// </summary>
+    public void ForceCeremonyEndStateInstant()
+    {
+        StopAllAccordionRoutines();
+
+        goalsExpanded = false;
+        bonusExpanded = true;
+
+        if (goalsLinesBlock != null)
+            goalsLinesBlock.gameObject.SetActive(true);
+
+        if (bonusLinesBlock != null)
+            bonusLinesBlock.gameObject.SetActive(true);
+
+        ForceLayoutRebuild();
+
+        cachedGoalsHeight = GetPreferredHeightSafe(goalsLinesBlock);
+        cachedBonusHeight = GetPreferredHeightSafe(bonusLinesBlock);
+
+        if (goalsLinesLayout != null)
+            goalsLinesLayout.preferredHeight = 0f;
+
+        if (bonusLinesLayout != null)
+            bonusLinesLayout.preferredHeight = cachedBonusHeight;
+
+        if (goalsLinesBlock != null)
+            goalsLinesBlock.gameObject.SetActive(false);
+
+        if (bonusLinesBlock != null)
+            bonusLinesBlock.gameObject.SetActive(true);
+
+        UpdateArrowIcon(goalsArrowIcon, false, true);
+        UpdateArrowIcon(bonusArrowIcon, true, true);
+
+        ForceLayoutRebuild();
+    }
+
+    /// <summary>
+    /// A appeler si le contenu Goals a change.
+    /// Recalcule la hauteur ouverte cachee.
     /// </summary>
     public void RefreshGoalsCachedHeight()
     {
@@ -156,8 +248,8 @@ public class EndLevelAccordionUI : MonoBehaviour
     }
 
     /// <summary>
-    /// A appeler si le contenu Bonus a changé (reveal),
-    /// afin de recalculer la hauteur ouverte.
+    /// A appeler si le contenu Bonus a change.
+    /// Recalcule la hauteur ouverte cachee.
     /// </summary>
     public void RefreshBonusCachedHeight()
     {
@@ -173,6 +265,12 @@ public class EndLevelAccordionUI : MonoBehaviour
     // BOUTONS (INSPECTOR)
     // ----------------------------------------------------------
 
+    /// <summary>
+    /// Clique sur le titre Goals.
+    /// Respecte la regle d accordéon :
+    /// si Bonus est ouvert et qu on veut ouvrir Goals,
+    /// on ferme Bonus avant d ouvrir Goals.
+    /// </summary>
     public void OnGoalsTitleClicked()
     {
         if (!togglesEnabled)
@@ -180,6 +278,7 @@ public class EndLevelAccordionUI : MonoBehaviour
 
         if (Time.unscaledTime < nextGoalsToggleTime)
             return;
+
         nextGoalsToggleTime = Time.unscaledTime + toggleCooldownSec;
 
         if (goalsIsAnimating || bonusIsAnimating)
@@ -187,7 +286,6 @@ public class EndLevelAccordionUI : MonoBehaviour
 
         bool targetExpandGoals = !goalsExpanded;
 
-        // Si on veut ouvrir Goals alors que Bonus est ouvert, on fait l'accordéon.
         if (targetExpandGoals && bonusExpanded)
         {
             if (accordionRoutine != null)
@@ -200,6 +298,12 @@ public class EndLevelAccordionUI : MonoBehaviour
         SetGoalsExpanded(targetExpandGoals, instant: false);
     }
 
+    /// <summary>
+    /// Clique sur le titre Bonus.
+    /// Respecte la regle d accordéon :
+    /// si Goals est ouvert et qu on veut ouvrir Bonus,
+    /// on ferme Goals avant d ouvrir Bonus.
+    /// </summary>
     public void OnBonusTitleClicked()
     {
         if (!togglesEnabled)
@@ -207,6 +311,7 @@ public class EndLevelAccordionUI : MonoBehaviour
 
         if (Time.unscaledTime < nextBonusToggleTime)
             return;
+
         nextBonusToggleTime = Time.unscaledTime + toggleCooldownSec;
 
         if (goalsIsAnimating || bonusIsAnimating)
@@ -214,7 +319,6 @@ public class EndLevelAccordionUI : MonoBehaviour
 
         bool targetExpandBonus = !bonusExpanded;
 
-        // Si on veut ouvrir Bonus alors que Goals est ouvert, on fait l'accordéon.
         if (targetExpandBonus && goalsExpanded)
         {
             if (accordionRoutine != null)
@@ -231,16 +335,9 @@ public class EndLevelAccordionUI : MonoBehaviour
     // ACCORDEON ROUTINES
     // ----------------------------------------------------------
 
-    private IEnumerator CloseGoalsThenOpenBonus()
-    {
-        SetGoalsExpanded(false, instant: false);
-        yield return new WaitForSecondsRealtime(goalsToggleDuration);
-
-        SetBonusExpanded(true, instant: false);
-
-        accordionRoutine = null;
-    }
-
+    /// <summary>
+    /// Ferme Bonus puis ouvre Goals.
+    /// </summary>
     private IEnumerator CloseBonusThenOpenGoals()
     {
         SetBonusExpanded(false, instant: false);
@@ -251,10 +348,26 @@ public class EndLevelAccordionUI : MonoBehaviour
         accordionRoutine = null;
     }
 
+    /// <summary>
+    /// Ferme Goals puis ouvre Bonus.
+    /// </summary>
+    private IEnumerator CloseGoalsThenOpenBonus()
+    {
+        SetGoalsExpanded(false, instant: false);
+        yield return new WaitForSecondsRealtime(goalsToggleDuration);
+
+        SetBonusExpanded(true, instant: false);
+
+        accordionRoutine = null;
+    }
+
     // ----------------------------------------------------------
     // EXPAND / COLLAPSE GOALS
     // ----------------------------------------------------------
 
+    /// <summary>
+    /// Ouvre ou ferme Goals.
+    /// </summary>
     public void SetGoalsExpanded(bool expanded, bool instant)
     {
         if (accordionRoutine != null)
@@ -289,8 +402,8 @@ public class EndLevelAccordionUI : MonoBehaviour
         if (instant)
         {
             goalsIsAnimating = false;
-
             goalsLinesLayout.preferredHeight = to;
+
             if (!expanded)
                 goalsLinesBlock.gameObject.SetActive(false);
 
@@ -315,6 +428,9 @@ public class EndLevelAccordionUI : MonoBehaviour
     // EXPAND / COLLAPSE BONUS
     // ----------------------------------------------------------
 
+    /// <summary>
+    /// Ouvre ou ferme Bonus.
+    /// </summary>
     public void SetBonusExpanded(bool expanded, bool instant)
     {
         if (accordionRoutine != null)
@@ -349,8 +465,8 @@ public class EndLevelAccordionUI : MonoBehaviour
         if (instant)
         {
             bonusIsAnimating = false;
-
             bonusLinesLayout.preferredHeight = to;
+
             if (!expanded)
                 bonusLinesBlock.gameObject.SetActive(false);
 
@@ -375,6 +491,9 @@ public class EndLevelAccordionUI : MonoBehaviour
     // ICONES
     // ----------------------------------------------------------
 
+    /// <summary>
+    /// Met a jour la rotation de la fleche.
+    /// </summary>
     private void UpdateArrowIcon(RectTransform arrow, bool expanded, bool instant)
     {
         if (arrow == null)
@@ -391,6 +510,9 @@ public class EndLevelAccordionUI : MonoBehaviour
         StartCoroutine(RotateArrowRoutine(arrow, targetZ));
     }
 
+    /// <summary>
+    /// Anime la rotation d une fleche.
+    /// </summary>
     private IEnumerator RotateArrowRoutine(RectTransform arrow, float targetZ)
     {
         float startZ = arrow.localEulerAngles.z;
@@ -414,6 +536,9 @@ public class EndLevelAccordionUI : MonoBehaviour
     // ANIM HEIGHT
     // ----------------------------------------------------------
 
+    /// <summary>
+    /// Renvoie la preferredHeight d un block avec rebuild force.
+    /// </summary>
     private float GetPreferredHeightSafe(RectTransform rt)
     {
         if (rt == null)
@@ -423,6 +548,9 @@ public class EndLevelAccordionUI : MonoBehaviour
         return Mathf.Max(0f, LayoutUtility.GetPreferredHeight(rt));
     }
 
+    /// <summary>
+    /// Anime la preferredHeight d une section.
+    /// </summary>
     private IEnumerator AnimateSectionHeight(
         LayoutElement layout,
         RectTransform block,
@@ -458,9 +586,43 @@ public class EndLevelAccordionUI : MonoBehaviour
     }
 
     // ----------------------------------------------------------
+    // INTERNAL HELPERS
+    // ----------------------------------------------------------
+
+    /// <summary>
+    /// Stoppe proprement toutes les routines de l accordéon.
+    /// </summary>
+    private void StopAllAccordionRoutines()
+    {
+        if (accordionRoutine != null)
+        {
+            StopCoroutine(accordionRoutine);
+            accordionRoutine = null;
+        }
+
+        if (goalsToggleRoutine != null)
+        {
+            StopCoroutine(goalsToggleRoutine);
+            goalsToggleRoutine = null;
+        }
+
+        if (bonusToggleRoutine != null)
+        {
+            StopCoroutine(bonusToggleRoutine);
+            bonusToggleRoutine = null;
+        }
+
+        goalsIsAnimating = false;
+        bonusIsAnimating = false;
+    }
+
+    // ----------------------------------------------------------
     // LAYOUT
     // ----------------------------------------------------------
 
+    /// <summary>
+    /// Force le rebuild du layout parent.
+    /// </summary>
     private void ForceLayoutRebuild()
     {
         Canvas.ForceUpdateCanvases();

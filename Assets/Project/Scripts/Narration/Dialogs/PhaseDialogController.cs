@@ -1,5 +1,19 @@
 using UnityEngine;
 
+/// <summary>
+/// Gere les dialogues contextuels pendant le gameplay :
+/// - changements de phase
+/// - debut d evacuation
+///
+/// Regle UX :
+/// - ces dialogues se jouent automatiquement
+/// - ils ne doivent pas bloquer le gameplay
+/// - ils ne demandent pas de clic joueur
+///
+/// Les sequences sont resolues a partir du levelId courant :
+/// - phase : W1_L2_phase0, W1_L2_phase1, etc.
+/// - evacuation : W1_L2_evac
+/// </summary>
 public class PhaseDialogController : MonoBehaviour
 {
     [Header("References")]
@@ -39,6 +53,9 @@ public class PhaseDialogController : MonoBehaviour
             endSequence.OnEvacuationStarted -= HandleEvacuationStarted;
     }
 
+    /// <summary>
+    /// Injecte l'identifiant du niveau courant.
+    /// </summary>
     public void SetLevelId(string id)
     {
         if (string.IsNullOrEmpty(id))
@@ -48,16 +65,25 @@ public class PhaseDialogController : MonoBehaviour
         hasIdentity = true;
     }
 
+    /// <summary>
+    /// Appelé lors d'un changement de phase par le spawner.
+    /// </summary>
     private void HandlePhaseChanged(int phaseIndex, string phaseName)
     {
         PlayPhaseDialog(phaseIndex);
     }
 
+    /// <summary>
+    /// Appelé au debut de la phase d'evacuation.
+    /// </summary>
     private void HandleEvacuationStarted()
     {
         PlayEvacDialog();
     }
 
+    /// <summary>
+    /// Joue automatiquement le dialogue associe a une phase.
+    /// </summary>
     private void PlayPhaseDialog(int phaseIndex)
     {
         if (!hasIdentity)
@@ -85,9 +111,16 @@ public class PhaseDialogController : MonoBehaviour
         if (lines == null || lines.Length == 0)
             return;
 
-        dialogSequenceRunner.Play(lines, onComplete: null);
+        dialogSequenceRunner.Play(
+            lines,
+            DialogSequenceRunner.PlaybackMode.Auto,
+            onComplete: null
+        );
     }
 
+    /// <summary>
+    /// Joue automatiquement le dialogue associe a l'evacuation.
+    /// </summary>
     private void PlayEvacDialog()
     {
         if (!hasIdentity)
@@ -115,25 +148,35 @@ public class PhaseDialogController : MonoBehaviour
         if (lines == null || lines.Length == 0)
             return;
 
-        dialogSequenceRunner.Play(lines, onComplete: null);
+        dialogSequenceRunner.Play(
+            lines,
+            DialogSequenceRunner.PlaybackMode.Auto,
+            onComplete: null
+        );
     }
 
+    /// <summary>
+    /// Construit l'identifiant de sequence pour une phase.
+    /// Exemple : W1-L2 -> W1_L2_phase0
+    /// </summary>
     private string BuildPhaseSequenceId(int phaseIndex)
     {
         if (string.IsNullOrEmpty(levelId))
             return null;
 
-        // Exemple : "W1-L2" -> "W1_L2_phase0"
         string normalized = levelId.Replace("-", "_");
         return normalized + "_phase" + phaseIndex;
     }
 
+    /// <summary>
+    /// Construit l'identifiant de sequence pour l'evacuation.
+    /// Exemple : W1-L2 -> W1_L2_evac
+    /// </summary>
     private string BuildEvacSequenceId()
     {
         if (string.IsNullOrEmpty(levelId))
             return null;
 
-        // Exemple : "W1-L2" -> "W1_L2_evac"
         string normalized = levelId.Replace("-", "_");
         return normalized + "_evac";
     }
