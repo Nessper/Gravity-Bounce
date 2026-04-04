@@ -323,6 +323,9 @@ public class LevelIntroSequenceController : MonoBehaviour
         if (delayBeforeCountdown > 0f)
             yield return new WaitForSeconds(delayBeforeCountdown);
 
+        // Le gameplay va commencer : on lock le curseur pendant le countdown.
+        CursorController.Lock();
+
         if (countdownUI != null)
         {
             bool countdownDone = false;
@@ -419,6 +422,9 @@ public class LevelIntroSequenceController : MonoBehaviour
 
         if (delayBeforeCountdown > 0f)
             yield return new WaitForSeconds(delayBeforeCountdown);
+
+        // Le gameplay va commencer : on lock le curseur pendant le countdown.
+        CursorController.Lock();
 
         if (countdownUI != null)
         {

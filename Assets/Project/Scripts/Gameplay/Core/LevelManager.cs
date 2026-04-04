@@ -207,7 +207,6 @@ public class LevelManager : MonoBehaviour
         SetupObstacles();
 
         // 7) Evacuation
-        // 7) Evacuation
         if (evacuationController != null)
         {
             evacuationController.Configure(
@@ -637,6 +636,8 @@ public class LevelManager : MonoBehaviour
         hardStopped = true;
         endSequenceRunning = true;
 
+        CursorController.Unlock();
+
         runStateController?.MarkLevelEnded();
 
         if (SaveManager.Instance != null)
@@ -857,6 +858,8 @@ public class LevelManager : MonoBehaviour
                 yield break;
             }
 
+            CursorController.Unlock();
+
             if (endLevelToken.HasValue)
                 endLevelUI.SetEndLevelToken(endLevelToken.Value);
 
@@ -949,6 +952,8 @@ public class LevelManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        CursorController.ForceUnlock();
+
         // Detach flush hook
         if (scoreManager != null)
             scoreManager.OnFlushSnapshotRegistered -= HandleFlushRegistered;

@@ -20,6 +20,9 @@ public class Bootstrapper : MonoBehaviour
 
     private IEnumerator Start()
     {
+        // 0) Toujours repartir d'un état curseur propre au boot.
+        CursorController.Initialize();
+
         // 1) Charge le ShipCatalog depuis Resources
         LoadShipCatalogFromResources();
 

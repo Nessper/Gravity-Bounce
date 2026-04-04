@@ -34,10 +34,14 @@ public class PauseController : MonoBehaviour
 
     private bool allowPause = true;
 
+    // Re-lock differe pour laisser Unity terminer la frame UI/input.
+    private bool relockCursorNextLateUpdate;
+
     private void Awake()
     {
         IsPaused = false;
         allowPause = true;
+        relockCursorNextLateUpdate = false;
 
         // Safety : au chargement, on garantit un etat "non pause".
         Time.timeScale = 1f;
@@ -52,6 +56,15 @@ public class PauseController : MonoBehaviour
 
         if (toggleKey != KeyCode.None && Input.GetKeyDown(toggleKey))
             TogglePause();
+    }
+
+    private void LateUpdate()
+    {
+        if (!relockCursorNextLateUpdate)
+            return;
+
+        relockCursorNextLateUpdate = false;
+        CursorController.Lock();
     }
 
     public void EnablePause(bool enabled)
@@ -93,6 +106,12 @@ public class PauseController : MonoBehaviour
 
         IsPaused = true;
 
+        // On annule tout relock en attente.
+        relockCursorNextLateUpdate = false;
+
+        // Le gameplay quitte son mode souris lockee.
+        CursorController.Unlock();
+
         // Juste avant le freeze : l'orchestrateur peut rendre l'UI (stats, boutons, etc.)
         OnPauseOpening?.Invoke();
 
@@ -127,5 +146,15 @@ public class PauseController : MonoBehaviour
         // UI mobile : reaffiche les controles tactiles
         if (Application.isMobilePlatform && mobileControlsRoot != null)
             mobileControlsRoot.SetActive(true);
+
+        // IMPORTANT :
+        // on differe le relock a la fin de la frame,
+        // pour eviter le cas ou Escape/UI garde encore un etat transitoire.
+        relockCursorNextLateUpdate = true;
+    }
+
+    private void OnDisable()
+    {
+        relockCursorNextLateUpdate = false;
     }
 }
