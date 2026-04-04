@@ -8,20 +8,22 @@ using UnityEngine;
 
 /// <summary>
 /// Custom inspector de MainDebugStarterV3.
-/// 
+///
 /// Rôles :
 /// - Afficher l'inspector standard.
 /// - Proposer un Ship Picker basé sur ShipCatalog.
 /// - Proposer un World Picker basé sur WorldCatalog.
-/// - Proposer un Node Picker basé sur WorldCatalog.
+/// - Proposer un Node Picker basé directement sur world.levelIds.
 /// - Proposer un Debug Modules Picker (3 slots) basé sur ModuleCatalog.
-/// 
+///
 /// Important :
 /// - Le runtime stocke les vrais moduleId dans debugEquippedModuleIds.
 /// - L'editor sert uniquement au confort de sélection (family + tier).
 /// - Les doublons de famille entre slots sont interdits.
 /// - Le WorldCatalog est lu directement depuis Resources pour éviter
 ///   toute dépendance fragile au chargement runtime des services.
+/// - Le Node Picker affiche simplement les tokens du WorldCatalog :
+///   SHOP:START, W1-L1, BOSS:W1-L6, END, etc.
 /// </summary>
 [CustomEditor(typeof(MainDebugStarterV3))]
 public class MainDebugStarterV3Editor : Editor
@@ -122,7 +124,8 @@ public class MainDebugStarterV3Editor : Editor
 
         string selectedWorldId = worldIds[newIndex];
 
-        // Si le monde change, on reset le nodeIndex pour repartir proprement du premier niveau.
+        // Si le monde change, on reset le nodeIndex pour repartir proprement
+        // du premier token du tableau levelIds.
         if (!string.Equals(debugWorldIdProp.stringValue, selectedWorldId, StringComparison.Ordinal))
         {
             debugWorldIdProp.stringValue = selectedWorldId;
@@ -147,7 +150,7 @@ public class MainDebugStarterV3Editor : Editor
         string worldId = debugWorldIdProp != null ? debugWorldIdProp.stringValue : "";
         if (string.IsNullOrWhiteSpace(worldId))
         {
-            EditorGUILayout.HelpBox("debugWorldId is empty.", MessageType.Warning);
+            EditorGUILayout.HelpBox("debugWorldId est vide.", MessageType.Warning);
             return;
         }
 
@@ -155,7 +158,7 @@ public class MainDebugStarterV3Editor : Editor
         if (world == null || world.levelIds == null || world.levelIds.Length == 0)
         {
             EditorGUILayout.HelpBox(
-                "Aucun niveau trouvé pour worldId=" + worldId + ".",
+                "Aucun node trouvé pour worldId=" + worldId + ".",
                 MessageType.Warning);
             return;
         }
@@ -165,7 +168,9 @@ public class MainDebugStarterV3Editor : Editor
             0,
             world.levelIds.Length - 1);
 
-        int newIndex = EditorGUILayout.Popup("Start Level (nodeIndex)", currentIndex, world.levelIds);
+        int newIndex = EditorGUILayout.Popup("Start Node", currentIndex, world.levelIds);
+        newIndex = Mathf.Clamp(newIndex, 0, world.levelIds.Length - 1);
+
         debugNodeIndexProp.intValue = newIndex;
     }
 

@@ -33,6 +33,9 @@ public class RunHubController : MonoBehaviour
 
     private void Awake()
     {
+        if (runSession != null)
+            runSession.LoadFromSave();
+
         if (shopTransition != null)
             shopTransition.OnShopPanelRevealed = HandleShopPanelRevealed;
     }
@@ -42,7 +45,6 @@ public class RunHubController : MonoBehaviour
         if (runSession == null)
             return;
 
-        runSession.LoadFromSave();
 
         UpdateWorldName();
         BuildList();
@@ -103,7 +105,8 @@ public class RunHubController : MonoBehaviour
 
     /// <summary>
     /// NEXT button (shop UI).
-    /// Consumes the SHOP node and starts the next node (usually a level).
+    /// Consumes the SHOP node, then returns to the RunHub.
+    /// The next action will be decided from the hub based on the new current node.
     /// </summary>
     public void OnShopNextPressed()
     {
@@ -125,11 +128,16 @@ public class RunHubController : MonoBehaviour
         if (node == null)
             return;
 
-        if (node.type == RunNodeType.Shop)
-            runSession.CommitVictoryAndAdvanceNode();
+        if (node.type != RunNodeType.Shop)
+            return;
 
-        if (BootRoot.GameFlow != null)
-            BootRoot.GameFlow.StartLevel();
+        runSession.CommitVictoryAndAdvanceNode();
+
+        UpdateWorldName();
+        BuildList();
+
+        if (shopTransition != null)
+            shopTransition.ResetToRunHubState();
     }
 
     public void OnMenuPressed()

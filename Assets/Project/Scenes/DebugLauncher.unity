@@ -275,18 +275,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 471fec000f8ee8a4a85c689c7a5dc1c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainDebugStarterV3
-  startDestination: 1
-  debugWorldId: DBG
-  debugNodeIndex: 0
-  debugShipId: DEBUG_SHIP
+  startDestination: 0
+  debugWorldId: W1
+  debugNodeIndex: 1
+  debugShipId: CORE_SCOUT
   debugCurrentHull: 8
   debugContractLives: 3
   debugMoney: 200
   debugRunScore: 10000
   debugTreatAllModulesAsOwned: 1
   debugEquippedModuleIds:
-  - HULL_PATCH_3
-  - CORE_GROWTH_T1
+  - SCAN_ARRAY_T3
+  - GREED_COIL_T3
   - 
 --- !u!4 &292011952
 Transform:

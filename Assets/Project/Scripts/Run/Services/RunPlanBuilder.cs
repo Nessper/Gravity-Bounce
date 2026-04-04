@@ -4,12 +4,15 @@ using UnityEngine;
 /// <summary>
 /// Construit un RunPlan à partir d'un WorldCatalog.
 /// Tokens supportés:
-/// - "SHOP"
+/// - "SHOP:START"
+/// - "SHOP:MID"
 /// - "BOSS:LevelId"
 /// - "END"
 /// - "LevelId"
 ///
-/// Règle:
+/// Règles:
+/// - Un shop doit toujours avoir un stage explicite.
+/// - "SHOP" seul est invalide.
 /// - Un seul ending global.
 /// - "END" suffit.
 /// </summary>
@@ -42,11 +45,26 @@ public static class RunPlanBuilder
             RunNode node = new RunNode();
             node.nodeId = worldId + "_N" + (i + 1);
             node.levelId = "";
+            node.shopStage = ShopStage.None;
 
-            // SHOP
-            if (string.Equals(token, "SHOP", StringComparison.OrdinalIgnoreCase))
+            // SHOP:START / SHOP:MID
+            if (token.StartsWith("SHOP:", StringComparison.OrdinalIgnoreCase))
             {
                 node.type = RunNodeType.Shop;
+
+                if (!TryParseShopStage(token, out ShopStage parsedStage))
+                {
+                    Debug.LogError("[RunPlanBuilder] Stage de shop invalide: " + token);
+                    return null;
+                }
+
+                node.shopStage = parsedStage;
+            }
+            // SHOP seul interdit
+            else if (string.Equals(token, "SHOP", StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.LogError("[RunPlanBuilder] Token SHOP sans stage explicite interdit: " + token);
+                return null;
             }
             // BOSS
             else if (token.StartsWith("BOSS:", StringComparison.OrdinalIgnoreCase))
@@ -76,5 +94,39 @@ public static class RunPlanBuilder
         }
 
         return plan;
+    }
+
+    /// <summary>
+    /// Parse un token de shop explicite.
+    /// Exemples valides:
+    /// - SHOP:START
+    /// - SHOP:MID
+    /// </summary>
+    private static bool TryParseShopStage(string token, out ShopStage shopStage)
+    {
+        shopStage = ShopStage.None;
+
+        if (string.IsNullOrWhiteSpace(token))
+            return false;
+
+        string[] parts = token.Split(':', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 2)
+            return false;
+
+        string rawStage = parts[1].Trim();
+
+        if (string.Equals(rawStage, "START", StringComparison.OrdinalIgnoreCase))
+        {
+            shopStage = ShopStage.Start;
+            return true;
+        }
+
+        if (string.Equals(rawStage, "MID", StringComparison.OrdinalIgnoreCase))
+        {
+            shopStage = ShopStage.Mid;
+            return true;
+        }
+
+        return false;
     }
 }

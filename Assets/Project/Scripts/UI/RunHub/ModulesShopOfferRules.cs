@@ -3,67 +3,132 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Règles d'offres du shop Modules.
-/// - Charge un JSON de règles (Resources/Shop/modules_shop_rules.json)
-/// - Applique des patterns pondérés par worldId (ex: 80/15/5)
-/// - Retourne une offre 0..offerCount (fallback robuste si manque de tiers)
+/// Règles de génération d'offres pour le shop Modules.
 ///
-/// IMPORTANT:
-/// - Ce script ne touche PAS à la save (écriture). Il ne fait que "décider".
-/// - Pour seed le RNG, il LIT éventuellement la save (runId + nodeIndex + rerollCount) si dispo.
-/// - L'état "deal une fois / consommer sans refill" reste dans ModulesHubController.
+/// Responsabilités :
+/// - Charger les règles JSON depuis Resources/Shop/modules_shop_rules.json
+/// - Résoudre la clé de règles explicite du shop (ex: W1_START, W1_MID)
+/// - Construire une offre de modules non possédés
+/// - Appliquer un pattern pondéré T1/T2/T3
+/// - Garantir un RNG local, stable par run / node / reroll
+///
+/// Important :
+/// - Ce script ne persiste rien en save.
+/// - Ce script ne décide pas quand l'offre doit être "dealée" ou consommée.
+/// - Ce script ne fait que choisir quels modules doivent être proposés.
+/// - La logique "deal une fois / consommer sans refill" reste dans ModulesHubController.
 /// </summary>
 public static class ModulesShopOfferRules
 {
-    // --------------------------------------------------------------------
-    // JSON (Resources)
-    // --------------------------------------------------------------------
-
-    private const string RulesPath = "Shop/modules_shop_rules"; // sans extension
-
-    private static RulesRoot cachedRules;
-    private static bool triedLoadRules;
-
-    // --------------------------------------------------------------------
-    // API PRINCIPALE
-    // --------------------------------------------------------------------
+    // ---------------------------------------------------------------------
+    // CONFIG JSON
+    // ---------------------------------------------------------------------
 
     /// <summary>
-    /// Construit l'offre du shop (0..offerCount modules).
-    /// - Candidats = modules non possédés
-    /// - Pattern choisi selon worldId (pondéré, RNG local seedé)
-    /// - Sélection par buckets T1/T2/T3 (shuffle RNG local seedé)
-    /// - Fallback si pattern impossible
+    /// Chemin Resources du fichier de règles, sans extension.
+    /// </summary>
+    private const string RulesPath = "Shop/modules_shop_rules";
+
+    /// <summary>
+    /// Cache lazy des règles chargées depuis le JSON.
+    /// </summary>
+    private static RulesRoot cachedRules;
+
+    /// <summary>
+    /// Évite de recharger plusieurs fois un JSON introuvable/invalide.
+    /// </summary>
+    private static bool triedLoadRules;
+
+    // ---------------------------------------------------------------------
+    // API PUBLIQUE
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Construit l'offre du shop.
     ///
-    /// Exigence:
-    /// - Seed stable par run (runId)
-    /// - MAIS varie à chaque reroll => rerollCount (persisté)
-    /// - Optionnel: nodeIndex pour varier par node
+    /// Pipeline :
+    /// 1) filtre les modules déjà possédés
+    /// 2) regroupe les candidats par tier (T1 / T2 / T3)
+    /// 3) résout la clé explicite du shop (ex: W1_START)
+    /// 4) choisit un pattern pondéré pour cette clé
+    /// 5) applique le pattern avec un RNG local seedé
+    /// 6) complète si nécessaire avec les modules restants
     ///
-    /// Si SaveManager absent, fallback sur ticks (debug only).
+    /// Important :
+    /// - L'offre peut contenir de 0 à offerCount modules.
+    /// - Si les règles sont absentes ou invalides, l'offre peut revenir vide.
+    /// - Le RNG dépend du runId, du nodeIndex et du rerollCount.
     /// </summary>
     public static List<ModuleDefinition> BuildOffer(
         List<ModuleDefinition> catalogModules,
         Func<string, bool> isOwned,
         string worldId,
+        ShopStage shopStage,
         int rerollCount,
         int offerCount)
     {
         var result = new List<ModuleDefinition>();
 
-        int max = Mathf.Max(0, offerCount);
-        if (max <= 0)
+        int maxOfferCount = Mathf.Max(0, offerCount);
+        if (maxOfferCount <= 0)
             return result;
 
         if (catalogModules == null || catalogModules.Count == 0)
             return result;
 
-        // RNG local isolé (ne dépend pas de UnityEngine.Random global)
+        string rulesKey = BuildRulesKey(worldId, shopStage);
+        if (string.IsNullOrEmpty(rulesKey))
+            return result;
+
         int seed = ComputeShopSeed(worldId, rerollCount);
         var rng = new System.Random(seed);
 
-        // 1) Candidats = non-owned
+        List<ModuleDefinition> candidates = BuildNonOwnedCandidates(catalogModules, isOwned);
+        if (candidates.Count == 0)
+            return result;
+
+        SplitCandidatesByTier(
+            candidates,
+            out List<ModuleDefinition> tier1Candidates,
+            out List<ModuleDefinition> tier2Candidates,
+            out List<ModuleDefinition> tier3Candidates);
+
+        Pattern selectedPattern = PickPattern(rulesKey, rng);
+
+        ApplyPattern(
+            selectedPattern,
+            tier1Candidates,
+            tier2Candidates,
+            tier3Candidates,
+            result,
+            maxOfferCount,
+            rng);
+
+        FillRemaining(
+            tier1Candidates,
+            tier2Candidates,
+            tier3Candidates,
+            result,
+            maxOfferCount,
+            rng);
+
+        return result;
+    }
+
+    // ---------------------------------------------------------------------
+    // CONSTRUCTION DE L'OFFRE
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Retourne la liste des modules candidats :
+    /// tous les modules valides du catalogue qui ne sont pas déjà possédés.
+    /// </summary>
+    private static List<ModuleDefinition> BuildNonOwnedCandidates(
+        List<ModuleDefinition> catalogModules,
+        Func<string, bool> isOwned)
+    {
         var candidates = new List<ModuleDefinition>(catalogModules.Count);
+
         for (int i = 0; i < catalogModules.Count; i++)
         {
             ModuleDefinition def = catalogModules[i];
@@ -76,162 +141,188 @@ public static class ModulesShopOfferRules
             candidates.Add(def);
         }
 
-        if (candidates.Count == 0)
-            return result;
+        return candidates;
+    }
 
-        // 2) Buckets par tier
-        var t1 = new List<ModuleDefinition>();
-        var t2 = new List<ModuleDefinition>();
-        var t3 = new List<ModuleDefinition>();
+    /// <summary>
+    /// Répartit les candidats en trois buckets : T1 / T2 / T3+.
+    /// </summary>
+    private static void SplitCandidatesByTier(
+        List<ModuleDefinition> candidates,
+        out List<ModuleDefinition> tier1,
+        out List<ModuleDefinition> tier2,
+        out List<ModuleDefinition> tier3)
+    {
+        tier1 = new List<ModuleDefinition>();
+        tier2 = new List<ModuleDefinition>();
+        tier3 = new List<ModuleDefinition>();
 
         for (int i = 0; i < candidates.Count; i++)
         {
             ModuleDefinition def = candidates[i];
             int tier = Mathf.Max(1, def.tier);
 
-            if (tier == 1) t1.Add(def);
-            else if (tier == 2) t2.Add(def);
-            else t3.Add(def);
-        }
-
-        // 3) Pattern pondéré (RNG local)
-        Pattern p = PickPattern(worldId, rng);
-
-        // 4) Appliquer pattern (shuffle seeded)
-        TakeSeeded(t1, p.t1, result, max, rng);
-        TakeSeeded(t2, p.t2, result, max, rng);
-        TakeSeeded(t3, p.t3, result, max, rng);
-
-        // 5) Fallback: compléter avec ce qu'il reste (du plus bas au plus haut)
-        FillSeeded(t1, result, max, rng);
-        FillSeeded(t2, result, max, rng);
-        FillSeeded(t3, result, max, rng);
-
-        return result;
-    }
-
-    // --------------------------------------------------------------------
-    // SEED (interne, no caller logic)
-    // --------------------------------------------------------------------
-
-    private static int ComputeShopSeed(string worldId, int rerollCount)
-    {
-        // Source de vérité (si dispo) : SaveManager.runState.runId + nodeIndex + rerollCount
-        string runId = "";
-        int nodeIndex = 0;
-
-        try
-        {
-            if (SaveManager.Instance != null && SaveManager.Instance.Current != null)
-            {
-                RunStateData run = SaveManager.Instance.GetRunState();
-                if (run != null)
-                {
-                    runId = run.runId ?? "";
-                    nodeIndex = run.currentNodeIndex;
-                }
-            }
-        }
-        catch
-        {
-            // Défensif: pas de throw dans une lib de rules
-        }
-
-        string wid = string.IsNullOrEmpty(worldId) ? "W1" : worldId;
-        int rr = Mathf.Max(0, rerollCount);
-
-        // Si runId vide, on est probablement hors run / debug / save ancienne.
-        // Fallback: seed volatile (acceptable).
-        if (string.IsNullOrEmpty(runId))
-        {
-            long ticks = DateTime.UtcNow.Ticks;
-            unchecked
-            {
-                // Inclure rr quand même, pour que les rerolls changent même en debug
-                int t = (int)(ticks ^ (ticks >> 32) ^ Time.frameCount);
-                return StableHash($"{wid}:{nodeIndex}:{rr}:SHOP:{t}");
-            }
-        }
-
-        // Seed stable & variant:
-        // - runId => varie par run
-        // - worldId + nodeIndex => peut varier par node
-        // - rerollCount => varie à chaque reroll (ce qu'on veut)
-        // - "SHOP" => namespace
-        return StableHash($"{runId}:{wid}:{nodeIndex}:{rr}:SHOP");
-    }
-
-    public static int StableHash(string s)
-    {
-        if (string.IsNullOrEmpty(s))
-            return 0;
-
-        unchecked
-        {
-            int h = 23;
-            for (int i = 0; i < s.Length; i++)
-                h = h * 31 + s[i];
-            return h;
+            if (tier == 1)
+                tier1.Add(def);
+            else if (tier == 2)
+                tier2.Add(def);
+            else
+                tier3.Add(def);
         }
     }
 
-    // --------------------------------------------------------------------
-    // PATTERNS
-    // --------------------------------------------------------------------
-
-    private struct Pattern
+    /// <summary>
+    /// Applique le pattern choisi en tirant dans chaque bucket.
+    /// </summary>
+    private static void ApplyPattern(
+        Pattern pattern,
+        List<ModuleDefinition> tier1,
+        List<ModuleDefinition> tier2,
+        List<ModuleDefinition> tier3,
+        List<ModuleDefinition> result,
+        int maxOfferCount,
+        System.Random rng)
     {
-        public int t1;
-        public int t2;
-        public int t3;
-
-        public Pattern(int t1, int t2, int t3)
-        {
-            this.t1 = Mathf.Max(0, t1);
-            this.t2 = Mathf.Max(0, t2);
-            this.t3 = Mathf.Max(0, t3);
-        }
+        TakeSeeded(tier1, pattern.t1, result, maxOfferCount, rng);
+        TakeSeeded(tier2, pattern.t2, result, maxOfferCount, rng);
+        TakeSeeded(tier3, pattern.t3, result, maxOfferCount, rng);
     }
 
-    private static Pattern PickPattern(string worldId, System.Random rng)
+    /// <summary>
+    /// Complète l'offre avec les modules restants si le pattern n'a pas suffi.
+    /// Ordre de fallback :
+    /// - T1
+    /// - T2
+    /// - T3
+    /// </summary>
+    private static void FillRemaining(
+        List<ModuleDefinition> tier1,
+        List<ModuleDefinition> tier2,
+        List<ModuleDefinition> tier3,
+        List<ModuleDefinition> result,
+        int maxOfferCount,
+        System.Random rng)
     {
-        List<PatternRule> rules = GetPatternRulesForWorld(worldId);
+        FillSeeded(tier1, result, maxOfferCount, rng);
+        FillSeeded(tier2, result, maxOfferCount, rng);
+        FillSeeded(tier3, result, maxOfferCount, rng);
+    }
+
+    // ---------------------------------------------------------------------
+    // CLÉ DE RÈGLES / PATTERNS
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Construit la clé explicite utilisée dans le JSON.
+    /// Exemples :
+    /// - W1_START
+    /// - W1_MID
+    ///
+    /// Important :
+    /// - Le shop doit toujours avoir un ShopStage explicite.
+    /// - Aucun fallback implicite n'est autorisé ici.
+    /// </summary>
+    private static string BuildRulesKey(string worldId, ShopStage shopStage)
+    {
+        string resolvedWorldId = string.IsNullOrWhiteSpace(worldId) ? "W1" : worldId.Trim();
+
+        if (shopStage == ShopStage.None)
+        {
+            Debug.LogError("[ModulesShopOfferRules] ShopStage.None invalide pour la construction des règles de shop.");
+            return null;
+        }
+
+        return resolvedWorldId + "_" + shopStage.ToString().ToUpperInvariant();
+    }
+
+    /// <summary>
+    /// Choisit un pattern pondéré pour une clé de règles donnée.
+    /// Si aucune règle n'est trouvée, retourne un pattern vide et log une erreur.
+    /// </summary>
+    private static Pattern PickPattern(string rulesKey, System.Random rng)
+    {
+        List<PatternRule> rules = GetPatternRulesForKey(rulesKey);
 
         if (rules == null || rules.Count == 0)
-            return new Pattern(2, 1, 0);
-
-        float total = 0f;
-        for (int i = 0; i < rules.Count; i++)
         {
-            if (rules[i] == null) continue;
-            total += Mathf.Max(0f, rules[i].weight);
+            Debug.LogError("[ModulesShopOfferRules] Aucune règle trouvée pour la clé: " + rulesKey);
+            return Pattern.Empty;
         }
 
-        if (total <= 0f)
-            return new Pattern(2, 1, 0);
+        float totalWeight = 0f;
+        for (int i = 0; i < rules.Count; i++)
+        {
+            if (rules[i] == null)
+                continue;
 
-        float r = (float)rng.NextDouble() * total;
-        float acc = 0f;
+            totalWeight += Mathf.Max(0f, rules[i].weight);
+        }
+
+        if (totalWeight <= 0f)
+        {
+            Debug.LogError("[ModulesShopOfferRules] Somme des poids invalide pour la clé: " + rulesKey);
+            return Pattern.Empty;
+        }
+
+        float randomValue = (float)rng.NextDouble() * totalWeight;
+        float accumulatedWeight = 0f;
 
         for (int i = 0; i < rules.Count; i++)
         {
-            PatternRule pr = rules[i];
-            if (pr == null) continue;
+            PatternRule rule = rules[i];
+            if (rule == null)
+                continue;
 
-            acc += Mathf.Max(0f, pr.weight);
-            if (r <= acc)
-                return new Pattern(pr.t1, pr.t2, pr.t3);
+            accumulatedWeight += Mathf.Max(0f, rule.weight);
+            if (randomValue <= accumulatedWeight)
+                return new Pattern(rule.t1, rule.t2, rule.t3);
         }
 
-        PatternRule last = rules[rules.Count - 1];
-        if (last == null) return new Pattern(2, 1, 0);
-        return new Pattern(last.t1, last.t2, last.t3);
+        PatternRule lastRule = rules[rules.Count - 1];
+        if (lastRule == null)
+            return Pattern.Empty;
+
+        return new Pattern(lastRule.t1, lastRule.t2, lastRule.t3);
     }
 
-    // --------------------------------------------------------------------
-    // JSON LOAD (lazy + cache)
-    // --------------------------------------------------------------------
+    /// <summary>
+    /// Retourne les règles associées à une clé explicite.
+    /// Aucun fallback n'est utilisé :
+    /// si la clé n'existe pas, on retourne null.
+    /// </summary>
+    private static List<PatternRule> GetPatternRulesForKey(string rulesKey)
+    {
+        if (!EnsureRulesLoaded() || cachedRules == null)
+            return null;
 
+        if (string.IsNullOrWhiteSpace(rulesKey) || cachedRules.worldRules == null)
+            return null;
+
+        for (int i = 0; i < cachedRules.worldRules.Count; i++)
+        {
+            WorldRule worldRule = cachedRules.worldRules[i];
+            if (worldRule == null)
+                continue;
+
+            if (!string.Equals(worldRule.worldId, rulesKey, StringComparison.Ordinal))
+                continue;
+
+            if (worldRule.patterns != null && worldRule.patterns.Count > 0)
+                return worldRule.patterns;
+
+            return null;
+        }
+
+        return null;
+    }
+
+    // ---------------------------------------------------------------------
+    // CHARGEMENT JSON
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Charge les règles JSON une seule fois et les garde en cache.
+    /// </summary>
     private static bool EnsureRulesLoaded()
     {
         if (cachedRules != null)
@@ -272,34 +363,86 @@ public static class ModulesShopOfferRules
         return true;
     }
 
-    private static List<PatternRule> GetPatternRulesForWorld(string worldId)
+    // ---------------------------------------------------------------------
+    // RNG / SEED
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Calcule un seed local pour le shop.
+    ///
+    /// Objectifs :
+    /// - stable au sein d'une même run
+    /// - différent par node
+    /// - différent à chaque reroll
+    ///
+    /// Fallback debug :
+    /// - si aucun runId n'est disponible, on utilise un seed volatil
+    /// </summary>
+    private static int ComputeShopSeed(string worldId, int rerollCount)
     {
-        if (!EnsureRulesLoaded() || cachedRules == null)
-            return null;
+        string runId = "";
+        int nodeIndex = 0;
 
-        if (!string.IsNullOrEmpty(worldId) && cachedRules.worldRules != null)
+        try
         {
-            for (int i = 0; i < cachedRules.worldRules.Count; i++)
+            if (SaveManager.Instance != null && SaveManager.Instance.Current != null)
             {
-                WorldRule wr = cachedRules.worldRules[i];
-                if (wr == null) continue;
-
-                if (string.Equals(wr.worldId, worldId, StringComparison.Ordinal))
+                RunStateData run = SaveManager.Instance.GetRunState();
+                if (run != null)
                 {
-                    if (wr.patterns != null && wr.patterns.Count > 0)
-                        return wr.patterns;
-                    break;
+                    runId = run.runId ?? "";
+                    nodeIndex = run.currentNodeIndex;
                 }
             }
         }
+        catch
+        {
+            // Défensif :
+            // ce script de règles ne doit jamais throw à cause d'un accès save.
+        }
 
-        return cachedRules.defaultPatterns;
+        string resolvedWorldId = string.IsNullOrEmpty(worldId) ? "W1" : worldId;
+        int resolvedRerollCount = Mathf.Max(0, rerollCount);
+
+        if (string.IsNullOrEmpty(runId))
+        {
+            long ticks = DateTime.UtcNow.Ticks;
+
+            unchecked
+            {
+                int volatileSeed = (int)(ticks ^ (ticks >> 32) ^ Time.frameCount);
+                return StableHash($"{resolvedWorldId}:{nodeIndex}:{resolvedRerollCount}:SHOP:{volatileSeed}");
+            }
+        }
+
+        return StableHash($"{runId}:{resolvedWorldId}:{nodeIndex}:{resolvedRerollCount}:SHOP");
     }
 
-    // --------------------------------------------------------------------
-    // SÉLECTION SEEDED (shuffle RNG local)
-    // --------------------------------------------------------------------
+    /// <summary>
+    /// Hash simple et stable pour dériver un seed entier depuis une string.
+    /// </summary>
+    public static int StableHash(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return 0;
 
+        unchecked
+        {
+            int hash = 23;
+            for (int i = 0; i < value.Length; i++)
+                hash = hash * 31 + value[i];
+
+            return hash;
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // SÉLECTION SEEDED
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Mélange une liste avec le RNG local.
+    /// </summary>
     private static void Shuffle<T>(List<T> list, System.Random rng)
     {
         if (list == null || list.Count <= 1 || rng == null)
@@ -312,45 +455,90 @@ public static class ModulesShopOfferRules
         }
     }
 
-    private static void TakeSeeded(List<ModuleDefinition> bucket, int amount, List<ModuleDefinition> result, int max, System.Random rng)
+    /// <summary>
+    /// Prend une quantité demandée dans un bucket après mélange seedé.
+    /// Les éléments pris sont retirés du bucket.
+    /// </summary>
+    private static void TakeSeeded(
+        List<ModuleDefinition> bucket,
+        int amount,
+        List<ModuleDefinition> result,
+        int maxOfferCount,
+        System.Random rng)
     {
-        if (bucket == null || bucket.Count == 0) return;
-        if (amount <= 0) return;
-        if (result == null) return;
-        if (result.Count >= max) return;
+        if (bucket == null || bucket.Count == 0)
+            return;
+
+        if (amount <= 0)
+            return;
+
+        if (result == null || result.Count >= maxOfferCount)
+            return;
 
         Shuffle(bucket, rng);
 
-        int take = Mathf.Min(amount, bucket.Count);
-        for (int i = 0; i < take && result.Count < max; i++)
+        int takeCount = Mathf.Min(amount, bucket.Count);
+        for (int i = 0; i < takeCount && result.Count < maxOfferCount; i++)
             result.Add(bucket[i]);
 
-        bucket.RemoveRange(0, take);
+        bucket.RemoveRange(0, takeCount);
     }
 
-    private static void FillSeeded(List<ModuleDefinition> bucket, List<ModuleDefinition> result, int max, System.Random rng)
+    /// <summary>
+    /// Complète l'offre avec tout ce qui reste dans un bucket, après mélange seedé.
+    /// Les éléments ajoutés sont retirés du bucket.
+    /// </summary>
+    private static void FillSeeded(
+        List<ModuleDefinition> bucket,
+        List<ModuleDefinition> result,
+        int maxOfferCount,
+        System.Random rng)
     {
-        if (bucket == null || bucket.Count == 0) return;
-        if (result == null) return;
-        if (result.Count >= max) return;
+        if (bucket == null || bucket.Count == 0)
+            return;
+
+        if (result == null || result.Count >= maxOfferCount)
+            return;
 
         Shuffle(bucket, rng);
 
-        int i = 0;
-        while (i < bucket.Count && result.Count < max)
+        int index = 0;
+        while (index < bucket.Count && result.Count < maxOfferCount)
         {
-            result.Add(bucket[i]);
-            i++;
+            result.Add(bucket[index]);
+            index++;
         }
 
-        if (i > 0)
-            bucket.RemoveRange(0, i);
+        if (index > 0)
+            bucket.RemoveRange(0, index);
     }
 
-    // --------------------------------------------------------------------
-    // DATA JSON (classes internes => 1 seul script)
-    // --------------------------------------------------------------------
+    // ---------------------------------------------------------------------
+    // MODÈLES INTERNES
+    // ---------------------------------------------------------------------
 
+    /// <summary>
+    /// Pattern de distribution T1 / T2 / T3.
+    /// </summary>
+    private struct Pattern
+    {
+        public int t1;
+        public int t2;
+        public int t3;
+
+        public static Pattern Empty => new Pattern(0, 0, 0);
+
+        public Pattern(int t1, int t2, int t3)
+        {
+            this.t1 = Mathf.Max(0, t1);
+            this.t2 = Mathf.Max(0, t2);
+            this.t3 = Mathf.Max(0, t3);
+        }
+    }
+
+    /// <summary>
+    /// Racine JSON du fichier de règles.
+    /// </summary>
     [Serializable]
     private class RulesRoot
     {
@@ -358,6 +546,12 @@ public static class ModulesShopOfferRules
         public List<PatternRule> defaultPatterns = new List<PatternRule>();
     }
 
+    /// <summary>
+    /// Bloc de règles pour une clé explicite de shop.
+    /// Exemples :
+    /// - W1_START
+    /// - W1_MID
+    /// </summary>
     [Serializable]
     private class WorldRule
     {
@@ -365,6 +559,9 @@ public static class ModulesShopOfferRules
         public List<PatternRule> patterns = new List<PatternRule>();
     }
 
+    /// <summary>
+    /// Ligne de pattern dans le JSON.
+    /// </summary>
     [Serializable]
     private class PatternRule
     {

@@ -48,10 +48,6 @@ public class IntroLevelUI : MonoBehaviour
     [SerializeField] private Button startButton;
     [SerializeField] private Button menuButton;
 
-    [Header("Briefing Tier (Debug)")]
-    [Tooltip("Fallback uniquement si ModuleRuntimeStats n'est pas assigné.")]
-    [SerializeField] private BriefingTier briefingTierFallback = BriefingTier.T3;
-
     private System.Action onStartCallback;
     private System.Action onMenuCallback;
 
@@ -240,10 +236,13 @@ public class IntroLevelUI : MonoBehaviour
     /// </summary>
     private BriefingTier GetEffectiveBriefingTier()
     {
-        if (ModuleRuntimeStats.Instance != null)
-            return ModuleRuntimeStats.Instance.GetEffectiveBriefingTier();
+        if (ModuleRuntimeStats.Instance == null)
+        {
+            Debug.LogWarning("[IntroLevelUI] ModuleRuntimeStats.Instance est null. Fallback T3 utilisé.");
+            return BriefingTier.T3;
+        }
 
-        return briefingTierFallback;
+        return ModuleRuntimeStats.Instance.GetEffectiveBriefingTier();
     }
 
     // ------------------------------------------------------------

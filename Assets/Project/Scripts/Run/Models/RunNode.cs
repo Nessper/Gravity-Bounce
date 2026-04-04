@@ -18,4 +18,10 @@ public class RunNode
     /// Pour d'autres types, ce champ peut être vide.
     /// </summary>
     public string levelId;
+
+    /// <summary>
+    /// Variante métier du shop (Start, Mid).
+    /// Utilisé uniquement si type == Shop.
+    /// </summary>
+    public ShopStage shopStage = ShopStage.None;
 }
