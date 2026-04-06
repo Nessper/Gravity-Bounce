@@ -267,66 +267,7 @@
           ]
         }
       ]
-    },
-    {
-      "id": "W1_L1_phase0",
-      "type": "phase",
-      "world": 1,
-      "level": 1,
-      "phaseIndex": 0,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "PHASE 1" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L1_phase1",
-      "type": "phase",
-      "world": 1,
-      "level": 1,
-      "phaseIndex": 1,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "leigh", "text": "PHASE 2" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L1_phase2",
-      "type": "phase",
-      "world": 1,
-      "level": 1,
-      "phaseIndex": 2,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "mike", "text": "PHASE 3" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L1_evac",
-      "type": "evac",
-      "world": 1,
-      "level": 1,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "Ça suffit pour aujourd’hui. On rentre." }
-          ]
-        }
-      ]
-    },
+    }, 
     {
       "id": "W1_L1_outro",
       "type": "outro",
@@ -370,65 +311,6 @@
       ]
     },
     {
-      "id": "W1_L2_phase0",
-      "type": "phase",
-      "world": 1,
-      "level": 2,
-      "phaseIndex": 0,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "PHASE 1" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L2_phase1",
-      "type": "phase",
-      "world": 1,
-      "level": 2,
-      "phaseIndex": 1,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "leigh", "text": "PHASE 2" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L2_phase2",
-      "type": "phase",
-      "world": 1,
-      "level": 2,
-      "phaseIndex": 2,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "mike", "text": "PHASE 3" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L2_evac",
-      "type": "evac",
-      "world": 1,
-      "level": 2,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "On récupère les dernières et on décolle." }
-          ]
-        }
-      ]
-    },
-    {
       "id": "W1_L2_outro",
       "type": "outro",
       "world": 1,
@@ -466,65 +348,6 @@
             { "speakerId": "rye", "text": "Et après ça… j’espère que l’atelier vaut le détour." },
             { "speakerId": "mike", "text": "Oh oui. Mon poste de pilotage mérite une petite amélioration." },
             { "speakerId": "captain", "text": "Finissez déjà cette mission." }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L3_phase0",
-      "type": "phase",
-      "world": 1,
-      "level": 3,
-      "phaseIndex": 0,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "PHASE 1" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L3_phase1",
-      "type": "phase",
-      "world": 1,
-      "level": 3,
-      "phaseIndex": 1,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "leigh", "text": "PHASE 2" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L3_phase2",
-      "type": "phase",
-      "world": 1,
-      "level": 3,
-      "phaseIndex": 2,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "mike", "text": "PHASE 3" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L3_evac",
-      "type": "evac",
-      "world": 1,
-      "level": 3,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "On récupère les dernières et on décolle." }
           ]
         }
       ]
@@ -574,65 +397,6 @@
       ]
     },
     {
-      "id": "W1_L4_phase0",
-      "type": "phase",
-      "world": 1,
-      "level": 4,
-      "phaseIndex": 0,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "PHASE 1" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L4_phase1",
-      "type": "phase",
-      "world": 1,
-      "level": 4,
-      "phaseIndex": 1,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "leigh", "text": "PHASE 2" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L4_phase2",
-      "type": "phase",
-      "world": 1,
-      "level": 4,
-      "phaseIndex": 2,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "mike", "text": "PHASE 3" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L4_evac",
-      "type": "evac",
-      "world": 1,
-      "level": 4,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "Allez, on traîne pas. On ramasse et on décolle." }
-          ]
-        }
-      ]
-    },
-    {
       "id": "W1_L4_outro",
       "type": "outro",
       "world": 1,
@@ -671,65 +435,6 @@
             { "speakerId": "mike", "text": "Super." },
             { "speakerId": "captain", "text": "On garde la tête froide. On fait notre travail." },
             { "speakerId": "mike", "text": "Reçu cap’tain." }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L5_phase0",
-      "type": "phase",
-      "world": 1,
-      "level": 5,
-      "phaseIndex": 0,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "PHASE 1" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L5_phase1",
-      "type": "phase",
-      "world": 1,
-      "level": 5,
-      "phaseIndex": 1,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "leigh", "text": "PHASE 2" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L5_phase2",
-      "type": "phase",
-      "world": 1,
-      "level": 5,
-      "phaseIndex": 2,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "mike", "text": "PHASE 3" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L5_evac",
-      "type": "evac",
-      "world": 1,
-      "level": 5,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "Allez. On ramasse les dernières et on décolle." }
           ]
         }
       ]
@@ -778,65 +483,6 @@
             { "speakerId": "captain", "text": "On récupère ce qui vaut le coup et on sort." },
             { "speakerId": "rye", "text": "Compris." },
             { "speakerId": "mike", "text": "Ah… ça promet. J’adore déjà." }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L6_phase0",
-      "type": "phase",
-      "world": 1,
-      "level": 6,
-      "phaseIndex": 0,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "PHASE 1" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L6_phase1",
-      "type": "phase",
-      "world": 1,
-      "level": 6,
-      "phaseIndex": 1,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "leigh", "text": "PHASE 2" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L6_phase2",
-      "type": "phase",
-      "world": 1,
-      "level": 6,
-      "phaseIndex": 2,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "mike", "text": "PHASE 3" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "W1_L6_evac",
-      "type": "evac",
-      "world": 1,
-      "level": 6,
-      "variants": [
-        {
-          "weight": 1,
-          "lines": [
-            { "speakerId": "captain", "text": "Ça suffit. On ramasse ce qui reste et on fout le camp d'ici." }
           ]
         }
       ]

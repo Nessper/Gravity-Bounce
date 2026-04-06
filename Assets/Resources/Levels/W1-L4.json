@@ -2,8 +2,8 @@
   "LevelID": "W1-L4",
 
   "MainObjective": {
-    "Text": "Collect at least 27 nodes.",
-    "ThresholdCount": 27,
+    "Text": "Collect at least 25 nodes.",
+    "ThresholdCount": 25,
     "Bonus": 380
   },
 

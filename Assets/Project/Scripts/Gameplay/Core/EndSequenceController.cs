@@ -74,10 +74,10 @@ public class EndSequenceController : MonoBehaviour
 
     [Tooltip("Multiplicateur de volume musique applique pendant toute la sequence de fin.")]
     [Range(0f, 1f)]
-    [SerializeField] private float evacuationMusicVolumeMult = 0.25f;
+    [SerializeField] private float evacuationMusicVolumeMult = 0.6f;
 
     [Tooltip("Fade du ducking musique au debut de l evacuation.")]
-    [SerializeField] private float evacuationMusicDuckFadeSec = 0.2f;
+    [SerializeField] private float evacuationMusicDuckFadeSec = 1.6f;
 
     private BoardOutroAssembler boardOutro;
     private Coroutine co;

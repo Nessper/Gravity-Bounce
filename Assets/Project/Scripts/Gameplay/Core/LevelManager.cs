@@ -59,6 +59,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private LevelBriefingController briefingController;
     [SerializeField] private PauseController pauseController;
     [SerializeField] private ProgressBarUI progressBarUI;
+    [SerializeField] private ProgressCountUI progressCountUI;
     [Header("UI / End Level")]
     [SerializeField] private EndLevelUI endLevelUI;
 
@@ -413,6 +414,11 @@ public class LevelManager : MonoBehaviour
             progressBarUI.Configure(plannedNonBlack, threshold);
             progressBarUI.Refresh();
         }
+        if (progressCountUI != null)
+        {
+            progressCountUI.Configure(threshold);
+            progressCountUI.Refresh();
+        }
 
         // ScoreManager retient l objectif pour trigger onGoalReached au bon moment
         scoreManager.SetObjectiveThreshold(threshold);
@@ -437,6 +443,7 @@ public class LevelManager : MonoBehaviour
     {
         // La progress bar depend des flush snapshots / pertes, donc refresh
         progressBarUI?.Refresh();
+        progressCountUI?.Refresh();
     }
 
     private void SetupObstacles()

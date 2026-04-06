@@ -5,12 +5,32 @@ using UnityEngine;
 using TMPro;
 
 /// <summary>
-/// Gere la ceremonie de fin de niveau.
-/// Supporte un hold-to-skip qui coupe la mise en scene
-/// et force directement l etat final de la ceremonie.
+/// Gère toute la cérémonie de fin de niveau.
+///
+/// Responsabilités :
+/// - afficher l'overlay de cérémonie,
+/// - révéler progressivement les blocs (raw score, goals, bonus),
+/// - gérer le hold-to-skip,
+/// - forcer un état final cohérent en cas de skip,
+/// - déclencher la musique de cérémonie,
+/// - construire puis émettre le résultat final via OnCeremonyFinished.
+///
+/// Important :
+/// - ce script orchestre la mise en scène,
+/// - il ne calcule pas lui-même les règles métier du score final,
+/// - il s'appuie sur EndLevelOutcomeBuilder, linesBuilder et totalsPresenter.
+///
+/// Règle importante sur l'accordéon :
+/// - état de départ de cérémonie : Goals ouvert, Bonus fermé,
+/// - état final de cérémonie : Goals fermé, Bonus ouvert,
+/// - le chemin normal et le chemin skip doivent aboutir exactement au même état final.
 /// </summary>
 public class EndLevelUI : MonoBehaviour
 {
+    // ---------------------------------------------------------------------
+    // ROOT / HUD
+    // ---------------------------------------------------------------------
+
     [Header("Root")]
     [SerializeField] private GameObject endLevelOverlay;
 
@@ -19,6 +39,10 @@ public class EndLevelUI : MonoBehaviour
 
     [Header("Hold To Skip")]
     [SerializeField] private HoldToSkipOverlayUI holdToSkipOverlay;
+
+    // ---------------------------------------------------------------------
+    // MAIN UI BLOCKS
+    // ---------------------------------------------------------------------
 
     [Header("Modules UI")]
     [SerializeField] private EndLevelAccordionUI accordionUI;
@@ -35,11 +59,19 @@ public class EndLevelUI : MonoBehaviour
     [SerializeField] private Transform goalsContainer;
     [SerializeField] private Transform bonusContainer;
 
+    // ---------------------------------------------------------------------
+    // TIMING
+    // ---------------------------------------------------------------------
+
     [Header("Timing")]
     [SerializeField] private float lineDelay = 0.35f;
     [SerializeField] private float blockIntroDelay = 0.35f;
     [SerializeField] private float blockOutroDelay = 0.55f;
     [SerializeField] private float afterFoldDelay = 0.35f;
+
+    // ---------------------------------------------------------------------
+    // MUSIC
+    // ---------------------------------------------------------------------
 
     [Header("Music")]
     [SerializeField] private bool playCeremonyMusicOnShow = true;
@@ -47,9 +79,21 @@ public class EndLevelUI : MonoBehaviour
     [SerializeField] private float ceremonyFadeOutSec = 2.0f;
     [SerializeField] private float ceremonyFadeInSec = 1.5f;
 
+    // ---------------------------------------------------------------------
+    // OUTPUT
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Émis à la fin de la cérémonie, normale ou skippée.
+    /// Le token est renvoyé si injecté auparavant.
+    /// </summary>
     public Action<EndLevelOutcome, EndLevelToken> OnCeremonyFinished;
 
     public string CurrentLevelId { get; private set; }
+
+    // ---------------------------------------------------------------------
+    // RUNTIME DATA
+    // ---------------------------------------------------------------------
 
     private List<SecondaryObjectiveResult> secondaryResults;
     private LevelCatalogService.LevelCatalogEntry currentLevelMeta;
@@ -67,12 +111,25 @@ public class EndLevelUI : MonoBehaviour
 
     private EndLevelStats currentStats;
 
+    // ---------------------------------------------------------------------
+    // PUBLIC API
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Injecte le token scellé du niveau.
+    /// Il sera renvoyé lors de OnCeremonyFinished.
+    /// </summary>
     public void SetEndLevelToken(EndLevelToken t)
     {
         token = t;
         hasToken = true;
     }
 
+    /// <summary>
+    /// Point d'entrée principal de la cérémonie.
+    /// Initialise l'état runtime, démarre la musique si nécessaire,
+    /// coupe les anciennes coroutines éventuelles, puis lance RevealRoutine.
+    /// </summary>
     public void Show(
         EndLevelStats stats,
         LevelCatalogService.LevelCatalogEntry levelMeta,
@@ -99,6 +156,9 @@ public class EndLevelUI : MonoBehaviour
         StartCoroutine(RevealRoutine(stats, levelData, mainObj));
     }
 
+    /// <summary>
+    /// Masque complètement l'UI de cérémonie et remet l'état runtime à zéro.
+    /// </summary>
     public void Hide()
     {
         StopAllCoroutines();
@@ -120,6 +180,11 @@ public class EndLevelUI : MonoBehaviour
         currentStats = null;
     }
 
+    /// <summary>
+    /// Coupe immédiatement la cérémonie en cours.
+    /// Utilisé lorsqu'un autre flow prioritaire prend la main
+    /// (par exemple un GameOver).
+    /// </summary>
     public void AbortCeremony()
     {
         ceremonyAborted = true;
@@ -134,6 +199,10 @@ public class EndLevelUI : MonoBehaviour
             hudBottom.SetActive(false);
     }
 
+    /// <summary>
+    /// Affiche uniquement le header.
+    /// Utilisé pour certains flows spéciaux comme un GameOver forcé.
+    /// </summary>
     public void ShowHeaderOnly(string levelId, LevelCatalogService.LevelCatalogEntry levelMeta)
     {
         currentLevelMeta = levelMeta;
@@ -144,6 +213,11 @@ public class EndLevelUI : MonoBehaviour
         SetupHeader(fakeLevelData);
     }
 
+    /// <summary>
+    /// Callback du hold-to-skip.
+    /// Ne stoppe pas brutalement la cérémonie ici :
+    /// on pose seulement un flag, puis RevealRoutine bifurque proprement.
+    /// </summary>
     public void OnSkipCeremonyRequested()
     {
         if (ceremonyAborted || skipRequested)
@@ -155,6 +229,10 @@ public class EndLevelUI : MonoBehaviour
             holdToSkipOverlay.Hide(this);
     }
 
+    // ---------------------------------------------------------------------
+    // STATE HELPERS
+    // ---------------------------------------------------------------------
+
     private bool ShouldAbortCeremony()
     {
         return ceremonyAborted;
@@ -165,6 +243,17 @@ public class EndLevelUI : MonoBehaviour
         return skipRequested;
     }
 
+    // ---------------------------------------------------------------------
+    // MUSIC
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Démarre la musique de cérémonie une seule fois.
+    /// Important :
+    /// - on ne remonte plus explicitement le volume ici,
+    /// - on laisse le multiplicateur courant tel quel,
+    /// - seul le morceau change.
+    /// </summary>
     private void StartCeremonyMusicOnce()
     {
         if (ceremonyMusicStarted)
@@ -175,10 +264,19 @@ public class EndLevelUI : MonoBehaviour
         if (!playCeremonyMusicOnShow || AudioManager.Instance == null)
             return;
 
-        AudioManager.Instance.SetMusicVolumeMultiplier(1f, 0.5f);
         AudioManager.Instance.PlayMusic(ceremonyMusicId, ceremonyFadeOutSec, ceremonyFadeInSec);
     }
 
+    // ---------------------------------------------------------------------
+    // HEADER
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Remplit le header de la cérémonie :
+    /// - level id,
+    /// - nom du monde,
+    /// - titre du niveau.
+    /// </summary>
     public void SetupHeader(LevelData levelData)
     {
         if (levelData == null)
@@ -197,6 +295,24 @@ public class EndLevelUI : MonoBehaviour
             titleText.text = string.IsNullOrEmpty(title) ? "" : title;
     }
 
+    // ---------------------------------------------------------------------
+    // MAIN CEREMONY ROUTINE
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Routine principale de révélation.
+    ///
+    /// Déroulé :
+    /// 1. initialisation visuelle,
+    /// 2. raw score,
+    /// 3. bloc Goals,
+    /// 4. fermeture Goals,
+    /// 5. ouverture Bonus,
+    /// 6. total final,
+    /// 7. finalisation normale.
+    ///
+    /// À chaque étape, on vérifie si la cérémonie doit être abort ou skip.
+    /// </summary>
     private IEnumerator RevealRoutine(EndLevelStats stats, LevelData levelData, MainObjectiveResult mainObj)
     {
         if (endLevelOverlay != null)
@@ -242,6 +358,10 @@ public class EndLevelUI : MonoBehaviour
         breakdown.BonusTotal = 0;
         breakdown.FinalScore = breakdown.RawScore;
 
+        // -------------------------------------------------
+        // RAW SCORE
+        // -------------------------------------------------
+
         yield return StartCoroutine(WaitBlockIntroSkippable());
         if (HandleAbortOrSkip(levelData, mainObj))
             yield break;
@@ -271,6 +391,10 @@ public class EndLevelUI : MonoBehaviour
 
         if (HandleAbortOrSkip(levelData, mainObj))
             yield break;
+
+        // -------------------------------------------------
+        // GOALS BLOCK
+        // -------------------------------------------------
 
         yield return StartCoroutine(WaitBlockOutroSkippable());
         if (HandleAbortOrSkip(levelData, mainObj))
@@ -345,6 +469,10 @@ public class EndLevelUI : MonoBehaviour
         if (accordionUI != null)
             accordionUI.RefreshGoalsCachedHeight();
 
+        // -------------------------------------------------
+        // TRANSITION GOALS -> BONUS
+        // -------------------------------------------------
+
         yield return StartCoroutine(WaitBlockOutroSkippable());
         if (HandleAbortOrSkip(levelData, mainObj))
             yield break;
@@ -366,6 +494,10 @@ public class EndLevelUI : MonoBehaviour
 
         if (HandleAbortOrSkip(levelData, mainObj))
             yield break;
+
+        // -------------------------------------------------
+        // BONUS BLOCK
+        // -------------------------------------------------
 
         if (bonusContainer != null)
             bonusContainer.gameObject.SetActive(true);
@@ -433,6 +565,15 @@ public class EndLevelUI : MonoBehaviour
         FinalizeCeremonyNormally(levelData, mainObj, breakdown);
     }
 
+    // ---------------------------------------------------------------------
+    // SKIP / ABORT BRANCHING
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Retourne true si RevealRoutine doit s'arrêter maintenant.
+    /// - abort : on coupe sans rien finaliser,
+    /// - skip : on bifurque vers la routine de fin instantanée.
+    /// </summary>
     private bool HandleAbortOrSkip(LevelData levelData, MainObjectiveResult mainObj)
     {
         if (ShouldAbortCeremony())
@@ -445,13 +586,24 @@ public class EndLevelUI : MonoBehaviour
         return true;
     }
 
+    // ---------------------------------------------------------------------
+    // NORMAL END
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Finalisation normale de la cérémonie.
+    ///
+    /// Important :
+    /// on force explicitement le même état final d'accordéon
+    /// que dans le chemin skip, pour éviter toute divergence visuelle.
+    /// </summary>
     private void FinalizeCeremonyNormally(LevelData levelData, MainObjectiveResult mainObj, EndLevelScoreBreakdown breakdown)
     {
         if (accordionUI != null)
         {
             accordionUI.RefreshGoalsCachedHeight();
             accordionUI.RefreshBonusCachedHeight();
-            accordionUI.SetBonusExpanded(true, instant: true);
+            accordionUI.ForceCeremonyEndStateInstant();
             accordionUI.SetInteractable(true);
         }
 
@@ -473,6 +625,14 @@ public class EndLevelUI : MonoBehaviour
             hudBottom.SetActive(true);
     }
 
+    // ---------------------------------------------------------------------
+    // SKIP END
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Finalisation instantanée en cas de skip.
+    /// Reconstruit l'état final sans rejouer toute la mise en scène.
+    /// </summary>
     private IEnumerator FinishCeremonyFromSkipRoutine(LevelData levelData, MainObjectiveResult mainObj)
     {
         if (holdToSkipOverlay != null)
@@ -541,6 +701,14 @@ public class EndLevelUI : MonoBehaviour
         yield break;
     }
 
+    // ---------------------------------------------------------------------
+    // THRESHOLDS
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Relit les seuils Bronze / Silver / Gold depuis le LevelData.
+    /// Stockés ici pour rester disponibles côté UI si besoin.
+    /// </summary>
     private void ReadThresholdsFromLevelData(LevelData levelData)
     {
         bronzeThreshold = 0;
@@ -576,6 +744,10 @@ public class EndLevelUI : MonoBehaviour
         return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
     }
 
+    // ---------------------------------------------------------------------
+    // SKIPPABLE WAIT HELPERS
+    // ---------------------------------------------------------------------
+
     private IEnumerator WaitBlockIntroSkippable()
     {
         yield return StartCoroutine(WaitRealtimeSkippable(blockIntroDelay));
@@ -586,6 +758,9 @@ public class EndLevelUI : MonoBehaviour
         yield return StartCoroutine(WaitRealtimeSkippable(blockOutroDelay));
     }
 
+    /// <summary>
+    /// Attente temps réel interrompable par abort ou skip.
+    /// </summary>
     private IEnumerator WaitRealtimeSkippable(float duration)
     {
         if (duration <= 0f)
@@ -602,6 +777,10 @@ public class EndLevelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Exécute une coroutine "enfant" mais l'interrompt si la cérémonie
+    /// doit être abort ou skip.
+    /// </summary>
     private IEnumerator RunSkippable(IEnumerator routine)
     {
         if (routine == null)
@@ -629,6 +808,10 @@ public class EndLevelUI : MonoBehaviour
         yield return StartCoroutine(routine);
         onDone?.Invoke();
     }
+
+    // ---------------------------------------------------------------------
+    // UNITY
+    // ---------------------------------------------------------------------
 
     private void OnDisable()
     {

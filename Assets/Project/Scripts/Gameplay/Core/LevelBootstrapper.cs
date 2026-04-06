@@ -8,7 +8,6 @@ public class LevelBootstrapper : MonoBehaviour
     [Header("Optional UI / Controllers")]
     [SerializeField] private LevelIdUI levelIdUI;
     [SerializeField] private LevelIntroSequenceController introSequenceController;
-    [SerializeField] private PhaseDialogController phaseDialogController;
 
     public bool TryBuildContext(out LevelContext context)
     {
@@ -64,9 +63,6 @@ public class LevelBootstrapper : MonoBehaviour
 
         if (introSequenceController != null)
             introSequenceController.ConfigureLevelId(levelId);
-
-        if (phaseDialogController != null)
-            phaseDialogController.SetLevelId(levelId);
 
         LevelCatalogService.LevelCatalogEntry meta;
         if (!LevelCatalogService.TryGet(levelId, out meta))

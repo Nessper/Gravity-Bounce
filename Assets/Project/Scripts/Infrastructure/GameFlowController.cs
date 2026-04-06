@@ -176,10 +176,14 @@ public class GameFlowController : MonoBehaviour
         CurrentPhase = targetPhase;
         isLoadingScene = false;
 
-        // Applique musique macro une fois la scene chargee (sauf Main).
-        // Si prewarmMacroMusicBeforeLoad est ON, ce bloc ne relancera rien car PlayMusic est anti-relance.
+        // --------------------------------------------------------------------
+        // Audio macro (hors Main)
+        // --------------------------------------------------------------------
         if (AudioManager.Instance != null && targetPhase != GameFlowPhase.Level)
         {
+            // Reset du volume musique (on peut venir d'un level ducké)
+            AudioManager.Instance.SetMusicVolumeMultiplier(1f, 1f);
+
             MusicId id = GetMusicForPhase(targetPhase);
 
             if (id != MusicId.None)
