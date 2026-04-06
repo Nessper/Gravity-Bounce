@@ -90,6 +90,8 @@ public class LevelEndFlowController : MonoBehaviour
     // Etat runtime du hold-to-skip pour la reveal finale.
     private bool revealSkipRequested;
 
+    private LocalizationManager Loc => LocalizationManager.Instance;
+
     private enum EndType
     {
         Victory,
@@ -296,7 +298,7 @@ public class LevelEndFlowController : MonoBehaviour
         if (commitPrepared)
             return;
 
-        int remainingContractLives = (runSessionState != null) ? runSessionState.ContractLives : 0;
+        int remainingContractLives = runSessionState != null ? runSessionState.ContractLives : 0;
 
         EndType endType = ResolveAndApplyEndTypeOnce(out remainingContractLives, outcome);
 
@@ -624,8 +626,6 @@ public class LevelEndFlowController : MonoBehaviour
     /// <summary>
     /// Force le panneau final dans son etat final.
     /// Utilise les methodes instantanees disponibles.
-    /// Pour le stamp, faute de methode instantanee, on relance son animation
-    /// sans attendre, afin qu il apparaisse quand meme.
     /// </summary>
     private void ApplyFinalRevealState(EndLevelOutcome outcome, FinalCommitSnapshot snap)
     {
@@ -676,7 +676,6 @@ public class LevelEndFlowController : MonoBehaviour
             yield break;
 
         bool done = false;
-
         Coroutine child = StartCoroutine(WrapRoutine(routine, () => done = true));
 
         while (!done)
@@ -826,7 +825,7 @@ public class LevelEndFlowController : MonoBehaviour
             UpdateContractLivesInSave(remainingContractLives);
         }
 
-        return (remainingContractLives > 0) ? EndType.Defeat : EndType.GameOver;
+        return remainingContractLives > 0 ? EndType.Defeat : EndType.GameOver;
     }
 
     /// <summary>
@@ -838,14 +837,16 @@ public class LevelEndFlowController : MonoBehaviour
         if (dialogSequenceRunner == null)
             yield break;
 
-        if (string.IsNullOrEmpty(sequenceId))
+        if (string.IsNullOrWhiteSpace(sequenceId))
             yield break;
 
-        DialogManager dialogManager = UnityEngine.Object.FindFirstObjectByType<DialogManager>();
-        if (dialogManager == null)
+        if (Loc == null)
+        {
+            Debug.LogError("[LevelEndFlowController] LocalizationManager.Instance est null.");
             yield break;
+        }
 
-        while (!dialogManager.IsReady)
+        while (!Loc.IsReady)
         {
             if (revealSkipRequested)
                 yield break;
@@ -853,11 +854,11 @@ public class LevelEndFlowController : MonoBehaviour
             yield return null;
         }
 
-        DialogSequence seq = dialogManager.GetSequenceById(sequenceId);
-        if (seq == null)
+        DialogSequence sequence = Loc.GetSequenceById(sequenceId);
+        if (sequence == null)
             yield break;
 
-        DialogLine[] lines = dialogManager.GetRandomVariantLines(seq);
+        DialogLine[] lines = Loc.GetRandomVariantLines(sequence);
         if (lines == null || lines.Length == 0)
             yield break;
 
@@ -1022,7 +1023,7 @@ public class LevelEndFlowController : MonoBehaviour
         commitPrepared = false;
         commitSnapshot = default;
 
-        string finalLevelId = "";
+        string finalLevelId = string.Empty;
 
         if (runSessionState != null)
         {

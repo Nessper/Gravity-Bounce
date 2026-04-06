@@ -48,6 +48,8 @@ public class BinTrigger : MonoBehaviour
         return false;
     }
 
+
+
     public List<BallState> TakeSnapshotAndClear()
     {
         var snapshot = new List<BallState>(present.Count);
@@ -71,10 +73,12 @@ public class BinTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!other.CompareTag("Ball")) return;
+        if (!other.CompareTag("Ball"))
+            return;
 
         var state = other.GetComponent<BallState>();
-        if (state == null || state.collected) return;
+        if (state == null || state.collected)
+            return;
 
         if (present.Add(state))
         {
@@ -98,10 +102,12 @@ public class BinTrigger : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (!other.CompareTag("Ball")) return;
+        if (!other.CompareTag("Ball"))
+            return;
 
         var state = other.GetComponent<BallState>();
-        if (state == null) return;
+        if (state == null)
+            return;
 
         if (present.Remove(state))
         {

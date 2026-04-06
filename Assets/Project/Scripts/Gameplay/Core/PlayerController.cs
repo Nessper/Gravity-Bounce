@@ -172,6 +172,16 @@ public class PlayerController : MonoBehaviour
         // de la balle entrante pour un ressenti plus intuitif.
         float naturalX = Mathf.Clamp(incomingDir.x, -0.75f, 0.75f);
 
+        // Au centre, on renforce franchement la composante latérale
+        // pour que le rebond soit plus lisible quand la balle arrive des côtés.
+        float centerBias = 0.35f;
+        float centerInfluence = 1f - absX; // max au centre, 0 au bord
+
+        naturalX += Mathf.Sign(naturalX) * centerBias * centerInfluence;
+
+        // Re-clamp après boost
+        naturalX = Mathf.Clamp(naturalX, -0.95f, 0.95f);
+
         // --------------------------------------------------
         // 4) MÉLANGE NATUREL / CONTRÔLE JOUEUR
         // --------------------------------------------------

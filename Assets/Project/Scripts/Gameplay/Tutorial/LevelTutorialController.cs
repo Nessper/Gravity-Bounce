@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -9,15 +10,27 @@ using UnityEngine;
 /// - Le tuto se joue AVANT le vrai StartLevel.
 /// - Les billes de tuto sont hors gameplay reel.
 /// - Si le joueur rate, on rejoue simplement la meme etape.
-/// - Aucune pollution du score, des objectifs, du hull ou des stats.
+/// - Le score / les combos / le hull peuvent vivre normalement pendant le tuto,
+///   puis tout est reset proprement a la fin.
 /// - Le tuto ne se joue qu une seule fois par sauvegarde.
 ///
 /// Architecture dialogue :
 /// - Le tuto passe par DialogSequenceRunner, comme le reste du jeu.
 /// - Les messages tuto sont joues en mode interactif.
+/// - Les textes et speakers viennent des sequences JSON.
+/// - Au retry, on ne rejoue que des phrases courtes dediees.
 /// </summary>
 public class LevelTutorialController : MonoBehaviour
 {
+    private enum TutorialStepMode
+    {
+        None,
+        White,
+        Black,
+        Flush,
+        BlackHull
+    }
+
     [Header("References gameplay")]
     [SerializeField] private BallSpawner ballSpawner;
     [SerializeField] private PlayerController playerController;
@@ -25,33 +38,56 @@ public class LevelTutorialController : MonoBehaviour
     [SerializeField] private VoidTrigger voidTrigger;
     [SerializeField] private BinTrigger leftBinTrigger;
     [SerializeField] private BinTrigger rightBinTrigger;
+    [SerializeField] private BinCollector binCollector;
+    [SerializeField] private ScoreManager scoreManager;
+    [SerializeField] private HullSystem hullSystem;
+    [SerializeField] private ComboEngine comboEngine;
 
     [Header("References UI")]
     [SerializeField] private DialogSequenceRunner dialogRunner;
     [SerializeField] private CanvasGroup darkOverlay;
+    [SerializeField] private HullUI hullUI;
 
     [Header("Configuration generale")]
     [SerializeField] private string tutorialLevelId = "W1-L1";
     [SerializeField] private float pauseAfterDialogSec = 0.2f;
     [SerializeField] private float successPauseSec = 0.8f;
     [SerializeField] private float pauseBetweenStepsSec = 0.4f;
-    [SerializeField] private float pauseBeforeMissionStartSec = 0.7f;
+    [SerializeField] private float pauseBeforeTutorialOutroSec = 0.35f;
+    [SerializeField] private float pauseAfterTutorialOutroSec = 0.45f;
+    [SerializeField] private float pauseBeforeMissionStartSec = 0.35f;
+    [SerializeField] private float blackHullFeedbackDelaySec = 0.15f;
+    [SerializeField] private float overlayFadeOutDuration = 0.25f;
 
-    [Header("Textes")]
-    [TextArea]
-    [SerializeField] private string tutorialIntroText = "[TUTORIAL]\nLet's review the basics.";
+    [Header("Tutorial Sequences")]
+    [SerializeField] private string tutorialIntroSequenceId = "W1_L1_tutorial_intro";
+    [SerializeField] private string tutorialOutroSequenceId = "W1_L1_tutorial_outro";
 
-    [TextArea]
-    [SerializeField] private string whiteStepText = "Move the paddle to bounce the ball into a bin.";
+    [Header("Etape 1 - White")]
+    [SerializeField] private string whiteStepSequenceId = "W1_L1_tutorial_white";
+    [SerializeField] private string whiteRetrySequenceId = "W1_L1_tutorial_white_retry";
+    [SerializeField] private string whiteSuccessSequenceId = "W1_L1_tutorial_white_success";
 
-    [TextArea]
-    [SerializeField] private string whiteSuccessText = "Well done.";
+    [Header("Etape 2 - Black")]
+    [SerializeField] private string blackStepSequenceId = "W1_L1_tutorial_black";
+    [SerializeField] private string blackRetrySequenceId = "W1_L1_tutorial_black_retry";
+    [SerializeField] private string blackSuccessSequenceId = "W1_L1_tutorial_black_success";
 
-    [TextArea]
-    [SerializeField] private string blackStepText = "Black balls are dangerous.\nPress SHIFT to close the bins and reject them.";
+    [Header("Etape 3 - Flush")]
+    [SerializeField] private string flushStepSequenceId = "W1_L1_tutorial_flush_intro";
+    [SerializeField] private string flushRetrySequenceId = "W1_L1_tutorial_flush_retry";
+    [SerializeField] private string flushSuccessSequenceId = "W1_L1_tutorial_flush_success";
+    [SerializeField] private Side flushTargetSide = Side.Left;
+    [SerializeField] private Transform[] flushPrefillSlots;
+    [SerializeField] private float flushPrefillTimeoutSec = 2f;
 
-    [TextArea]
-    [SerializeField] private string blackSuccessText = "Nice work.\nYou are ready to start the mission.";
+    [Header("Etape 4 - Flush avec bille noire")]
+    [SerializeField] private string blackHullStepSequenceId = "W1_L1_tutorial_black_hull_intro";
+    [SerializeField] private string blackHullRetrySequenceId = "W1_L1_tutorial_black_hull_retry";
+    [SerializeField] private string blackHullSuccessSequenceId = "W1_L1_tutorial_black_hull_success";
+    [SerializeField] private Side blackHullTargetSide = Side.Right;
+    [SerializeField] private Transform[] blackHullPrefillSlots;
+    [SerializeField] private float blackHullPrefillTimeoutSec = 2f;
 
     [Header("Etape 1 - Bille blanche")]
     [SerializeField] private Vector3 whiteSpawnPosition = new Vector3(0f, 5.8f, -0.2f);
@@ -61,24 +97,33 @@ public class LevelTutorialController : MonoBehaviour
     [SerializeField] private Vector3 blackSpawnPosition = new Vector3(-0.8f, 5.8f, -0.2f);
     [SerializeField] private Vector3 blackVelocity = new Vector3(0f, -6f, 0f);
 
+    [Header("Etape 3 - Bille bleue de flush")]
+    [SerializeField] private Vector3 flushSpawnPosition = new Vector3(0f, 5.8f, -0.2f);
+    [SerializeField] private Vector3 flushVelocity = new Vector3(1.2f, -6.2f, 0f);
+
+    [Header("Etape 4 - Bille blanche de demonstration")]
+    [SerializeField] private Vector3 blackHullSpawnPosition = new Vector3(0f, 5.8f, -0.2f);
+    [SerializeField] private Vector3 blackHullVelocity = new Vector3(-1.2f, -6.2f, 0f);
+
     private Action onTutorialComplete;
     private Coroutine currentRoutine;
 
-    // Reference runtime vers la bille de tuto active
     private GameObject activeTutorialBall;
     private BallState activeTutorialBallState;
 
-    // Etat runtime d une etape
+    private readonly HashSet<GameObject> tutorialOwnedBalls = new HashSet<GameObject>();
+
     private bool waitingStepResult;
     private bool stepSucceeded;
     private bool stepFailed;
 
-    /// <summary>
-    /// Retourne true si le tuto doit etre joue pour ce niveau.
-    /// Regles :
-    /// - seulement sur tutorialLevelId
-    /// - seulement si pas encore termine dans la sauvegarde
-    /// </summary>
+    private TutorialStepMode currentStepMode = TutorialStepMode.None;
+
+    private int tutorialStartHull;
+    private int tutorialStartMaxHull;
+
+    private LocalizationManager Loc => LocalizationManager.Instance;
+
     public bool ShouldRunForLevel(string levelId)
     {
         if (!string.Equals(levelId, tutorialLevelId, StringComparison.Ordinal))
@@ -90,9 +135,6 @@ public class LevelTutorialController : MonoBehaviour
         return !SaveManager.Instance.Current.tutorialCompleted;
     }
 
-    /// <summary>
-    /// Lance le tuto puis invoque onComplete a la fin.
-    /// </summary>
     public void PlayTutorial(Action onComplete)
     {
         StopTutorialImmediate();
@@ -101,9 +143,6 @@ public class LevelTutorialController : MonoBehaviour
         currentRoutine = StartCoroutine(TutorialRoutine());
     }
 
-    /// <summary>
-    /// Stoppe tout le tuto immediatement et nettoie l etat runtime.
-    /// </summary>
     public void StopTutorialImmediate()
     {
         if (currentRoutine != null)
@@ -113,49 +152,74 @@ public class LevelTutorialController : MonoBehaviour
         }
 
         UnhookEvents();
-        CleanupActiveTutorialBall();
+
+        CleanupAllTutorialBalls();
+        ClearTutorialBinsState();
 
         waitingStepResult = false;
         stepSucceeded = false;
         stepFailed = false;
+        currentStepMode = TutorialStepMode.None;
 
-        SetOverlayVisible(false);
+        if (darkOverlay != null)
+        {
+            darkOverlay.alpha = 0f;
+            darkOverlay.blocksRaycasts = false;
+            darkOverlay.interactable = false;
+        }
+
+        if (binCollector != null)
+            binCollector.SetAutoFlushEnabled(true);
 
         if (dialogRunner != null)
             dialogRunner.StopAndHide();
+
+        if (hullUI != null)
+            hullUI.StopAttentionFlash();
     }
 
-    /// <summary>
-    /// Sequence complete du tuto.
-    /// </summary>
     private IEnumerator TutorialRoutine()
     {
-        // Securite : au cas ou les controles ne seraient pas deja actifs.
+        CaptureInitialRuntimeState();
+
         playerController?.SetActiveControl(true);
         closeBinController?.SetActiveControl(true);
 
-        // Intro generale du tuto
-        yield return ShowStepMessage(tutorialIntroText);
+        yield return ShowStepSequence(tutorialIntroSequenceId);
 
-        // Etape blanche
         yield return RunWhiteStep();
 
         if (pauseBetweenStepsSec > 0f)
             yield return new WaitForSeconds(pauseBetweenStepsSec);
 
-        // Etape noire
         yield return RunBlackStep();
 
-        // Message final
-        yield return ShowStepMessage(blackSuccessText);
+        if (pauseBetweenStepsSec > 0f)
+            yield return new WaitForSeconds(pauseBetweenStepsSec);
+
+        yield return RunFlushStep();
+
+        if (pauseBetweenStepsSec > 0f)
+            yield return new WaitForSeconds(pauseBetweenStepsSec);
+
+        yield return RunBlackHullStep();
+
+        if (pauseBeforeTutorialOutroSec > 0f)
+            yield return new WaitForSeconds(pauseBeforeTutorialOutroSec);
+
+        // Reset sous overlay noir, pour que la transition soit invisible.
+        ResetGameplayStateAfterTutorial();
+
+        yield return ShowStepSequence(tutorialOutroSequenceId, keepOverlayVisibleAfter: true);
+
+        if (pauseAfterTutorialOutroSec > 0f)
+            yield return new WaitForSeconds(pauseAfterTutorialOutroSec);
+
+        yield return FadeOutOverlay();
 
         if (pauseBeforeMissionStartSec > 0f)
             yield return new WaitForSeconds(pauseBeforeMissionStartSec);
 
-        CleanupActiveTutorialBall();
-        SetOverlayVisible(false);
-
-        // Marque le tuto comme termine dans la sauvegarde
         if (SaveManager.Instance != null && SaveManager.Instance.Current != null)
         {
             SaveManager.Instance.Current.tutorialCompleted = true;
@@ -166,23 +230,55 @@ public class LevelTutorialController : MonoBehaviour
         onTutorialComplete?.Invoke();
     }
 
-    /// <summary>
-    /// Etape 1 :
-    /// - afficher le message
-    /// - spawn la bille blanche
-    /// - succes si la bille entre dans un bin
-    /// - echec si elle tombe dans le void
-    /// - en cas d echec, on rejoue simplement l etape
-    /// </summary>
+    private void CaptureInitialRuntimeState()
+    {
+        tutorialStartHull = 0;
+        tutorialStartMaxHull = 1;
+
+        if (hullSystem != null)
+        {
+            tutorialStartHull = hullSystem.GetCurrentHull();
+            tutorialStartMaxHull = hullSystem.GetMaxHull();
+        }
+    }
+
+    private void ResetGameplayStateAfterTutorial()
+    {
+        UnhookEvents();
+
+        CleanupAllTutorialBalls();
+        ClearTutorialBinsState();
+
+        if (binCollector != null)
+            binCollector.SetAutoFlushEnabled(true);
+
+        if (hullUI != null)
+            hullUI.StopAttentionFlash();
+
+        // On garde l overlay actif ici volontairement.
+        SetOverlayVisible(true);
+
+        scoreManager?.ResetForLevelStart(0);
+        comboEngine?.ResetRuntimeState();
+
+        if (hullSystem != null)
+            hullSystem.RestoreRuntimeState(tutorialStartHull, tutorialStartMaxHull);
+    }
+
     private IEnumerator RunWhiteStep()
     {
         bool completed = false;
+        bool firstAttempt = true;
+        currentStepMode = TutorialStepMode.White;
 
         while (!completed)
         {
-            yield return ShowStepMessage(whiteStepText);
+            CleanupAllTutorialBalls();
+            ClearTutorialBinsState();
 
-            SpawnTutorialBall(whiteSpawnPosition, whiteVelocity, BallType.White);
+            yield return ShowStepSequence(firstAttempt ? whiteStepSequenceId : whiteRetrySequenceId);
+
+            SpawnActiveTutorialBall(whiteSpawnPosition, whiteVelocity, BallType.White);
 
             ResetStepState();
             HookEvents();
@@ -194,33 +290,37 @@ public class LevelTutorialController : MonoBehaviour
                 yield return new WaitForSeconds(successPauseSec);
 
             UnhookEvents();
-            CleanupActiveTutorialBall();
+            CleanupAllTutorialBalls();
+            ClearTutorialBinsState();
 
             if (stepSucceeded)
             {
-                yield return ShowStepMessage(whiteSuccessText);
+                yield return ShowStepSequence(whiteSuccessSequenceId, keepOverlayVisibleAfter: true);
                 completed = true;
             }
+            else
+            {
+                firstAttempt = false;
+            }
         }
+
+        currentStepMode = TutorialStepMode.None;
     }
 
-    /// <summary>
-    /// Etape 2 :
-    /// - afficher le message
-    /// - spawn la bille noire
-    /// - succes si la bille finit dans le void
-    /// - echec si elle entre dans un bin
-    /// - en cas d echec, on rejoue simplement l etape
-    /// </summary>
     private IEnumerator RunBlackStep()
     {
         bool completed = false;
+        bool firstAttempt = true;
+        currentStepMode = TutorialStepMode.Black;
 
         while (!completed)
         {
-            yield return ShowStepMessage(blackStepText);
+            CleanupAllTutorialBalls();
+            ClearTutorialBinsState();
 
-            SpawnTutorialBall(blackSpawnPosition, blackVelocity, BallType.Black);
+            yield return ShowStepSequence(firstAttempt ? blackStepSequenceId : blackRetrySequenceId);
+
+            SpawnActiveTutorialBall(blackSpawnPosition, blackVelocity, BallType.Black);
 
             ResetStepState();
             HookEvents();
@@ -232,34 +332,254 @@ public class LevelTutorialController : MonoBehaviour
                 yield return new WaitForSeconds(successPauseSec);
 
             UnhookEvents();
-            CleanupActiveTutorialBall();
+            CleanupAllTutorialBalls();
+            ClearTutorialBinsState();
 
             if (stepSucceeded)
+            {
+                yield return ShowStepSequence(blackSuccessSequenceId, keepOverlayVisibleAfter: true);
                 completed = true;
+            }
+            else
+            {
+                firstAttempt = false;
+            }
         }
+
+        currentStepMode = TutorialStepMode.None;
     }
 
-    /// <summary>
-    /// Affiche un message de tuto avec overlay sombre.
-    /// Le message passe par DialogSequenceRunner en mode interactif.
-    /// </summary>
-    private IEnumerator ShowStepMessage(string text)
+    private IEnumerator RunFlushStep()
     {
+        bool completed = false;
+        bool firstAttempt = true;
+        currentStepMode = TutorialStepMode.Flush;
+
+        while (!completed)
+        {
+            CleanupAllTutorialBalls();
+            ClearTutorialBinsState();
+
+            if (binCollector != null)
+                binCollector.SetAutoFlushEnabled(false);
+
+            yield return StartCoroutine(PrepareFlushPrefillRoutine(BallType.White, 4));
+
+            yield return ShowStepSequence(firstAttempt ? flushStepSequenceId : flushRetrySequenceId);
+
+            SpawnActiveTutorialBall(flushSpawnPosition, flushVelocity, BallType.Blue);
+
+            ResetStepState();
+            HookEvents();
+
+            while (waitingStepResult)
+                yield return null;
+
+            if (stepSucceeded && successPauseSec > 0f)
+                yield return new WaitForSeconds(successPauseSec);
+
+            UnhookEvents();
+            CleanupAllTutorialBalls();
+            ClearTutorialBinsState();
+
+            if (binCollector != null)
+                binCollector.SetAutoFlushEnabled(true);
+
+            if (stepSucceeded)
+            {
+                yield return ShowStepSequence(flushSuccessSequenceId, keepOverlayVisibleAfter: true);
+                completed = true;
+            }
+            else
+            {
+                firstAttempt = false;
+            }
+        }
+
+        currentStepMode = TutorialStepMode.None;
+    }
+
+    private IEnumerator RunBlackHullStep()
+    {
+        bool completed = false;
+        bool firstAttempt = true;
+        currentStepMode = TutorialStepMode.BlackHull;
+
+        while (!completed)
+        {
+            CleanupAllTutorialBalls();
+            ClearTutorialBinsState();
+
+            if (binCollector != null)
+                binCollector.SetAutoFlushEnabled(false);
+
+            yield return StartCoroutine(PrepareBlackHullPrefillRoutine());
+
+            yield return ShowStepSequence(firstAttempt ? blackHullStepSequenceId : blackHullRetrySequenceId);
+
+            SpawnActiveTutorialBall(blackHullSpawnPosition, blackHullVelocity, BallType.White);
+
+            ResetStepState();
+            HookEvents();
+
+            while (waitingStepResult)
+                yield return null;
+
+            if (stepSucceeded && successPauseSec > 0f)
+                yield return new WaitForSeconds(successPauseSec);
+
+            UnhookEvents();
+            CleanupAllTutorialBalls();
+            ClearTutorialBinsState();
+
+            if (binCollector != null)
+                binCollector.SetAutoFlushEnabled(true);
+
+            if (stepSucceeded)
+            {
+                if (hullUI != null)
+                    hullUI.StartAttentionFlashLoop();
+
+                if (blackHullFeedbackDelaySec > 0f)
+                    yield return new WaitForSeconds(blackHullFeedbackDelaySec);
+
+                yield return ShowStepSequence(blackHullSuccessSequenceId, keepOverlayVisibleAfter: true);
+
+                if (hullUI != null)
+                    hullUI.StopAttentionFlash();
+
+                completed = true;
+            }
+            else
+            {
+                if (hullUI != null)
+                    hullUI.StopAttentionFlash();
+
+                firstAttempt = false;
+            }
+        }
+
+        currentStepMode = TutorialStepMode.None;
+    }
+
+    private IEnumerator PrepareFlushPrefillRoutine(BallType prefillType, int targetCount)
+    {
+        if (flushPrefillSlots == null || flushPrefillSlots.Length < targetCount)
+        {
+            Debug.LogError("[LevelTutorialController] Il faut au moins " + targetCount + " slots de prefill.");
+            yield break;
+        }
+
+        BinTrigger targetTrigger = GetTrigger(flushTargetSide);
+        if (targetTrigger == null)
+        {
+            Debug.LogError("[LevelTutorialController] BinTrigger cible introuvable pour le prefill.");
+            yield break;
+        }
+
+        for (int i = 0; i < targetCount; i++)
+        {
+            Transform slot = flushPrefillSlots[i];
+            SpawnTutorialPrefillBall(slot, prefillType);
+        }
+
+        float elapsed = 0f;
+
+        while (targetTrigger.Count < targetCount && elapsed < flushPrefillTimeoutSec)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        if (targetTrigger.Count < targetCount)
+            Debug.LogWarning("[LevelTutorialController] Prefill incomplet avant timeout. Count=" + targetTrigger.Count);
+    }
+
+    private IEnumerator PrepareBlackHullPrefillRoutine()
+    {
+        const int targetCount = 4;
+
+        if (blackHullPrefillSlots == null || blackHullPrefillSlots.Length < targetCount)
+        {
+            Debug.LogError("[LevelTutorialController] Il faut au moins 4 slots de prefill pour l etape BlackHull.");
+            yield break;
+        }
+
+        BinTrigger targetTrigger = GetTrigger(blackHullTargetSide);
+        if (targetTrigger == null)
+        {
+            Debug.LogError("[LevelTutorialController] BinTrigger cible introuvable pour l etape BlackHull.");
+            yield break;
+        }
+
+        SpawnTutorialPrefillBall(blackHullPrefillSlots[0], BallType.White);
+        SpawnTutorialPrefillBall(blackHullPrefillSlots[1], BallType.White);
+        SpawnTutorialPrefillBall(blackHullPrefillSlots[2], BallType.White);
+        SpawnTutorialPrefillBall(blackHullPrefillSlots[3], BallType.Black);
+
+        float elapsed = 0f;
+
+        while (targetTrigger.Count < targetCount && elapsed < blackHullPrefillTimeoutSec)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        if (targetTrigger.Count < targetCount)
+            Debug.LogWarning("[LevelTutorialController] Prefill BlackHull incomplet avant timeout. Count=" + targetTrigger.Count);
+    }
+
+    private void SpawnTutorialPrefillBall(Transform slot, BallType type)
+    {
+        if (slot == null || ballSpawner == null)
+            return;
+
+        GameObject go = ballSpawner.SpawnTutorialBall(
+            slot.position,
+            Vector3.zero,
+            type,
+            releasePhysics: true,
+            applyInitialVelocity: false
+        );
+
+        if (go != null)
+            RegisterTutorialBall(go);
+    }
+
+    private IEnumerator ShowStepSequence(string sequenceId, bool keepOverlayVisibleAfter = false)
+    {
+        if (string.IsNullOrWhiteSpace(sequenceId))
+            yield break;
+
+        if (Loc == null)
+        {
+            Debug.LogError("[LevelTutorialController] LocalizationManager.Instance est null.");
+            yield break;
+        }
+
+        while (!Loc.IsReady)
+            yield return null;
+
+        DialogSequence sequence = Loc.GetSequenceById(sequenceId);
+        if (sequence == null)
+        {
+            Debug.LogError("[LevelTutorialController] Sequence tuto introuvable : " + sequenceId);
+            yield break;
+        }
+
+        DialogLine[] lines = Loc.GetRandomVariantLines(sequence);
+        if (lines == null || lines.Length == 0)
+        {
+            Debug.LogError("[LevelTutorialController] Sequence tuto vide : " + sequenceId);
+            yield break;
+        }
+
         SetOverlayVisible(true);
 
         bool dialogDone = false;
 
         if (dialogRunner != null)
         {
-            DialogLine[] lines = new DialogLine[]
-            {
-                new DialogLine
-                {
-                    speakerId = string.Empty,
-                    text = text
-                }
-            };
-
             dialogRunner.Play(
                 lines,
                 DialogSequenceRunner.PlaybackMode.Interactive,
@@ -273,15 +593,35 @@ public class LevelTutorialController : MonoBehaviour
         if (pauseAfterDialogSec > 0f)
             yield return new WaitForSeconds(pauseAfterDialogSec);
 
-        SetOverlayVisible(false);
+        if (!keepOverlayVisibleAfter)
+            SetOverlayVisible(false);
     }
 
-    /// <summary>
-    /// Spawn une bille de tuto isolee du pool gameplay.
-    /// </summary>
-    private void SpawnTutorialBall(Vector3 position, Vector3 velocity, BallType type)
+    private IEnumerator FadeOutOverlay()
     {
-        CleanupActiveTutorialBall();
+        if (darkOverlay == null)
+            yield break;
+
+        float duration = Mathf.Max(0.01f, overlayFadeOutDuration);
+        float elapsed = 0f;
+        float startAlpha = darkOverlay.alpha;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            darkOverlay.alpha = Mathf.Lerp(startAlpha, 0f, t);
+            yield return null;
+        }
+
+        darkOverlay.alpha = 0f;
+        darkOverlay.blocksRaycasts = false;
+        darkOverlay.interactable = false;
+    }
+
+    private void SpawnActiveTutorialBall(Vector3 position, Vector3 velocity, BallType type)
+    {
+        CleanupActiveTutorialBallOnly();
 
         if (ballSpawner == null)
         {
@@ -289,17 +629,30 @@ public class LevelTutorialController : MonoBehaviour
             return;
         }
 
-        activeTutorialBall = ballSpawner.SpawnTutorialBall(position, velocity, type);
+        activeTutorialBall = ballSpawner.SpawnTutorialBall(
+            position,
+            velocity,
+            type,
+            releasePhysics: true,
+            applyInitialVelocity: true
+        );
+
         activeTutorialBallState = activeTutorialBall != null
             ? activeTutorialBall.GetComponent<BallState>()
             : null;
+
+        RegisterTutorialBall(activeTutorialBall);
     }
 
-    /// <summary>
-    /// Detruit la bille de tuto active si elle existe encore.
-    /// Cette bille ne retourne jamais dans le pool gameplay.
-    /// </summary>
-    private void CleanupActiveTutorialBall()
+    private void RegisterTutorialBall(GameObject go)
+    {
+        if (go == null)
+            return;
+
+        tutorialOwnedBalls.Add(go);
+    }
+
+    private void CleanupActiveTutorialBallOnly()
     {
         if (activeTutorialBall == null)
             return;
@@ -309,13 +662,43 @@ public class LevelTutorialController : MonoBehaviour
         else
             Destroy(activeTutorialBall);
 
+        tutorialOwnedBalls.Remove(activeTutorialBall);
         activeTutorialBall = null;
         activeTutorialBallState = null;
     }
 
-    /// <summary>
-    /// Reset de l etat logique de l etape courante.
-    /// </summary>
+    private void CleanupAllTutorialBalls()
+    {
+        foreach (GameObject go in tutorialOwnedBalls)
+        {
+            if (go == null)
+                continue;
+
+            if (ballSpawner != null)
+                ballSpawner.DestroyTutorialBall(go);
+            else
+                Destroy(go);
+        }
+
+        tutorialOwnedBalls.Clear();
+        activeTutorialBall = null;
+        activeTutorialBallState = null;
+    }
+
+    private void ClearTutorialBinsState()
+    {
+        ClearTrigger(leftBinTrigger);
+        ClearTrigger(rightBinTrigger);
+    }
+
+    private void ClearTrigger(BinTrigger trigger)
+    {
+        if (trigger == null)
+            return;
+
+        trigger.TakeSnapshotAndClear();
+    }
+
     private void ResetStepState()
     {
         waitingStepResult = true;
@@ -323,9 +706,6 @@ public class LevelTutorialController : MonoBehaviour
         stepFailed = false;
     }
 
-    /// <summary>
-    /// Attache les events utilises pendant l etape courante.
-    /// </summary>
     private void HookEvents()
     {
         if (playerController != null)
@@ -339,11 +719,11 @@ public class LevelTutorialController : MonoBehaviour
 
         if (rightBinTrigger != null)
             rightBinTrigger.OnBallEnteredBin += HandleBallEnteredBin;
+
+        if (binCollector != null)
+            binCollector.OnBinFlushed += HandleBinFlushed;
     }
 
-    /// <summary>
-    /// Detache les events utilises pendant l etape courante.
-    /// </summary>
     private void UnhookEvents()
     {
         if (playerController != null)
@@ -357,13 +737,11 @@ public class LevelTutorialController : MonoBehaviour
 
         if (rightBinTrigger != null)
             rightBinTrigger.OnBallEnteredBin -= HandleBallEnteredBin;
+
+        if (binCollector != null)
+            binCollector.OnBinFlushed -= HandleBinFlushed;
     }
 
-    /// <summary>
-    /// Collision paddle / balle.
-    /// Ici, on ne valide rien directement.
-    /// Pour la blanche, la validation se fait a l entree dans un bin.
-    /// </summary>
     private void HandlePlayerBallCollision(Collision collision)
     {
         if (!waitingStepResult || activeTutorialBallState == null)
@@ -372,20 +750,8 @@ public class LevelTutorialController : MonoBehaviour
         BallState otherBall = collision.collider.GetComponent<BallState>();
         if (otherBall == null || otherBall != activeTutorialBallState)
             return;
-
-        // Pas de validation directe ici.
     }
 
-    /// <summary>
-    /// Recoit la notification de perte d une bille de tuto via le VoidTrigger.
-    /// Regles :
-    /// - blanche -> echec
-    /// - noire -> succes
-    ///
-    /// Important :
-    /// la bille a deja ete detruite par le VoidTrigger, on neutralise donc
-    /// nos references locales pour eviter tout double destroy.
-    /// </summary>
     private void HandleTutorialBallLost(BallState lostBall)
     {
         if (!waitingStepResult || activeTutorialBallState == null)
@@ -397,26 +763,34 @@ public class LevelTutorialController : MonoBehaviour
         activeTutorialBall = null;
         activeTutorialBallState = null;
 
-        if (lostBall.type == BallType.White)
+        if (currentStepMode == TutorialStepMode.White && lostBall.type == BallType.White)
         {
             stepFailed = true;
             waitingStepResult = false;
             return;
         }
 
-        if (lostBall.type == BallType.Black)
+        if (currentStepMode == TutorialStepMode.Black && lostBall.type == BallType.Black)
         {
             stepSucceeded = true;
+            waitingStepResult = false;
+            return;
+        }
+
+        if (currentStepMode == TutorialStepMode.Flush && lostBall.type == BallType.Blue)
+        {
+            stepFailed = true;
+            waitingStepResult = false;
+            return;
+        }
+
+        if (currentStepMode == TutorialStepMode.BlackHull && lostBall.type == BallType.White)
+        {
+            stepFailed = true;
             waitingStepResult = false;
         }
     }
 
-    /// <summary>
-    /// Recoit la notification d entree d une bille dans un bin.
-    /// Regles :
-    /// - blanche dans un bin -> succes
-    /// - noire dans un bin -> echec
-    /// </summary>
     private void HandleBallEnteredBin(BallState enteredBall, Side side)
     {
         if (!waitingStepResult || activeTutorialBallState == null)
@@ -425,24 +799,121 @@ public class LevelTutorialController : MonoBehaviour
         if (enteredBall != activeTutorialBallState)
             return;
 
-        if (enteredBall.type == BallType.White)
+        if (currentStepMode == TutorialStepMode.White)
         {
+            if (enteredBall.type == BallType.White)
+            {
+                stepSucceeded = true;
+                waitingStepResult = false;
+            }
+
+            return;
+        }
+
+        if (currentStepMode == TutorialStepMode.Black)
+        {
+            if (enteredBall.type == BallType.Black)
+            {
+                stepFailed = true;
+                waitingStepResult = false;
+            }
+
+            return;
+        }
+
+        if (currentStepMode == TutorialStepMode.Flush)
+        {
+            if (side != flushTargetSide)
+            {
+                stepFailed = true;
+                waitingStepResult = false;
+                return;
+            }
+
+            if (binCollector != null)
+            {
+                binCollector.CollectFromBin(
+                    side,
+                    force: false,
+                    skipDelay: true,
+                    isFinalFlush: false,
+                    isTutorialFlush: true
+                );
+            }
+
+            return;
+        }
+
+        if (currentStepMode == TutorialStepMode.BlackHull)
+        {
+            if (side != blackHullTargetSide)
+            {
+                stepFailed = true;
+                waitingStepResult = false;
+                return;
+            }
+
+            if (binCollector != null)
+            {
+                binCollector.CollectFromBin(
+                    side,
+                    force: false,
+                    skipDelay: true,
+                    isFinalFlush: false,
+                    isTutorialFlush: true
+                );
+            }
+        }
+    }
+
+    private void HandleBinFlushed(Side side, BinSnapshot snapshot, int blackCount)
+    {
+        if (!waitingStepResult)
+            return;
+
+        if (currentStepMode == TutorialStepMode.Flush)
+        {
+            if (side != flushTargetSide)
+                return;
+
+            if (blackCount > 0)
+                return;
+
+            activeTutorialBall = null;
+            activeTutorialBallState = null;
+
             stepSucceeded = true;
             waitingStepResult = false;
             return;
         }
 
-        if (enteredBall.type == BallType.Black)
+        if (currentStepMode == TutorialStepMode.BlackHull)
         {
-            stepFailed = true;
+            if (side != blackHullTargetSide)
+                return;
+
+            if (blackCount <= 0)
+                return;
+
+            activeTutorialBall = null;
+            activeTutorialBallState = null;
+
+            stepSucceeded = true;
             waitingStepResult = false;
         }
     }
 
-    /// <summary>
-    /// Active ou desactive l overlay sombre.
-    /// La couleur / opacite visuelle doivent etre reglees dans l Image du panel.
-    /// </summary>
+    private BinTrigger GetTrigger(Side side)
+    {
+        if (side == Side.Left)
+            return leftBinTrigger;
+
+        if (side == Side.Right)
+            return rightBinTrigger;
+
+        return null;
+    }
+
     private void SetOverlayVisible(bool visible)
     {
         if (darkOverlay == null)

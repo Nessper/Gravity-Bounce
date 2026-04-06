@@ -2,50 +2,34 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Gère le dialogue d'entrée dans le shop.
+/// Gere le dialogue d entree dans le shop.
 ///
-/// Responsabilités :
-/// - Joue un dialogue d'accueil (une seule fois).
-/// - Cache l'UI du shop pendant le dialogue.
-/// - Affiche l'UI du shop une fois le dialogue terminé.
-/// - Notifie un éventuel callback à la fin.
+/// Responsabilites :
+/// - jouer le dialogue d accueil une seule fois
+/// - cacher l UI du shop pendant le dialogue
+/// - afficher l UI du shop une fois le dialogue termine
+/// - notifier un callback optionnel a la fin
 ///
 /// Comportement :
-/// Le dialogue est en mode INTERACTIF (clic pour avancer).
-/// - Si déjà joué une fois, on affiche directement le shop sans rejouer le dialogue.
+/// - le dialogue est joue en mode interactif
+/// - si deja joue, le shop s ouvre directement
 /// </summary>
 public class ShopDialogController : MonoBehaviour
 {
-    // ============================
-    // REFS
-    // ============================
     [Header("References")]
-
-    [Tooltip("Runner centralisé des dialogues.")]
+    [Tooltip("Runner centralise des dialogues.")]
     [SerializeField] private DialogSequenceRunner dialogSequenceRunner;
 
-    [Tooltip("Root qui contient toute l'UI du shop (tabs, panels...).")]
+    [Tooltip("Root qui contient toute l UI du shop.")]
     [SerializeField] private GameObject shopUiPackageRoot;
 
-
-    // ============================
-    // CONFIG
-    // ============================
     [Header("Dialog")]
-
-    [Tooltip("ID de la séquence de dialogue d'accueil (ex: 'shop_welcome').")]
+    [Tooltip("ID de la sequence de dialogue d accueil (ex: 'shop_welcome').")]
     [SerializeField] private string welcomeSequenceId = "shop_welcome";
 
-
-    // ============================
-    // STATE
-    // ============================
     private bool hasPlayedWelcome;
 
-
-    // ============================
-    // PUBLIC API
-    // ============================
+    private LocalizationManager Loc => LocalizationManager.Instance;
 
     /// <summary>
     /// Version simple sans callback.
@@ -56,79 +40,91 @@ public class ShopDialogController : MonoBehaviour
     }
 
     /// <summary>
-    /// Lance le dialogue d'accueil puis affiche l'UI du shop.
+    /// Lance le dialogue d accueil puis affiche l UI du shop.
     /// </summary>
     public void PlayWelcomeThenShowUI(Action onComplete)
     {
-        // Si déjà joué une fois -> on ne rejoue pas le dialogue
         if (hasPlayedWelcome)
         {
-            ShowShopUI();
-            onComplete?.Invoke();
+            CompleteWelcomeFlow(onComplete);
             return;
         }
 
         hasPlayedWelcome = true;
-
-        // On cache le shop pendant le dialogue
         HideShopUI();
 
-        // Sécurité : si pas de runner -> fallback direct
-        if (dialogSequenceRunner == null)
+        DialogLine[] lines = TryResolveWelcomeLines();
+        if (lines == null)
         {
-            ShowShopUI();
-            onComplete?.Invoke();
+            CompleteWelcomeFlow(onComplete);
             return;
         }
 
-        // Récupération du DialogManager
-        DialogManager dialogManager = UnityEngine.Object.FindFirstObjectByType<DialogManager>();
-        if (dialogManager == null || !dialogManager.IsReady || string.IsNullOrEmpty(welcomeSequenceId))
-        {
-            ShowShopUI();
-            onComplete?.Invoke();
-            return;
-        }
-
-        // Récupération de la séquence
-        DialogSequence seq = dialogManager.GetSequenceById(welcomeSequenceId);
-        if (seq == null)
-        {
-            ShowShopUI();
-            onComplete?.Invoke();
-            return;
-        }
-
-        // Récupération des lignes (variant aléatoire si applicable)
-        DialogLine[] lines = dialogManager.GetRandomVariantLines(seq);
-        if (lines == null || lines.Length == 0)
-        {
-            ShowShopUI();
-            onComplete?.Invoke();
-            return;
-        }
-
-        // ============================
-        // IMPORTANT : MODE INTERACTIF
-        // ============================
         dialogSequenceRunner.Play(
             lines,
             DialogSequenceRunner.PlaybackMode.Interactive,
-            () =>
-            {
-                ShowShopUI();
-                onComplete?.Invoke();
-            }
+            () => CompleteWelcomeFlow(onComplete)
         );
     }
 
+    /// <summary>
+    /// Resout les lignes du dialogue d accueil.
+    /// Retourne null si la sequence ne peut pas etre jouee.
+    /// </summary>
+    private DialogLine[] TryResolveWelcomeLines()
+    {
+        if (dialogSequenceRunner == null)
+        {
+            Debug.LogError("[ShopDialogController] DialogSequenceRunner manquant.");
+            return null;
+        }
 
-    // ============================
-    // UI HELPERS
-    // ============================
+        if (Loc == null)
+        {
+            Debug.LogError("[ShopDialogController] LocalizationManager.Instance est null.");
+            return null;
+        }
+
+        if (!Loc.IsReady)
+        {
+            Debug.LogError("[ShopDialogController] LocalizationManager non pret.");
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(welcomeSequenceId))
+        {
+            Debug.LogError("[ShopDialogController] welcomeSequenceId vide.");
+            return null;
+        }
+
+        DialogSequence sequence = Loc.GetSequenceById(welcomeSequenceId);
+        if (sequence == null)
+        {
+            Debug.LogError("[ShopDialogController] Sequence introuvable : " + welcomeSequenceId);
+            return null;
+        }
+
+        DialogLine[] lines = Loc.GetRandomVariantLines(sequence);
+        if (lines == null || lines.Length == 0)
+        {
+            Debug.LogError("[ShopDialogController] Sequence vide : " + welcomeSequenceId);
+            return null;
+        }
+
+        return lines;
+    }
 
     /// <summary>
-    /// Cache complètement l'UI du shop.
+    /// Termine le flow d accueil du shop.
+    /// </summary>
+    private void CompleteWelcomeFlow(Action onComplete)
+    {
+        ShowShopUI();
+        onComplete?.Invoke();
+    }
+
+    /// <summary>
+    /// Cache completement l UI du shop.
     /// </summary>
     private void HideShopUI()
     {
@@ -137,7 +133,7 @@ public class ShopDialogController : MonoBehaviour
     }
 
     /// <summary>
-    /// Affiche l'UI du shop.
+    /// Affiche l UI du shop.
     /// </summary>
     private void ShowShopUI()
     {

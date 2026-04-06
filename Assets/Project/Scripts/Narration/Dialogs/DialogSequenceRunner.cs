@@ -91,7 +91,7 @@ public class DialogSequenceRunner : MonoBehaviour
     private IEnumerator PlayRoutine(DialogLine[] lines, PlaybackMode mode, Action onComplete)
     {
         if (initialDelay > 0f)
-            yield return new WaitForSeconds(initialDelay);
+            yield return new WaitForSecondsRealtime(initialDelay);
 
         for (int i = 0; i < lines.Length; i++)
         {

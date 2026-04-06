@@ -85,12 +85,14 @@ public class LevelIntroSequenceController : MonoBehaviour
     private Coroutine playRoutine;
     private bool debugSkip;
 
+    private LocalizationManager Loc => LocalizationManager.Instance;
+
     /// <summary>
     /// Permet au LevelManager d injecter le levelId courant.
     /// </summary>
     public void ConfigureLevelId(string id)
     {
-        if (string.IsNullOrEmpty(id))
+        if (string.IsNullOrWhiteSpace(id))
             return;
 
         levelId = id;
@@ -107,10 +109,11 @@ public class LevelIntroSequenceController : MonoBehaviour
             return;
         }
 
+        StopIntro();
+
         onCompleteCallback = onComplete;
         skipRequested = false;
 
-        StopIntro();
         SetupInitialVisualState();
 
         if (playGameplayMusicDuringIntro)
@@ -245,26 +248,16 @@ public class LevelIntroSequenceController : MonoBehaviour
 
         bool shipDone = !shipIntroEnabled;
         bool dialogsDone = false;
-        bool boardDone = (boardIntroAssembler == null);
+        bool boardDone = boardIntroAssembler == null;
 
         if (shipIntroEnabled)
             StartCoroutine(PlayShipEntranceSequence(() => shipDone = true));
 
         DialogLine[] introLines = null;
-        DialogManager dialogManager = UnityEngine.Object.FindFirstObjectByType<DialogManager>();
-        if (dialogManager != null)
-        {
-            while (!dialogManager.IsReady)
-                yield return null;
+        yield return StartCoroutine(WaitForLocalizationReady());
 
-            string seqId = BuildIntroSequenceId();
-            if (!string.IsNullOrEmpty(seqId))
-            {
-                DialogSequence sequence = dialogManager.GetSequenceById(seqId);
-                if (sequence != null)
-                    introLines = dialogManager.GetRandomVariantLines(sequence);
-            }
-        }
+        if (!skipRequested)
+            introLines = TryResolveIntroLines();
 
         if (dialogSequenceRunner != null && introLines != null && introLines.Length > 0)
         {
@@ -323,7 +316,6 @@ public class LevelIntroSequenceController : MonoBehaviour
         if (delayBeforeCountdown > 0f)
             yield return new WaitForSeconds(delayBeforeCountdown);
 
-        // Le gameplay va commencer : on lock le curseur pendant le countdown.
         CursorController.Lock();
 
         if (countdownUI != null)
@@ -338,25 +330,56 @@ public class LevelIntroSequenceController : MonoBehaviour
     }
 
     /// <summary>
+    /// Attend que le LocalizationManager soit pret.
+    /// </summary>
+    private IEnumerator WaitForLocalizationReady()
+    {
+        if (Loc == null)
+        {
+            Debug.LogError("[LevelIntroSequenceController] LocalizationManager.Instance est null.");
+            yield break;
+        }
+
+        while (!Loc.IsReady && !skipRequested)
+            yield return null;
+    }
+
+    /// <summary>
+    /// Resout les lignes d intro pour le level courant.
+    /// Retourne null si aucune sequence valable n est disponible.
+    /// </summary>
+    private DialogLine[] TryResolveIntroLines()
+    {
+        if (Loc == null)
+        {
+            Debug.LogError("[LevelIntroSequenceController] LocalizationManager.Instance est null.");
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(levelId))
+        {
+            Debug.LogError("[LevelIntroSequenceController] levelId vide.");
+            return null;
+        }
+
+        DialogSequence sequence = Loc.GetIntroSequence(levelId);
+        if (sequence == null)
+            return null;
+
+        DialogLine[] lines = Loc.GetRandomVariantLines(sequence);
+        if (lines == null || lines.Length == 0)
+            return null;
+
+        return lines;
+    }
+
+    /// <summary>
     /// Lance l assemblage du plateau.
     /// </summary>
     private IEnumerator BoardAssemblyRoutine(Action onComplete)
     {
         yield return boardIntroAssembler.PlayAssembly();
         onComplete?.Invoke();
-    }
-
-    /// <summary>
-    /// Construit l identifiant de sequence d intro.
-    /// Exemple : W1-L2 -> W1_L2_intro
-    /// </summary>
-    private string BuildIntroSequenceId()
-    {
-        if (string.IsNullOrEmpty(levelId))
-            return null;
-
-        string normalized = levelId.Replace("-", "_");
-        return normalized + "_intro";
     }
 
     /// <summary>
@@ -423,7 +446,6 @@ public class LevelIntroSequenceController : MonoBehaviour
         if (delayBeforeCountdown > 0f)
             yield return new WaitForSeconds(delayBeforeCountdown);
 
-        // Le gameplay va commencer : on lock le curseur pendant le countdown.
         CursorController.Lock();
 
         if (countdownUI != null)
@@ -460,7 +482,6 @@ public class LevelIntroSequenceController : MonoBehaviour
 
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
-
             float easedT = 1f - Mathf.Pow(1f - t, 3f);
 
             shipRoot.position = Vector3.Lerp(shipStartWorldPosition, shipEndWorldPosition, easedT);
@@ -481,7 +502,6 @@ public class LevelIntroSequenceController : MonoBehaviour
 
         float duration = Mathf.Max(0.01f, overlayFadeDuration);
         float elapsed = 0f;
-
         float startAlpha = introOverlayCanvasGroup.alpha;
 
         while (elapsed < duration)
@@ -492,9 +512,7 @@ public class LevelIntroSequenceController : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
 
-            float a = Mathf.Lerp(startAlpha, 0f, t);
-            introOverlayCanvasGroup.alpha = a;
-
+            introOverlayCanvasGroup.alpha = Mathf.Lerp(startAlpha, 0f, t);
             yield return null;
         }
 

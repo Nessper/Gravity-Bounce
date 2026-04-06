@@ -2,6 +2,222 @@
   "language": "fr",
   "sequences": [
     {
+      "id": "W1_L1_tutorial_intro",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Avant de commencer, on va revoir les bases." },
+            { "speakerId": "leigh", "text": "On traverse une zone remplie de billes. Notre mission, c’est de les récupérer." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_white",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Attrape la bille blanche et envoie-la dans un bac." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_white_retry",
+      "type": "tutorial_retry",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Attrape la bille blanche et envoie-la dans un bac." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_white_success",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Bien joué." },
+            { "speakerId": "leigh", "text": "Passons à l'étape suivante." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Il y a plusieurs types de billes. Toutes doivent être collectées, sauf les noires." },
+            { "speakerId": "leigh", "text": "Les billes noires sont dangereuses." },
+            { "speakerId": "leigh", "text": "Ferme les bacs avec ESPACE pour bloquer la bille noire." },
+            { "speakerId": "leigh", "text": "Ensuite, esquive-la. Ne l'attrape pas." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black_retry",
+      "type": "tutorial_retry",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Ferme les bacs avec ESPACE pour bloquer la bille noire." },
+            { "speakerId": "leigh", "text": "Ensuite, esquive-la. Ne l'attrape pas." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black_success",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Nickel." },
+            { "speakerId": "leigh", "text": "Les billes noires endommagent le vaisseau." },
+            { "speakerId": "leigh", "text": "Évite de les collecter à tout prix." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_flush_intro",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Allez, on continue." },
+            { "speakerId": "leigh", "text": "Un bac se vide quand il contient cinq billes." },
+            { "speakerId": "leigh", "text": "C'est seulement à ce moment-là que tu marques des points." },
+            { "speakerId": "leigh", "text": "Dirige la bille bleue qui arrive vers le bac de gauche et observe le résultat." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_flush_retry",
+      "type": "tutorial_retry",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Dirige la bille bleue qui arrive vers le bac de gauche et observe le résultat." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_flush_success",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Impeccable !" },
+            { "speakerId": "leigh", "text": "Regarde en haut. Ton score a augmenté et ta barre de remplissage s'est mise à jour." },
+            { "speakerId": "leigh", "text": "Certaines combinaisons de billes déclenchent des combos. À toi de les découvrir." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black_hull_intro",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Dernière étape, la plus importante." },
+            { "speakerId": "leigh", "text": "Le bac de droite est contaminé par une bille noire." },
+            { "speakerId": "leigh", "text": "Lorsque tu vas vider le bac, elle va endommager le vaisseau." },
+            { "speakerId": "leigh", "text": "Déclenche le flush pour voir les conséquences." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black_hull_retry",
+      "type": "tutorial_retry",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Déclenche le flush pour voir les conséquences." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black_hull_success",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Regarde en haut à gauche." },
+            { "speakerId": "leigh", "text": "Tu as perdu 1 point de vie." },
+            { "speakerId": "leigh", "text": "Attention aux billes noires. Si ta vie tombe à zéro, c’est game over." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_outro",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Parfait. Tu es prêt." },
+            { "speakerId": "leigh", "text": "On peut lancer la mission." }
+          ]
+        }
+      ]
+    },
+
+    {
       "id": "shop_welcome",
       "type": "shop",
       "world": 0,

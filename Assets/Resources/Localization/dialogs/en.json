@@ -1,0 +1,1053 @@
+{
+  "language": "en",
+  "sequences": [
+    {
+      "id": "W1_L1_tutorial_intro",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Before we begin, let’s go over the basics." },
+            { "speakerId": "leigh", "text": "We’re moving through an area full of spheres. Our job is to recover them." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_white",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Catch the white sphere and send it into a bin." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_white_retry",
+      "type": "tutorial_retry",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Catch the white sphere and send it into a bin." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_white_success",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Nice work." },
+            { "speakerId": "leigh", "text": "Let’s move on to the next step." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "There are different kinds of spheres. All of them must be collected, except the black ones." },
+            { "speakerId": "leigh", "text": "Black spheres are dangerous." },
+            { "speakerId": "leigh", "text": "Close the bins with SPACE to block the black sphere." },
+            { "speakerId": "leigh", "text": "Then dodge it. Don’t catch it." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black_retry",
+      "type": "tutorial_retry",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Close the bins with SPACE to block the black sphere." },
+            { "speakerId": "leigh", "text": "Then dodge it. Don’t catch it." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black_success",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Perfect." },
+            { "speakerId": "leigh", "text": "Black spheres damage the ship." },
+            { "speakerId": "leigh", "text": "Avoid collecting them at all costs." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_flush_intro",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Alright, let’s keep going." },
+            { "speakerId": "leigh", "text": "A bin empties when it holds five spheres." },
+            { "speakerId": "leigh", "text": "That’s the only moment when you score points." },
+            { "speakerId": "leigh", "text": "Send the incoming blue sphere into the left bin and watch what happens." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_flush_retry",
+      "type": "tutorial_retry",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Send the incoming blue sphere into the left bin and watch what happens." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_flush_success",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Excellent!" },
+            { "speakerId": "leigh", "text": "Look at the top of the screen. Your score went up, and your progress bar updated." },
+            { "speakerId": "leigh", "text": "Some sphere combinations trigger combos. It’s up to you to discover them." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black_hull_intro",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Last step. The important one." },
+            { "speakerId": "leigh", "text": "The right bin is contaminated by a black sphere." },
+            { "speakerId": "leigh", "text": "When you flush the bin, it will damage the ship." },
+            { "speakerId": "leigh", "text": "Trigger the flush and see what happens." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black_hull_retry",
+      "type": "tutorial_retry",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Trigger the flush and see what happens." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_black_hull_success",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Look at the top left." },
+            { "speakerId": "leigh", "text": "You lost 1 hull point." },
+            { "speakerId": "leigh", "text": "Watch out for black spheres. If your hull drops to zero, it’s game over." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_tutorial_outro",
+      "type": "tutorial",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Perfect. You’re ready." },
+            { "speakerId": "leigh", "text": "We can start the mission." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "shop_welcome",
+      "type": "shop",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "seller", "text": "Welcome to the shop. If you’ve got cash, I’ve got gear." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "seller", "text": "Shop’s open. If you want to survive, I’d suggest upgrading your ship." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "seller", "text": "Park your ship, grab a coffee, and leave the rest to us." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "seller", "text": "Repairs, module installs, all kinds of upgrades. Take your time and gear up properly." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L1_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Mike. Nice and easy for the first pass. Send everything into the collectors. Let the black ones go." },
+            { "speakerId": "mike", "text": "Got it. I won’t break anything." },
+            { "speakerId": "leigh", "text": "That would be a first." },
+            { "speakerId": "rye", "text": "Mike, do your job right. I’ve got a sudoku to finish." },
+            { "speakerId": "captain", "text": "Glad to see everyone’s relaxed. Alright, focus. I want a clean run." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 1,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 1,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 1,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "That’s enough for today. We’re heading back." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L1_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Alright… not bad. I’ve had worse first missions." },
+            { "speakerId": "rye", "text": "Of course not. That was the warm-up." },
+            { "speakerId": "leigh", "text": "Stable flow. No surprises." },
+            { "speakerId": "mike", "text": "Works for me. If every mission is like this, I’m in." },
+            { "speakerId": "rye", "text": "Wait until you see the rest before you get cocky." },
+            { "speakerId": "captain", "text": "Stay focused. We’re still a long way from the end of this contract." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L2_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Flow is a little faster than the last one." },
+            { "speakerId": "mike", "text": "Perfect. I was starting to get bored." },
+            { "speakerId": "rye", "text": "You get bored for two minutes and start doing dumb shit." },
+            { "speakerId": "mike", "text": "That’s not true. I start doing dumb shit way faster than that." },
+            { "speakerId": "leigh", "text": "The angles are less stable. Watch your rebounds." },
+            { "speakerId": "mike", "text": "Copy that." },
+            { "speakerId": "rye", "text": "Mike… I’m on puzzle 47 now." },
+            { "speakerId": "mike", "text": "I can feel the weight of that responsibility." },
+            { "speakerId": "captain", "text": "Alright, enough. You can mess around later. Right now, we’ve got bins to fill." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L2_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 2,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L2_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 2,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L2_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 2,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L2_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Grab the last few and let’s move out." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L2_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Alright… now it’s getting interesting." },
+            { "speakerId": "leigh", "text": "Denser flow, but still stable." },
+            { "speakerId": "rye", "text": "And my sudoku’s going great." },
+            { "speakerId": "mike", "text": "You really do that while we’re working?" },
+            { "speakerId": "rye", "text": "I do it because you’re working." },
+            { "speakerId": "captain", "text": "Keep it up." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L3_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 3,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Heavier flow in this sector." },
+            { "speakerId": "mike", "text": "Ah. So now we’re actually working." },
+            { "speakerId": "rye", "text": "I’m seeing more black ones too." },
+            { "speakerId": "leigh", "text": "Confirmed. Ratio is up." },
+            { "speakerId": "mike", "text": "Nothing to worry about." },
+            { "speakerId": "captain", "text": "Maybe. But we keep it clean." },
+            { "speakerId": "rye", "text": "And after this… I hope the shop is worth the stop." },
+            { "speakerId": "mike", "text": "Oh, absolutely. My cockpit could use a few upgrades." },
+            { "speakerId": "captain", "text": "Finish this mission first." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L3_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 3,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L3_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 3,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L3_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 3,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L3_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 3,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Grab the last few and let’s move out." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L3_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 3,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Alright… that one was a little more lively." },
+            { "speakerId": "leigh", "text": "More unstable flow." },
+            { "speakerId": "rye", "text": "Still manageable." },
+            { "speakerId": "mike", "text": "And your sudoku?" },
+            { "speakerId": "rye", "text": "Finished." },
+            { "speakerId": "mike", "text": "I’m impressed." },
+            { "speakerId": "rye", "text": "I knew you’d do one thing right eventually." },
+            { "speakerId": "captain", "text": "Alright. Next stop: the shop. I’m taking the chance to get a decent coffee." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L4_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 4,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Heh… I walked out with the shop girl’s number." },
+            { "speakerId": "rye", "text": "And I walked out with eight hours of sleep." },
+            { "speakerId": "leigh", "text": "Next sector: Rockfall Corridor." },
+            { "speakerId": "mike", "text": "Yeah, that name really inspires confidence…" },
+            { "speakerId": "leigh", "text": "There’s something strange in the scans." },
+            { "speakerId": "mike", "text": "Strange how?" },
+            { "speakerId": "leigh", "text": "Hard to say." },
+            { "speakerId": "captain", "text": "Fine. Then we stay sharp." },
+            { "speakerId": "mike", "text": "Copy that, Cap." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L4_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 4,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L4_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 4,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L4_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 4,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L4_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 4,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Come on, no wasting time. Grab what’s left and let’s go." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L4_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 4,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Okay… can somebody explain what the hell just happened?" },
+            { "speakerId": "rye", "text": "I thought we were dead." },
+            { "speakerId": "leigh", "text": "That last wave… the black sphere ratio was way too high." },
+            { "speakerId": "mike", "text": "Yeah, I noticed that much." },
+            { "speakerId": "mike", "text": "Mistake in the report?" },
+            { "speakerId": "leigh", "text": "Possible." },
+            { "speakerId": "captain", "text": "It happens." },
+            { "speakerId": "rye", "text": "I don’t like that kind of mistake." },
+            { "speakerId": "captain", "text": "Stay focused. We keep moving." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L5_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 5,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "Very heavy flow in this sector." },
+            { "speakerId": "mike", "text": "Yeah… I can see that. And honestly, after what happened in the corridor, I’d rather know what’s coming." },
+            { "speakerId": "rye", "text": "At least this time we’re ready." },
+            { "speakerId": "leigh", "text": "Trajectories are unstable." },
+            { "speakerId": "mike", "text": "Great." },
+            { "speakerId": "captain", "text": "Keep a cool head. We do the job." },
+            { "speakerId": "mike", "text": "Copy that, Cap." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L5_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 5,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L5_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 5,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L5_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 5,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L5_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 5,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Come on. Grab the last few and let’s move out." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L5_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 5,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Alright… I hope the next one’s the last, because this one really shook me up." },
+            { "speakerId": "rye", "text": "You say that after every mission." },
+            { "speakerId": "mike", "text": "Yeah, but this time I actually mean it." },
+            { "speakerId": "leigh", "text": "This sector is getting more and more unstable." },
+            { "speakerId": "mike", "text": "Really? Hadn’t noticed." },
+            { "speakerId": "captain", "text": "Stay focused, Mike. We’re close to the end of the zone." },
+            { "speakerId": "rye", "text": "Cap?" },
+            { "speakerId": "captain", "text": "Later, Rye. We talk about it if we survive this mess." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "W1_L6_intro",
+      "type": "intro",
+      "world": 1,
+      "level": 6,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "I’m confirming the scans… something’s wrong." },
+            { "speakerId": "mike", "text": "What do you mean?" },
+            { "speakerId": "leigh", "text": "This feels bad. Way too many black ones." },
+            { "speakerId": "rye", "text": "That bad?" },
+            { "speakerId": "leigh", "text": "Yeah." },
+            { "speakerId": "mike", "text": "How much are we even supposed to recover here?" },
+            { "speakerId": "leigh", "text": "Not enough to make me like it." },
+            { "speakerId": "mike", "text": "Great… so we might wreck the ship for scraps." },
+            { "speakerId": "captain", "text": "We’re already here." },
+            { "speakerId": "mike", "text": "Cap…" },
+            { "speakerId": "captain", "text": "We take what’s worth taking and get out." },
+            { "speakerId": "rye", "text": "Understood." },
+            { "speakerId": "mike", "text": "Ah… this is gonna be fun. Can’t wait." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L6_phase0",
+      "type": "phase",
+      "world": 1,
+      "level": 6,
+      "phaseIndex": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "PHASE 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L6_phase1",
+      "type": "phase",
+      "world": 1,
+      "level": 6,
+      "phaseIndex": 1,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "PHASE 2" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L6_phase2",
+      "type": "phase",
+      "world": 1,
+      "level": 6,
+      "phaseIndex": 2,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "PHASE 3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L6_evac",
+      "type": "evac",
+      "world": 1,
+      "level": 6,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "That’s enough. Grab what’s left and get us the hell out of here." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W1_L6_outro",
+      "type": "outro",
+      "world": 1,
+      "level": 6,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "mike", "text": "Alright… I’m gonna ask the question everyone’s thinking." },
+            { "speakerId": "mike", "text": "Because that last sector…" },
+            { "speakerId": "mike", "text": "looked a hell of a lot like a place we were supposed to die in." },
+            { "speakerId": "leigh", "text": "The briefing data was accurate." },
+            { "speakerId": "leigh", "text": "What happened… matched the scans." },
+            { "speakerId": "mike", "text": "Yeah, I got that." },
+            { "speakerId": "mike", "text": "That’s exactly what worries me." },
+            { "speakerId": "rye", "text": "..." },
+            { "speakerId": "mike", "text": "Rye?" },
+            { "speakerId": "rye", "text": "..." },
+            { "speakerId": "captain", "text": "Say it." },
+            { "speakerId": "rye", "text": "I don’t know." },
+            { "speakerId": "rye", "text": "All I know is that for thirty seconds I watched those trajectories coming in, and it felt like we’d been sent exactly where we needed to be so we wouldn’t make it out." },
+            { "speakerId": "rye", "text": "And I don’t like that feeling." },
+            { "speakerId": "leigh", "text": "Statistically… it was a very bad mission." },
+            { "speakerId": "mike", "text": "\"Bad\"?" },
+            { "speakerId": "mike", "text": "We almost lost the ship to recover what… a handful of spheres?" },
+            { "speakerId": "rye", "text": "..." },
+            { "speakerId": "mike", "text": "And nobody thinks that’s weird?" },
+            { "speakerId": "captain", "text": "We signed on to recover." },
+            { "speakerId": "mike", "text": "Yeah." },
+            { "speakerId": "mike", "text": "But when exactly are we supposed to get paid?" },
+            { "speakerId": "leigh", "text": "When they call us back." },
+            { "speakerId": "mike", "text": "And when is that?" },
+            { "speakerId": "leigh", "text": "Six months." },
+            { "speakerId": "mike", "text": "Six months." },
+            { "speakerId": "mike", "text": "So we spend six months flying through sectors like that…" },
+            { "speakerId": "mike", "text": "and then maybe we get paid." },
+            { "speakerId": "rye", "text": "..." },
+            { "speakerId": "mike", "text": "Rye?" },
+            { "speakerId": "rye", "text": "Yeah. I’m thinking." },
+            { "speakerId": "rye", "text": "Because I’m trying to figure something out." },
+            { "speakerId": "rye", "text": "If somebody wanted to send a crew out to get ground to pieces in some corner of space…" },
+            { "speakerId": "rye", "text": "it would look a lot like what we just did." },
+            { "speakerId": "leigh", "text": "That’s a possibility." },
+            { "speakerId": "mike", "text": "Reassuring." },
+            { "speakerId": "captain", "text": "That’s enough." },
+            { "speakerId": "captain", "text": "We’re still alive." },
+            { "speakerId": "captain", "text": "The ship’s still holding." },
+            { "speakerId": "captain", "text": "And as long as that’s true… we keep going." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "contract_victory",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Well done, Rydell." }
+          ]
+        },
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Good work, Rydell. Mission approved." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "Good work, Crew 404." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "Results approved. Keep it up, 404." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contract_defeat_2",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "You failed, Rydell. I’m issuing a warning." }
+          ]
+        },
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "This is unacceptable, Rydell. Consider this a warning." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "Mission failed, Crew 404. A warning has been added to your file." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "404, this result is insufficient. A warning has been recorded." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contract_defeat_1",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Rydell, one more failure and you’re out." }
+          ]
+        },
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Rydell, you are one failure away from contract termination." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "Crew 404, one more failure will end your contract." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "404, you are one failure away from termination." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contract_gameover",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "It’s over, Rydell. Find another job." }
+          ]
+        },
+        {
+          "weight": 2,
+          "lines": [
+            { "speakerId": "operator", "text": "Your contract has been terminated, Rydell. Best of luck." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "It’s over for you, Crew 404. Your contract has been terminated." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "operator", "text": "404, your services are no longer required." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hull_destroyed",
+      "type": "contract",
+      "world": 0,
+      "level": 0,
+      "variants": [
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "captain", "text": "Shit! Mission’s over." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "leigh", "text": "The collectors are dead. This ship isn’t making it back." }
+          ]
+        },
+        {
+          "weight": 1,
+          "lines": [
+            { "speakerId": "rye", "text": "Goddammit..." }
+          ]
+        }
+      ]
+    }
+  ]
+}

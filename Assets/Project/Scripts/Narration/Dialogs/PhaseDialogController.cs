@@ -10,9 +10,7 @@ using UnityEngine;
 /// - ils ne doivent pas bloquer le gameplay
 /// - ils ne demandent pas de clic joueur
 ///
-/// Les sequences sont resolues a partir du levelId courant :
-/// - phase : W1_L2_phase0, W1_L2_phase1, etc.
-/// - evacuation : W1_L2_evac
+/// Les sequences sont resolues a partir du levelId courant via LocalizationManager.
 /// </summary>
 public class PhaseDialogController : MonoBehaviour
 {
@@ -27,21 +25,23 @@ public class PhaseDialogController : MonoBehaviour
 
     private bool hasIdentity;
 
+    private LocalizationManager Loc => LocalizationManager.Instance;
+
     private void OnEnable()
     {
         if (spawner == null)
-            spawner = UnityEngine.Object.FindFirstObjectByType<BallSpawner>();
+            spawner = FindFirstObjectByType<BallSpawner>();
 
         if (spawner != null)
             spawner.OnPhaseChanged += HandlePhaseChanged;
 
         if (endSequence == null)
-            endSequence = UnityEngine.Object.FindFirstObjectByType<EndSequenceController>();
+            endSequence = FindFirstObjectByType<EndSequenceController>();
 
         if (endSequence != null)
             endSequence.OnEvacuationStarted += HandleEvacuationStarted;
 
-        hasIdentity = !string.IsNullOrEmpty(levelId);
+        hasIdentity = !string.IsNullOrWhiteSpace(levelId);
     }
 
     private void OnDisable()
@@ -54,11 +54,11 @@ public class PhaseDialogController : MonoBehaviour
     }
 
     /// <summary>
-    /// Injecte l'identifiant du niveau courant.
+    /// Injecte l identifiant du niveau courant.
     /// </summary>
     public void SetLevelId(string id)
     {
-        if (string.IsNullOrEmpty(id))
+        if (string.IsNullOrWhiteSpace(id))
             return;
 
         levelId = id;
@@ -66,48 +66,33 @@ public class PhaseDialogController : MonoBehaviour
     }
 
     /// <summary>
-    /// Appelé lors d'un changement de phase par le spawner.
+    /// Appele lors d un changement de phase par le spawner.
     /// </summary>
     private void HandlePhaseChanged(int phaseIndex, string phaseName)
     {
-        PlayPhaseDialog(phaseIndex);
+        PlaySequence(Loc != null ? Loc.GetPhaseSequence(levelId, phaseIndex) : null);
     }
 
     /// <summary>
-    /// Appelé au debut de la phase d'evacuation.
+    /// Appele au debut de la phase d evacuation.
     /// </summary>
     private void HandleEvacuationStarted()
     {
-        PlayEvacDialog();
+        PlaySequence(Loc != null ? Loc.GetEvacSequence(levelId) : null);
     }
 
     /// <summary>
-    /// Joue automatiquement le dialogue associe a une phase.
+    /// Joue automatiquement une sequence de dialogue gameplay.
     /// </summary>
-    private void PlayPhaseDialog(int phaseIndex)
+    private void PlaySequence(DialogSequence sequence)
     {
-        if (!hasIdentity)
+        if (!CanPlayDialogs())
             return;
 
-        if (dialogSequenceRunner == null)
+        if (sequence == null)
             return;
 
-        DialogManager dialogManager = UnityEngine.Object.FindFirstObjectByType<DialogManager>();
-        if (dialogManager == null)
-            return;
-
-        if (!dialogManager.IsReady)
-            return;
-
-        string seqId = BuildPhaseSequenceId(phaseIndex);
-        if (string.IsNullOrEmpty(seqId))
-            return;
-
-        DialogSequence seq = dialogManager.GetSequenceById(seqId);
-        if (seq == null)
-            return;
-
-        DialogLine[] lines = dialogManager.GetRandomVariantLines(seq);
+        DialogLine[] lines = Loc.GetRandomVariantLines(sequence);
         if (lines == null || lines.Length == 0)
             return;
 
@@ -119,65 +104,25 @@ public class PhaseDialogController : MonoBehaviour
     }
 
     /// <summary>
-    /// Joue automatiquement le dialogue associe a l'evacuation.
+    /// Valide les prerequis communs avant lecture d un dialogue gameplay.
     /// </summary>
-    private void PlayEvacDialog()
+    private bool CanPlayDialogs()
     {
         if (!hasIdentity)
-            return;
+            return false;
 
         if (dialogSequenceRunner == null)
-            return;
+            return false;
 
-        DialogManager dialogManager = UnityEngine.Object.FindFirstObjectByType<DialogManager>();
-        if (dialogManager == null)
-            return;
+        if (Loc == null)
+        {
+            Debug.LogError("[PhaseDialogController] LocalizationManager.Instance est null.");
+            return false;
+        }
 
-        if (!dialogManager.IsReady)
-            return;
+        if (!Loc.IsReady)
+            return false;
 
-        string seqId = BuildEvacSequenceId();
-        if (string.IsNullOrEmpty(seqId))
-            return;
-
-        DialogSequence seq = dialogManager.GetSequenceById(seqId);
-        if (seq == null)
-            return;
-
-        DialogLine[] lines = dialogManager.GetRandomVariantLines(seq);
-        if (lines == null || lines.Length == 0)
-            return;
-
-        dialogSequenceRunner.Play(
-            lines,
-            DialogSequenceRunner.PlaybackMode.Auto,
-            onComplete: null
-        );
-    }
-
-    /// <summary>
-    /// Construit l'identifiant de sequence pour une phase.
-    /// Exemple : W1-L2 -> W1_L2_phase0
-    /// </summary>
-    private string BuildPhaseSequenceId(int phaseIndex)
-    {
-        if (string.IsNullOrEmpty(levelId))
-            return null;
-
-        string normalized = levelId.Replace("-", "_");
-        return normalized + "_phase" + phaseIndex;
-    }
-
-    /// <summary>
-    /// Construit l'identifiant de sequence pour l'evacuation.
-    /// Exemple : W1-L2 -> W1_L2_evac
-    /// </summary>
-    private string BuildEvacSequenceId()
-    {
-        if (string.IsNullOrEmpty(levelId))
-            return null;
-
-        string normalized = levelId.Replace("-", "_");
-        return normalized + "_evac";
+        return true;
     }
 }

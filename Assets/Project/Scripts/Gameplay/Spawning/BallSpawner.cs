@@ -15,7 +15,6 @@ public struct PhasePlanInfo
     public float IntervalSec;
     public int Quota;
 
-    // Mix final reel issu du spawner
     public int WhiteCount;
     public int BlueCount;
     public int RedCount;
@@ -106,9 +105,6 @@ public class BallSpawner : MonoBehaviour
 
     private PhasePlanInfo[] publicPhasePlans = Array.Empty<PhasePlanInfo>();
 
-    /// <summary>
-    /// Configure le spawner a partir du level data et de la duree runtime.
-    /// </summary>
     public void ConfigureFromLevel(LevelData levelData, float totalRunSec)
     {
         data = levelData;
@@ -132,17 +128,6 @@ public class BallSpawner : MonoBehaviour
         CurrentPhaseIndex = plans.Count > 0 ? 0 : -1;
 
         OnPlannedReady?.Invoke(PlannedSpawnCount);
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        Debug.Log("[Spawner/Plan] plannedTotal=" + plannedTotal);
-        Debug.Log("[Spawner/Plan] plannedNonBlack=" + PlannedNonBlackSpawnCount + ", plannedBlack=" + PlannedBlackSpawnCount);
-        for (int i = 0; i < plans.Count; i++)
-        {
-            PhasePlan p = plans[i];
-            Debug.Log("[Spawner/Plan] Phase " + p.Index + " \"" + p.Name + "\": quota=" + p.Quota +
-                      ", dur=" + p.DurationSec.ToString("F2") + "s, iv=" + p.Interval.ToString("F3") + "s");
-        }
-#endif
     }
 
     private void BuildPointsByType()
@@ -338,7 +323,6 @@ public class BallSpawner : MonoBehaviour
 
             if (forcedTotal > count)
             {
-                Debug.LogWarning("[Spawner/Forced] Phase " + i + ": forcedTotal(" + forcedTotal + ") > quota(" + count + "). Clamp.");
                 forcedTotal = count;
                 if (forced.Count > count)
                     forced.RemoveRange(count, forced.Count - count);
@@ -456,17 +440,6 @@ public class BallSpawner : MonoBehaviour
             phaseBlueCounts[i] = blueCount;
             phaseRedCounts[i] = redCount;
             phaseBlackCounts[i] = blackCount;
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            string breakdown = "";
-            for (int k = 0; k < n; k++)
-                breakdown += mix[k].t + ":" + alloc[k] + " ";
-
-            string forcedStr = forced.Count > 0 ? (" forced=" + forced.Count) : "";
-            Debug.Log("[Spawner/Types] Phase " + plans[i].Index + " \"" + plans[i].Name + "\" -> " + count +
-                      " (remaining=" + remaining + forcedStr + ") | " + breakdown +
-                      " || FINAL => W:" + whiteCount + " B:" + blueCount + " R:" + redCount + " K:" + blackCount);
-#endif
         }
 
         publicPhasePlans = new PhasePlanInfo[plans.Count];
@@ -512,10 +485,7 @@ public class BallSpawner : MonoBehaviour
             if (string.IsNullOrWhiteSpace(f.Type)) continue;
 
             if (!Enum.TryParse(f.Type, true, out BallType t))
-            {
-                Debug.LogWarning("[Spawner/Forced] Unknown forced type '" + f.Type + "' in phase " + phaseIndex + ".");
                 continue;
-            }
 
             int c = Mathf.Max(0, f.Count);
             if (c == 0) continue;
@@ -604,10 +574,6 @@ public class BallSpawner : MonoBehaviour
         return BallType.White;
     }
 
-    /// <summary>
-    /// Prewarm du pool gameplay normal.
-    /// Le tuto n utilise pas ce pool.
-    /// </summary>
     public void StartPrewarm(int budgetPerFrame = 256)
     {
         if (prewarmCoro != null)
@@ -646,9 +612,6 @@ public class BallSpawner : MonoBehaviour
         prewarmCoro = null;
     }
 
-    /// <summary>
-    /// Demarre le spawn gameplay normal.
-    /// </summary>
     public void StartSpawning()
     {
         if (ballPrefab == null)
@@ -670,9 +633,6 @@ public class BallSpawner : MonoBehaviour
         loop = StartCoroutine(SpawnLoop());
     }
 
-    /// <summary>
-    /// Stoppe le spawn gameplay normal.
-    /// </summary>
     public void StopSpawning()
     {
         running = false;
@@ -709,11 +669,6 @@ public class BallSpawner : MonoBehaviour
         }
 
         loop = null;
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        if (activatedCount != plannedTotal)
-            Debug.LogError("[Spawner/Runtime] Activated mismatch: activated=" + activatedCount + ", planned=" + plannedTotal);
-#endif
     }
 
     private IEnumerator WaitSecondsAccurate(float seconds)
@@ -740,9 +695,6 @@ public class BallSpawner : MonoBehaviour
         return ySpawn;
     }
 
-    /// <summary>
-    /// Active une bille gameplay normale depuis le pool.
-    /// </summary>
     private void ActivateOne(int phaseIdx)
     {
         GameObject go = (pool.Count > 0) ? pool.Pop() : Instantiate(ballPrefab);
@@ -794,9 +746,6 @@ public class BallSpawner : MonoBehaviour
         return q.Dequeue();
     }
 
-    /// <summary>
-    /// Recyclage d une bille gameplay normale dans le pool.
-    /// </summary>
     public void Recycle(GameObject go, BallType type, bool collected = false)
     {
         if (go == null)
@@ -846,19 +795,21 @@ public class BallSpawner : MonoBehaviour
 
     /// <summary>
     /// Spawn une bille de tutoriel totalement isolee du pool gameplay.
-    /// Important :
-    /// - pas de RegisterRealSpawn
-    /// - pas d increment des stats runtime
-    /// - pas de reutilisation du pool
-    /// - instance detruite a la fin du tuto
     ///
-    /// Cette version est plus robuste :
-    /// - on instancie sans parent ambigu
-    /// - on set explicitement parent / position / rotation
-    /// - on peut relacher la physique au frame suivant pour eviter
-    ///   les comportements etranges au premier frame
+    /// releasePhysics :
+    /// - true  = physique active
+    /// - false = bille figée
+    ///
+    /// applyInitialVelocity :
+    /// - true  = applique la velocity fournie (bille jouable)
+    /// - false = aucune impulsion initiale, la bille tombe juste avec la gravité
     /// </summary>
-    public GameObject SpawnTutorialBall(Vector3 position, Vector3 velocity, BallType type)
+    public GameObject SpawnTutorialBall(
+        Vector3 position,
+        Vector3 velocity,
+        BallType type,
+        bool releasePhysics = true,
+        bool applyInitialVelocity = true)
     {
         if (ballPrefab == null)
         {
@@ -866,20 +817,17 @@ public class BallSpawner : MonoBehaviour
             return null;
         }
 
-        // Instanciation isolee
         GameObject go = Instantiate(ballPrefab);
 
-        // Parent optionnel, en conservant l espace monde
         if (ballsParent != null)
             go.transform.SetParent(ballsParent, true);
 
-        // Position / rotation monde explicites
         go.transform.position = position;
         go.transform.rotation = Quaternion.identity;
         go.SetActive(true);
 
         if (go.TryGetComponent(out Collider col))
-            col.enabled = true;
+            col.enabled = releasePhysics;
 
         Rigidbody rb = null;
         if (go.TryGetComponent(out rb))
@@ -887,16 +835,20 @@ public class BallSpawner : MonoBehaviour
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
 
-            if (tutorialReleasePhysicsNextFrame)
+            if (!releasePhysics)
             {
-                // On garde la bille immobile au premier frame pour eviter
-                // les deplacements parasites immediats.
+                rb.isKinematic = true;
+            }
+            else if (tutorialReleasePhysicsNextFrame)
+            {
                 rb.isKinematic = true;
             }
             else
             {
                 rb.isKinematic = false;
-                rb.linearVelocity = velocity;
+
+                if (applyInitialVelocity)
+                    rb.linearVelocity = velocity;
             }
         }
 
@@ -904,8 +856,7 @@ public class BallSpawner : MonoBehaviour
         {
             grace.SetCeiling(ceilingCollider);
 
-            // On ne lance la grace qu au moment ou la physique est vraiment relachee
-            if (!tutorialReleasePhysicsNextFrame)
+            if (releasePhysics && !tutorialReleasePhysicsNextFrame)
                 grace.StartGrace();
         }
 
@@ -920,8 +871,8 @@ public class BallSpawner : MonoBehaviour
             st.Initialize(type, pts);
         }
 
-        if (tutorialReleasePhysicsNextFrame)
-            StartCoroutine(ReleaseTutorialBallNextFrame(go, velocity));
+        if (releasePhysics && tutorialReleasePhysicsNextFrame)
+            StartCoroutine(ReleaseTutorialBallNextFrame(go, velocity, applyInitialVelocity));
 
         if (logTutorialSpawn)
             StartCoroutine(LogTutorialSpawnNextFrame(go, type));
@@ -929,10 +880,7 @@ public class BallSpawner : MonoBehaviour
         return go;
     }
 
-    /// <summary>
-    /// Relache la physique de la bille de tuto au frame suivant.
-    /// </summary>
-    private IEnumerator ReleaseTutorialBallNextFrame(GameObject go, Vector3 velocity)
+    private IEnumerator ReleaseTutorialBallNextFrame(GameObject go, Vector3 velocity, bool applyInitialVelocity)
     {
         yield return null;
 
@@ -945,27 +893,25 @@ public class BallSpawner : MonoBehaviour
             rb.isKinematic = false;
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
-            rb.linearVelocity = velocity;
+
+            if (applyInitialVelocity)
+                rb.linearVelocity = velocity;
         }
+
+        Collider col = go.GetComponent<Collider>();
+        if (col != null)
+            col.enabled = true;
 
         BallCeilingGrace grace = go.GetComponent<BallCeilingGrace>();
         if (grace != null)
             grace.StartGrace();
     }
 
-    /// <summary>
-    /// Log de debug au frame suivant pour verifier si la bille a bouge
-    /// avant meme que le joueur la voie.
-    /// </summary>
     private IEnumerator LogTutorialSpawnNextFrame(GameObject go, BallType type)
     {
         yield return null;
     }
 
-    /// <summary>
-    /// Detruit une bille de tutoriel isolee.
-    /// Ne jamais la renvoyer dans le pool gameplay.
-    /// </summary>
     public void DestroyTutorialBall(GameObject go)
     {
         if (go == null)

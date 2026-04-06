@@ -414,10 +414,10 @@ MonoBehaviour:
   useCustomBounce: 1
   bounceSpeedMultiplier: 1.08
   maxBounceAngleDeg: 65
-  centerDeadZone: 0.15
+  centerDeadZone: 0.12
   maxInfluence: 0.85
   bounceCurvePower: 1.35
-  centerSpeedFloor: 4
+  centerSpeedFloor: 4.3
   edgeSpeedFloor: 0
 --- !u!114 &5852567874664093732
 MonoBehaviour:

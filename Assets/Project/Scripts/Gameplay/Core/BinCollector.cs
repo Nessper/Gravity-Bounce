@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,6 +14,9 @@ using UnityEngine;
 ///
 /// Important :
 /// - Le bonus de seuil de flush (modules GREED) vient désormais de ModuleRuntimeStats.
+/// - En mode tutorial flush :
+///   * Score / Combo / Hull / FX / SFX restent actifs comme en vrai gameplay,
+///   * l'etat runtime est simplement reset a la fin du tuto.
 /// </summary>
 public class BinCollector : MonoBehaviour
 {
@@ -45,11 +49,11 @@ public class BinCollector : MonoBehaviour
     [Tooltip("Délai avant le flush en run normal (hors fin de niveau).")]
     [SerializeField] private float delayBeforeFlush = 1.2f;
 
-    // État de flush par côté (évite les démarrages en double)
+    public event Action<Side, BinSnapshot, int> OnBinFlushed;
+
     private bool flushingLeft;
     private bool flushingRight;
 
-    // Anti-doublon SFX (temps unscaled pour être robuste aux timescales)
     private float lastFlushSfxTimeUnscaled = -999f;
 
     /// <summary>
@@ -62,7 +66,7 @@ public class BinCollector : MonoBehaviour
 
     /// <summary>
     /// Active / désactive l'auto-flush sur les deux bacs
-    /// (utilisé par la fin de niveau).
+    /// (utilisé par la fin de niveau ou le tuto).
     /// </summary>
     public void SetAutoFlushEnabled(bool enabled)
     {
@@ -80,44 +84,53 @@ public class BinCollector : MonoBehaviour
     /// <summary>
     /// Demande un flush sur un côté spécifique.
     /// </summary>
-    public void CollectFromBin(Side side, bool force = false, bool skipDelay = false, bool isFinalFlush = false)
+    public void CollectFromBin(
+        Side side,
+        bool force = false,
+        bool skipDelay = false,
+        bool isFinalFlush = false,
+        bool isTutorialFlush = false)
     {
         if (side == Side.Left)
-            CollectLeft(force, skipDelay, isFinalFlush);
+            CollectLeft(force, skipDelay, isFinalFlush, isTutorialFlush);
 
         if (side == Side.Right)
-            CollectRight(force, skipDelay, isFinalFlush);
+            CollectRight(force, skipDelay, isFinalFlush, isTutorialFlush);
     }
 
     /// <summary>
     /// Demande un flush simultané des deux bacs (gauche et droit).
     /// </summary>
-    public void CollectAll(bool force = false, bool skipDelay = false, bool isFinalFlush = false)
+    public void CollectAll(
+        bool force = false,
+        bool skipDelay = false,
+        bool isFinalFlush = false,
+        bool isTutorialFlush = false)
     {
-        CollectLeft(force, skipDelay, isFinalFlush);
-        CollectRight(force, skipDelay, isFinalFlush);
+        CollectLeft(force, skipDelay, isFinalFlush, isTutorialFlush);
+        CollectRight(force, skipDelay, isFinalFlush, isTutorialFlush);
     }
 
     // ------------------------------------------------------------
     // Pipelines internes
     // ------------------------------------------------------------
 
-    private void CollectLeft(bool force, bool skipDelay, bool isFinalFlush)
+    private void CollectLeft(bool force, bool skipDelay, bool isFinalFlush, bool isTutorialFlush)
     {
         if (leftBin == null || flushingLeft)
             return;
 
         flushingLeft = true;
-        StartCoroutine(CollectWithOptions(Side.Left, force, skipDelay, isFinalFlush));
+        StartCoroutine(CollectWithOptions(Side.Left, force, skipDelay, isFinalFlush, isTutorialFlush));
     }
 
-    private void CollectRight(bool force, bool skipDelay, bool isFinalFlush)
+    private void CollectRight(bool force, bool skipDelay, bool isFinalFlush, bool isTutorialFlush)
     {
         if (rightBin == null || flushingRight)
             return;
 
         flushingRight = true;
-        StartCoroutine(CollectWithOptions(Side.Right, force, skipDelay, isFinalFlush));
+        StartCoroutine(CollectWithOptions(Side.Right, force, skipDelay, isFinalFlush, isTutorialFlush));
     }
 
     /// <summary>
@@ -125,14 +138,20 @@ public class BinCollector : MonoBehaviour
     /// - éventuel délai,
     /// - vérification du seuil (sauf force),
     /// - pré-calcul FX + SFX avant disparition des billes,
-    /// - snapshot logique (score, combos, hull) + purge du bin,
+    /// - snapshot logique + purge du bin,
+    /// - éventuel score/combo,
+    /// - éventuelle pénalité hull,
     /// - recyclage des billes.
     /// </summary>
-    private IEnumerator CollectWithOptions(Side side, bool force, bool skipDelay, bool isFinalFlush)
+    private IEnumerator CollectWithOptions(
+        Side side,
+        bool force,
+        bool skipDelay,
+        bool isFinalFlush,
+        bool isTutorialFlush)
     {
         try
         {
-            // Délai avant flush en run normal
             if (!skipDelay)
                 yield return new WaitForSecondsRealtime(delayBeforeFlush);
 
@@ -140,8 +159,6 @@ public class BinCollector : MonoBehaviour
             if (trigger == null)
                 yield break;
 
-            // En mode normal, on valide le seuil (avec bonus GREED).
-            // En force (fin de niveau), on prend tout.
             if (!force)
             {
                 int effectiveThreshold = GetEffectiveFlushThresholdFor(trigger);
@@ -163,7 +180,7 @@ public class BinCollector : MonoBehaviour
             TriggerFlushFx(side, previewScore, hasBlack);
 
             // --------------------------------------------------------
-            // 2) Snapshot logique (score, combos, hull) + purge du bin
+            // 2) Snapshot logique + purge du bin
             // --------------------------------------------------------
             List<BallState> lot = trigger.TakeSnapshotAndClear();
             if (lot == null || lot.Count == 0)
@@ -172,16 +189,19 @@ public class BinCollector : MonoBehaviour
             int blackCount;
             BinSnapshot snapshot = BuildSnapshot(lot, side, out blackCount);
 
-            // Phase courante (1-based) pour debug / objectifs secondaires par phase
             if (spawner != null)
                 snapshot.phaseIndex1Based = spawner.CurrentPhaseIndex + 1;
 
             snapshot.isFinalFlush = isFinalFlush;
 
-            // Pénalité de coque : 1 point par bille noire dans ce flush
+            OnBinFlushed?.Invoke(side, snapshot, blackCount);
+
+            // Hull reste actif même en tuto
             if (hullSystem != null && blackCount > 0)
                 hullSystem.ApplyBlackPenalty(blackCount);
 
+            // Score / combos actifs aussi pendant le tuto.
+            // L'etat sera reset proprement a la fin du tuto.
             if (scoreManager != null)
                 scoreManager.GetSnapshot(snapshot);
 
@@ -202,7 +222,7 @@ public class BinCollector : MonoBehaviour
                         continue;
 
                     st.collected = true;
-                    Object.Destroy(st.gameObject);
+                    Destroy(st.gameObject);
                 }
 
                 yield break;
@@ -215,9 +235,15 @@ public class BinCollector : MonoBehaviour
                     continue;
 
                 st.collected = true;
-                // On ne détache jamais à la racine.
-                // Le spawner / pool gère la vie de l’objet.
-                spawner.Recycle(st.gameObject, st.type, collected: true);
+
+                if (isTutorialFlush || st.isTutorialBall)
+                {
+                    Destroy(st.gameObject);
+                }
+                else
+                {
+                    spawner.Recycle(st.gameObject, st.type, collected: true);
+                }
             }
         }
         finally

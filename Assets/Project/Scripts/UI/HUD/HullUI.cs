@@ -34,6 +34,12 @@ public class HullUI : MonoBehaviour
     [SerializeField] private Color repairFlashColor = new Color(0.35f, 1f, 0.45f);
     [SerializeField] private Color maxHullFlashColor = new Color(0.72f, 0.95f, 0.35f);
 
+    [Header("Attention Flash (Tutorial / Focus)")]
+    [SerializeField] private Color attentionFlashColor = Color.white;
+    [SerializeField] private float attentionFlashDuration = 1.2f;
+    [SerializeField] private float attentionFlashSpeed = 8f;
+    [SerializeField] private bool attentionFlashBold = true;
+
     [Header("Thresholds")]
     [Range(0f, 1f)]
     [SerializeField] private float warningThreshold = 0.5f;
@@ -60,6 +66,7 @@ public class HullUI : MonoBehaviour
 
     private Coroutine feedbackRoutine;
     private Vector3 baseScale = Vector3.one;
+    private bool attentionFlashLoopRequested;
 
     private void Awake()
     {
@@ -100,6 +107,7 @@ public class HullUI : MonoBehaviour
         {
             StopCoroutine(feedbackRoutine);
             feedbackRoutine = null;
+            attentionFlashLoopRequested = false;
             RestoreBaseVisualState();
             RefreshStateColor(force: true);
         }
@@ -145,6 +153,7 @@ public class HullUI : MonoBehaviour
             feedbackRoutine = null;
         }
 
+        attentionFlashLoopRequested = false;
         RestoreBaseVisualState();
         RefreshStateColor(force: true);
     }
@@ -161,6 +170,7 @@ public class HullUI : MonoBehaviour
         if (!enableDamageFeedback)
             return;
 
+        attentionFlashLoopRequested = false;
         StartFeedbackRoutine(DamageFeedbackRoutine());
     }
 
@@ -169,6 +179,7 @@ public class HullUI : MonoBehaviour
         if (hullText == null || !gameObject.activeInHierarchy)
             return;
 
+        attentionFlashLoopRequested = false;
         BootRoot.Audio?.PlayUi(addHullSfx);
         StartFeedbackRoutine(RepairFeedbackRoutine());
     }
@@ -178,8 +189,40 @@ public class HullUI : MonoBehaviour
         if (hullText == null || !gameObject.activeInHierarchy)
             return;
 
+        attentionFlashLoopRequested = false;
         BootRoot.Audio?.PlayUi(addMaxHullSfx);
         StartFeedbackRoutine(MaxHullFeedbackRoutine());
+    }
+
+    public void PlayAttentionFlash()
+    {
+        if (hullText == null || !gameObject.activeInHierarchy)
+            return;
+
+        attentionFlashLoopRequested = false;
+        StartFeedbackRoutine(AttentionFlashRoutine());
+    }
+
+    public void StartAttentionFlashLoop()
+    {
+        if (hullText == null || !gameObject.activeInHierarchy)
+            return;
+
+        attentionFlashLoopRequested = true;
+        StartFeedbackRoutine(AttentionFlashLoopRoutine());
+    }
+
+    public void StopAttentionFlash()
+    {
+        attentionFlashLoopRequested = false;
+
+        if (feedbackRoutine == null)
+            return;
+
+        StopCoroutine(feedbackRoutine);
+        feedbackRoutine = null;
+        RestoreBaseVisualState();
+        RefreshStateColor(force: true);
     }
 
     // ------------------------------------------------------------
@@ -346,6 +389,58 @@ public class HullUI : MonoBehaviour
             float scaleFactor = 1f + maxHullPunchScaleAmount * punchT * damper;
 
             rt.localScale = baseScale * scaleFactor;
+            yield return null;
+        }
+
+        RestoreBaseVisualState();
+        feedbackRoutine = null;
+        RefreshStateColor(force: true);
+    }
+
+    private IEnumerator AttentionFlashRoutine()
+    {
+        if (hullText == null)
+            yield break;
+
+        RectTransform rt = hullText.rectTransform;
+        RestoreBaseScaleOnly();
+
+        float elapsed = 0f;
+        float duration = Mathf.Max(0.01f, attentionFlashDuration);
+
+        Color baseColor = GetStateColor();
+        hullText.fontStyle = attentionFlashBold ? FontStyles.Bold : FontStyles.Normal;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+
+            float t = Mathf.PingPong(elapsed * attentionFlashSpeed, 1f);
+            hullText.color = Color.Lerp(baseColor, attentionFlashColor, t);
+
+            yield return null;
+        }
+
+        RestoreBaseVisualState();
+        feedbackRoutine = null;
+        RefreshStateColor(force: true);
+    }
+
+    private IEnumerator AttentionFlashLoopRoutine()
+    {
+        if (hullText == null)
+            yield break;
+
+        RectTransform rt = hullText.rectTransform;
+        RestoreBaseScaleOnly();
+
+        Color baseColor = GetStateColor();
+        hullText.fontStyle = attentionFlashBold ? FontStyles.Bold : FontStyles.Normal;
+
+        while (attentionFlashLoopRequested)
+        {
+            float t = Mathf.PingPong(Time.unscaledTime * attentionFlashSpeed, 1f);
+            hullText.color = Color.Lerp(baseColor, attentionFlashColor, t);
             yield return null;
         }
 

@@ -24,10 +24,6 @@ public class NextTransitionController : MonoBehaviour
     [Header("Hold To Skip")]
     [SerializeField] private HoldToSkipOverlayUI holdToSkipOverlay;
 
-    [Header("Outro Dialog")]
-    [Tooltip("Suffixe du dialogue d outro. Exemple : W1_L1_outro.")]
-    [SerializeField] private string outroSuffix = "_outro";
-
     [Header("Timing (unscaled)")]
     [SerializeField] private float pauseAfterHide = 0.25f;
     [SerializeField] private float pauseAfterDialog = 0.20f;
@@ -49,6 +45,8 @@ public class NextTransitionController : MonoBehaviour
     private bool isRunning;
     private bool skipRequested;
     private Coroutine playRoutine;
+
+    private LocalizationManager Loc => LocalizationManager.Instance;
 
     public bool IsRunning => isRunning;
 
@@ -137,11 +135,13 @@ public class NextTransitionController : MonoBehaviour
         if (dialogSequenceRunner == null)
             yield break;
 
-        DialogManager dialogManager = UnityEngine.Object.FindFirstObjectByType<DialogManager>();
-        if (dialogManager == null)
+        if (Loc == null)
+        {
+            Debug.LogError("[NextTransitionController] LocalizationManager.Instance est null.");
             yield break;
+        }
 
-        while (!dialogManager.IsReady)
+        while (!Loc.IsReady)
         {
             if (skipRequested)
                 yield break;
@@ -150,17 +150,17 @@ public class NextTransitionController : MonoBehaviour
         }
 
         string levelId = (endLevelUI != null) ? endLevelUI.CurrentLevelId : null;
-        if (string.IsNullOrEmpty(levelId))
+        if (string.IsNullOrWhiteSpace(levelId))
+        {
+            Debug.LogWarning("[NextTransitionController] CurrentLevelId vide, outro ignoree.");
+            yield break;
+        }
+
+        DialogSequence sequence = Loc.GetOutroSequence(levelId);
+        if (sequence == null)
             yield break;
 
-        string normalizedLevelId = levelId.Replace("-", "_");
-        string seqId = normalizedLevelId + outroSuffix;
-
-        DialogSequence seq = dialogManager.GetSequenceById(seqId);
-        if (seq == null)
-            yield break;
-
-        DialogLine[] lines = dialogManager.GetRandomVariantLines(seq);
+        DialogLine[] lines = Loc.GetRandomVariantLines(sequence);
         if (lines == null || lines.Length == 0)
             yield break;
 

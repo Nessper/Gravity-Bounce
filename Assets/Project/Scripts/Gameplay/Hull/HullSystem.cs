@@ -24,12 +24,7 @@ public class HullSystem : MonoBehaviour
     private int maxHull;
     private int lastKnownHull;
 
-    // Empeche les faux feedbacks pendant la phase de sync initiale.
     private bool isInitialized;
-
-    // True pendant l'application d'un bonus de Max Hull.
-    // Permet d'eviter qu'une hausse de Hull courant liee a ce bonus
-    // soit interpretee comme une simple reparation.
     private bool isApplyingMaxHullUpgrade;
 
     private void OnEnable()
@@ -55,10 +50,6 @@ public class HullSystem : MonoBehaviour
         isInitialized = false;
         isApplyingMaxHullUpgrade = false;
     }
-
-    // ------------------------------------------------------------
-    // INIT / SYNC
-    // ------------------------------------------------------------
 
     public void Initialize(int startHull, int max)
     {
@@ -123,10 +114,6 @@ public class HullSystem : MonoBehaviour
         RefreshUI(fullRefresh: true);
     }
 
-    // ------------------------------------------------------------
-    // GAMEPLAY PENALTIES
-    // ------------------------------------------------------------
-
     public void ApplyBlackPenalty(int blackCount)
     {
         if (blackCount <= 0)
@@ -146,10 +133,6 @@ public class HullSystem : MonoBehaviour
         RefreshUI(fullRefresh: false);
     }
 
-    // ------------------------------------------------------------
-    // MAX HULL UPGRADE FLOW
-    // ------------------------------------------------------------
-
     public void BeginMaxHullUpgrade()
     {
         isApplyingMaxHullUpgrade = true;
@@ -165,9 +148,49 @@ public class HullSystem : MonoBehaviour
         hullUI?.PlayMaxHullFeedback();
     }
 
-    // ------------------------------------------------------------
-    // GETTERS
-    // ------------------------------------------------------------
+    /// <summary>
+    /// Restaure completement l'etat runtime du Hull apres le tuto.
+    /// Source de verite : RunSessionState.
+    /// </summary>
+    public void RestoreRuntimeState(int restoredHull, int restoredMaxHull)
+    {
+        int safeMax = Mathf.Max(1, restoredMaxHull);
+        int safeHull = Mathf.Clamp(restoredHull, 0, safeMax);
+
+        if (runSessionState != null)
+        {
+            int shipBaseMax = GetShipBaseHullMaxSafe();
+            int restoredBonus = Mathf.Max(0, safeMax - shipBaseMax);
+
+            runSessionState.SetBonusHullMaxInRunDirect(restoredBonus);
+            runSessionState.SetHullDirect(safeHull);
+
+            maxHull = runSessionState.HullMax;
+            currentHull = runSessionState.Hull;
+            lastKnownHull = currentHull;
+        }
+        else
+        {
+            maxHull = safeMax;
+            currentHull = safeHull;
+            lastKnownHull = currentHull;
+        }
+
+        RefreshUI(fullRefresh: true);
+        hullUI?.ResetVisualState();
+    }
+
+    private int GetShipBaseHullMaxSafe()
+    {
+        if (runSessionState == null)
+            return Mathf.Max(1, maxHull);
+
+        ShipDefinition def = ShipCatalogService.GetById(runSessionState.ShipId);
+        if (def == null)
+            return Mathf.Max(1, maxHull);
+
+        return Mathf.Max(1, def.maxHull);
+    }
 
     public int GetCurrentHull()
     {
@@ -178,10 +201,6 @@ public class HullSystem : MonoBehaviour
     {
         return maxHull;
     }
-
-    // ------------------------------------------------------------
-    // UI
-    // ------------------------------------------------------------
 
     private void RefreshUI(bool fullRefresh)
     {

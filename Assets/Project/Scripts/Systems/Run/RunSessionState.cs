@@ -582,6 +582,54 @@ public class RunSessionState : ScriptableObject
         RaiseHullEvents();
     }
 
+    /// <summary>
+    /// Force la valeur courante de Hull.
+    /// Usage reserve aux systemes de restore / init / tutorial reset.
+    /// </summary>
+    public void SetHullDirect(int value)
+    {
+        hull = Mathf.Clamp(Mathf.Max(0, value), 0, Mathf.Max(1, hullMax));
+
+        if (SaveManager.Instance != null)
+            SaveManager.Instance.SetRemainingHullInRun(hull);
+
+        OnHullChanged.Invoke(hull);
+    }
+
+    /// <summary>
+    /// Force le bonus de Hull max de run, puis recalcule le HullMax derive.
+    /// Usage reserve aux systemes de restore / init / tutorial reset.
+    /// </summary>
+    public void SetBonusHullMaxInRunDirect(int value, bool preserveCurrentHullRatio = false)
+    {
+        int previousMax = Mathf.Max(1, hullMax);
+
+        bonusHullMaxInRun = Mathf.Max(0, value);
+
+        if (SaveManager.Instance != null && SaveManager.Instance.Current != null)
+        {
+            RunStateData run = SaveManager.Instance.GetRunState();
+            if (run != null)
+            {
+                run.bonusHullMaxInRun = bonusHullMaxInRun;
+                SaveManager.Instance.Save();
+            }
+        }
+
+        RecomputeDerivedHullMax(applyDeltaToCurrentHull: false);
+
+        if (preserveCurrentHullRatio)
+        {
+            float ratio = previousMax > 0 ? (float)hull / previousMax : 0f;
+            hull = Mathf.Clamp(Mathf.RoundToInt(ratio * hullMax), 0, hullMax);
+
+            if (SaveManager.Instance != null)
+                SaveManager.Instance.SetRemainingHullInRun(hull);
+        }
+
+        RaiseHullEvents();
+    }
+
     // ------------------------------------------------------------
     // HULL MAX DÉRIVÉ
     // Pour l'instant : uniquement basé sur le ship
