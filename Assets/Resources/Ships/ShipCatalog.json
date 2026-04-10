@@ -1,43 +1,77 @@
 {
-  "schema": "ShipCatalog.v1",
+  "schema": "ShipCatalog",
   "ships": [
     {
       "id": "CORE_SCOUT",
-      "displayName": "Core Scout",
-      "description": "A versatile, reliable and well-balanced exploration vessel. Perfect for initial missions in the void.",
-      "maxHull": 10,
-      "levelDurationSec": 60,
-      "closeBinHoldGrace": 0.12,
-      "paddleWidthMult": 1.0,
-      "binAutoFlushOnEvac": true,
-      "imageFile": "core_scout.png",
-      "unlockedModuleSlots": 3
+      "displayNameLocKey": "ship.core_scout.name",
+      "descriptionLocKey": "ship.core_scout.description",
+      "imagePath": "Ships/Images/core_scout",
+      "imagePathInterior": "Ships/Interiors/core_scout_interior",
+      "baseHull": 10,
+      "baseLevelDurationSec": 60,
+      "totalModuleSlots": 6,
+      "startingUnlockedModuleSlots": 3,
+      "startingMoney": 4,
+      "startingEquippedModuleIds": [],
+      "moduleSlotLayouts": [
+        { "slotIndex": 0, "normalizedX": 0.20, "normalizedY": 0.75 },
+        { "slotIndex": 1, "normalizedX": 0.40, "normalizedY": 0.75 },
+        { "slotIndex": 2, "normalizedX": 0.60, "normalizedY": 0.75 },
+        { "slotIndex": 3, "normalizedX": 0.20, "normalizedY": 0.45 },
+        { "slotIndex": 4, "normalizedX": 0.40, "normalizedY": 0.45 },
+        { "slotIndex": 5, "normalizedX": 0.60, "normalizedY": 0.45 }
+      ],
+      "sortOrder": 0,
+      "isUnlockedByDefault": true,
+      "isHidden": false
     },
     {
       "id": "AETHER_RUNNER",
-      "displayName": "Aether Runner",
-      "description": "Fast and responsive, designed to navigate between gravitational storms. Less stable but bolder.",
-      "maxHull": 8,
-      "levelDurationSec": 60,
-      "closeBinHoldGrace": 0.10,
-      "paddleWidthMult": 1.0,
-      "binAutoFlushOnEvac": true,
-      "imageFile": "aether_runner.png",
-      "unlockedModuleSlots": 3
+      "displayNameLocKey": "ship.aether_runner.name",
+      "descriptionLocKey": "ship.aether_runner.description",
+      "imagePath": "Ships/Images/aether_runner",
+      "imagePathInterior": "Ships/Interiors/aether_runner_interior",
+      "baseHull": 8,
+      "baseLevelDurationSec": 60,
+      "totalModuleSlots": 5,  
+      "startingUnlockedModuleSlots": 3,
+      "startingMoney": 6,
+      "startingEquippedModuleIds": [],
+      "moduleSlotLayouts": [
+        { "slotIndex": 0, "normalizedX": 0.25, "normalizedY": 0.70 },
+        { "slotIndex": 1, "normalizedX": 0.50, "normalizedY": 0.80 },
+        { "slotIndex": 2, "normalizedX": 0.75, "normalizedY": 0.65 },
+        { "slotIndex": 3, "normalizedX": 0.30, "normalizedY": 0.40 },
+        { "slotIndex": 4, "normalizedX": 0.55, "normalizedY": 0.45 },
+        { "slotIndex": 5, "normalizedX": 0.75, "normalizedY": 0.35 }
+      ],
+      "sortOrder": 10,
+      "isUnlockedByDefault": false,
+      "isHidden": false
     },
-
     {
       "id": "DEBUG_SHIP",
-      "displayName": "Debug Ship",
-      "description": "Internal testing ship. Used for fast iteration and debugging.",
-      "maxHull": 10,
-      "levelDurationSec": 10,
-      "closeBinHoldGrace": 0.12,
-      "paddleWidthMult": 1.0,
-      "binAutoFlushOnEvac": true,
-      "imageFile": "core_scout.png",
-      "unlockedModuleSlots": 6,
-      "debugOnly": true
+      "displayNameLocKey": "ship.debug_ship.name",
+      "descriptionLocKey": "ship.debug_ship.description",
+      "imagePath": "Ships/Images/debug_ship",
+      "imagePathInterior": "Ships/Interiors/core_scout_interior",
+      "baseHull": 10,
+      "baseLevelDurationSec": 10,
+      "totalModuleSlots": 6,
+      "startingUnlockedModuleSlots": 6,
+      "startingMoney": 999,
+      "startingEquippedModuleIds": ["HULL_PATCH_3", "SCAN_ARRAY_T3", "GREED_COIL_T2"],
+      "moduleSlotLayouts": [
+        { "slotIndex": 0, "normalizedX": 0.20, "normalizedY": 0.75 },
+        { "slotIndex": 1, "normalizedX": 0.40, "normalizedY": 0.75 },
+        { "slotIndex": 2, "normalizedX": 0.60, "normalizedY": 0.75 },
+        { "slotIndex": 3, "normalizedX": 0.20, "normalizedY": 0.45 },
+        { "slotIndex": 4, "normalizedX": 0.40, "normalizedY": 0.45 },
+        { "slotIndex": 5, "normalizedX": 0.60, "normalizedY": 0.45 }
+      ],
+      "sortOrder": 999,
+      "isUnlockedByDefault": true,
+      "isHidden": true
     }
   ]
 }

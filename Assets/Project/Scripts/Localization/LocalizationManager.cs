@@ -5,7 +5,7 @@ using UnityEngine;
 /// <summary>
 /// Source unique de verite pour tout le contenu localise du jeu.
 ///
-/// Responsabilites :
+/// Responsabilites:
 /// - charger les packs localises depuis Resources/Localization/{pack}/{lang}
 /// - exposer les dialogues structures (pack "dialogs")
 /// - exposer les textes simples par cle (pack "ui", etc.)
@@ -19,7 +19,7 @@ public class LocalizationManager : MonoBehaviour
     [SerializeField] private string languageCode = "fr";
 
     [Tooltip("Nom des packs de textes simples a charger au demarrage.")]
-    [SerializeField] private string[] textPackNames = { "ui" };
+    [SerializeField] private string[] textPackNames = { "ui", "ships", "modules" };
 
     public static LocalizationManager Instance { get; private set; }
 
@@ -308,6 +308,55 @@ public class LocalizationManager : MonoBehaviour
         }
 
         return value;
+    }
+
+    public string GetTextOrKey(string packName, string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return string.Empty;
+
+        if (!IsReady)
+            return key;
+
+        if (string.IsNullOrWhiteSpace(packName))
+            return key;
+
+        string normalizedPack = packName.Trim();
+        string normalizedKey = key.Trim();
+
+        if (!textPacks.TryGetValue(normalizedPack, out Dictionary<string, string> pack))
+        {
+            Debug.LogWarning("[LocalizationManager] Pack texte inconnu: " + normalizedPack);
+            return normalizedKey;
+        }
+
+        if (!pack.TryGetValue(normalizedKey, out string value))
+        {
+            Debug.LogWarning("[LocalizationManager] Cle introuvable. Pack='" + normalizedPack + "', Key='" + normalizedKey + "'");
+            return normalizedKey;
+        }
+
+        return value;
+    }
+
+    public string FormatText(string packName, string key, params object[] args)
+    {
+        string format = GetTextOrKey(packName, key);
+
+        try
+        {
+            return string.Format(format, args);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning(
+                "[LocalizationManager] FormatText error. Pack='" + packName +
+                "', Key='" + key +
+                "', Message='" + e.Message + "'"
+            );
+
+            return format;
+        }
     }
 
     public bool HasText(string packName, string key)

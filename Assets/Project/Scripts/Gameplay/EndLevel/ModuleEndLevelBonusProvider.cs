@@ -18,6 +18,8 @@ using UnityEngine;
 /// </summary>
 public static class ModuleEndLevelBonusProvider
 {
+    private const string ModulesPackName = "modules";
+
     public static List<EndLevelBonusEntry> Evaluate()
     {
         var results = new List<EndLevelBonusEntry>();
@@ -80,15 +82,26 @@ public static class ModuleEndLevelBonusProvider
         if (mod == null)
             return "Module";
 
-        string displayName = string.IsNullOrEmpty(mod.displayName)
-            ? "Unknown"
-            : mod.displayName;
-
+        string displayName = GetLocalizedModuleName(mod);
         int tier = Mathf.Max(0, mod.tier);
 
         if (tier <= 0)
             return "Module " + displayName;
 
         return "Module " + displayName + " T" + tier;
+    }
+
+    private static string GetLocalizedModuleName(ModuleDefinition mod)
+    {
+        if (mod == null)
+            return "Unknown";
+
+        if (string.IsNullOrWhiteSpace(mod.displayNameLocKey))
+            return "Unknown";
+
+        if (LocalizationManager.Instance == null || !LocalizationManager.Instance.IsReady)
+            return mod.displayNameLocKey;
+
+        return LocalizationManager.Instance.GetTextOrKey(ModulesPackName, mod.displayNameLocKey);
     }
 }

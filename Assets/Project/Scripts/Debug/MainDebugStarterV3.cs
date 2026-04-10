@@ -1,5 +1,3 @@
-// Chemin recommandé (projet Unity) : Scripts/Debug/MainDebugStarterV3.cs
-
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,20 +9,11 @@ using UnityEngine.SceneManagement;
 /// Injecte un état de run de debug dans la sauvegarde, puis charge
 /// directement la scène demandée (RunHub / Main / Credits).
 ///
-/// Objectif : tester rapidement une situation sans repasser par le flow complet.
+/// Règle importante :
+/// - la création de la run passe d abord par NewRunInitializer
+/// - puis seulement les overrides debug sont appliqués
 ///
-/// Règles de fonctionnement :
-/// - Actif uniquement si le PlayerPref de debug est activé.
-/// - Une seule injection par session Play pour éviter les doubles initialisations.
-/// - Chaque lancement debug repart d'une nouvelle run (ResetRunState).
-/// - Le HullMax n'est jamais persisté ici : il reste dérivé du ship plus tard.
-/// - Les modules debug sont stockés comme vrais moduleId, puis injectés dans la run.
-/// - En debug, un module pré-équipé est aussi ajouté aux modules owned de la run,
-///   ainsi que ses tiers précédents dans la même famille.
-/// 
-/// Note Inspector :
-/// - debugWorldId, debugNodeIndex, debugShipId et debugEquippedModuleIds sont cachés.
-/// - Ils restent sérialisés pour stocker la config choisie via le Custom Editor.
+/// Objectif : garder UNE source de vérité pour l init d une nouvelle run.
 /// </summary>
 [DefaultExecutionOrder(-500)]
 public class MainDebugStarterV3 : MonoBehaviour
@@ -41,7 +30,7 @@ public class MainDebugStarterV3 : MonoBehaviour
     // Doit rester aligné avec RunSessionState.equipmentSlotCount.
     private const int RunEquipmentSlotCount = 6;
 
-    // Nombre de slots de pré-équipement debug dans l'inspector.
+    // Nombre de slots de pré-équipement debug dans l inspector.
     private const int DebugModuleLoadoutSlotCount = 3;
 
     public enum StartDestination
@@ -66,7 +55,7 @@ public class MainDebugStarterV3 : MonoBehaviour
     [SerializeField] private string debugShipId = "CORE_SCOUT";
 
     [Header("Run state overrides")]
-    [Tooltip("0 = utilise le hull max du vaisseau. Sinon simule un hull courant déjà endommagé.")]
+    [Tooltip("0 = utilise le hull max du vaisseau. Sinon simule un hull courant deja endommage.")]
     [SerializeField] private int debugCurrentHull = 0;
 
     [SerializeField] private int debugContractLives = 3;
@@ -105,7 +94,7 @@ public class MainDebugStarterV3 : MonoBehaviour
 
         if (!SetupRunStateInSave())
         {
-            Debug.LogWarning("[MainDebugStarterV3] Injection aborted (SaveManager missing). Destination scene will NOT be loaded.");
+            Debug.LogWarning("[MainDebugStarterV3] Injection aborted (SaveManager missing or init failed). Destination scene will NOT be loaded.");
             return;
         }
 
@@ -156,22 +145,34 @@ public class MainDebugStarterV3 : MonoBehaviour
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
             return false;
 
-        SaveManager.Instance.ResetRunState();
-
-        RunStateData run = SaveManager.Instance.GetRunState();
-        if (run == null)
-            return false;
+        GameSaveData save = SaveManager.Instance.Current;
 
         string resolvedWorldId = string.IsNullOrWhiteSpace(debugWorldId) ? "W1" : debugWorldId.Trim();
         string resolvedShipId = string.IsNullOrWhiteSpace(debugShipId) ? "CORE_SCOUT" : debugShipId.Trim();
 
-        run.runId = Guid.NewGuid().ToString("N");
-        run.hasOngoingRun = true;
+        ShipDefinition ship = ResolveShipDefinition(resolvedShipId);
+        if (ship == null)
+        {
+            Debug.LogError("[MainDebugStarterV3] Ship introuvable: " + resolvedShipId);
+            return false;
+        }
+
+        // Base commune : toute nouvelle run passe par le meme init que le vrai jeu.
+        bool ok = NewRunInitializer.Initialize(save, ship);
+        if (!ok)
+            return false;
+
+        RunStateData run = save.runState;
+        if (run == null)
+            return false;
+
+        // ------------------------------------------------------------
+        // OVERRIDES DEBUG
+        // ------------------------------------------------------------
         run.worldId = resolvedWorldId;
         run.currentNodeIndex = Mathf.Max(0, debugNodeIndex);
-        run.currentShipId = resolvedShipId;
 
-        int shipHullMax = ResolveShipHullMax(resolvedShipId);
+        int shipHullMax = ResolveShipHullMax(ship);
         int currentHull = ResolveCurrentHull(shipHullMax);
 
         SaveManager.Instance.SetRemainingHullInRun(currentHull);
@@ -179,8 +180,8 @@ public class MainDebugStarterV3 : MonoBehaviour
         SaveManager.Instance.SetCurrentRunScore(Mathf.Max(0, debugRunScore));
         SaveManager.Instance.SetMoney(Mathf.Max(0, debugMoney));
 
-        InjectDebugOwnedModulesIntoSave(run);
-        InjectDebugModulesIntoSave(run);
+        // Si un loadout debug est renseigne, il remplace l equipement de depart du ship.
+        ApplyDebugEquipmentOverride(run);
 
         SaveManager.Instance.Save();
 
@@ -194,79 +195,36 @@ public class MainDebugStarterV3 : MonoBehaviour
             " | Money=" + Mathf.Max(0, debugMoney) +
             " | RunScore=" + Mathf.Max(0, debugRunScore));
 
+        Debug.Log("[MainDebugStarterV3] Equipped=" + string.Join(", ", run.equippedModuleIds ?? Array.Empty<string>()));
+        Debug.Log("[MainDebugStarterV3] Owned=" + string.Join(", ", run.ownedModuleIdsInRun ?? new List<string>()));
+
         return true;
     }
 
-    private void InjectDebugOwnedModulesIntoSave(RunStateData run)
+    private void ApplyDebugEquipmentOverride(RunStateData run)
     {
         EnsureDebugModuleArrayInitialized();
 
         if (run == null)
             return;
 
-        if (run.ownedModuleIdsInRun == null)
-            run.ownedModuleIdsInRun = new List<string>();
-        else
-            run.ownedModuleIdsInRun.Clear();
+        if (!HasAnyDebugModuleOverride())
+            return;
 
         if (!ModuleCatalogService.EnsureLoaded())
-            return;
-
-        HashSet<string> ownedIds = new HashSet<string>(StringComparer.Ordinal);
-
-        for (int i = 0; i < debugEquippedModuleIds.Length; i++)
         {
-            string moduleId = string.IsNullOrWhiteSpace(debugEquippedModuleIds[i])
-                ? null
-                : debugEquippedModuleIds[i].Trim();
-
-            if (string.IsNullOrEmpty(moduleId))
-                continue;
-
-            ModuleDefinition equippedDef = ModuleCatalogService.GetById(moduleId);
-            if (equippedDef == null)
-                continue;
-
-            if (string.IsNullOrWhiteSpace(equippedDef.familyId))
-            {
-                ownedIds.Add(equippedDef.id);
-                continue;
-            }
-
-            List<ModuleDefinition> familyModules = ModuleCatalogService.GetModulesByFamily(equippedDef.familyId);
-            for (int j = 0; j < familyModules.Count; j++)
-            {
-                ModuleDefinition familyDef = familyModules[j];
-                if (familyDef == null)
-                    continue;
-
-                if (familyDef.tier <= equippedDef.tier)
-                    ownedIds.Add(familyDef.id);
-            }
+            Debug.LogWarning("[MainDebugStarterV3] Debug module override skipped: ModuleCatalog not loaded.");
+            return;
         }
 
-        foreach (string id in ownedIds)
-            run.ownedModuleIdsInRun.Add(id);
-    }
-
-    private void InjectDebugModulesIntoSave(RunStateData run)
-    {
-        EnsureDebugModuleArrayInitialized();
-
-        if (run == null || SaveManager.Instance == null)
-            return;
-
-        SaveManager.Instance.EnsureEquipmentArrays(RunEquipmentSlotCount);
-
         if (run.equippedModuleIds == null || run.equippedModuleIds.Length != RunEquipmentSlotCount)
-            return;
+            run.equippedModuleIds = new string[RunEquipmentSlotCount];
 
         for (int i = 0; i < run.equippedModuleIds.Length; i++)
             run.equippedModuleIds[i] = null;
 
-        bool catalogLoaded = ModuleCatalogService.EnsureLoaded();
-        int equippedCount = 0;
         HashSet<string> seenFamilies = new HashSet<string>(StringComparer.Ordinal);
+        int equippedCount = 0;
 
         for (int i = 0; i < debugEquippedModuleIds.Length; i++)
         {
@@ -276,12 +234,6 @@ public class MainDebugStarterV3 : MonoBehaviour
 
             if (string.IsNullOrEmpty(moduleId))
                 continue;
-
-            if (!catalogLoaded)
-            {
-                Debug.LogWarning("[MainDebugStarterV3] Debug module injection skipped: ModuleCatalog not loaded.");
-                break;
-            }
 
             ModuleDefinition def = ModuleCatalogService.GetById(moduleId);
             if (def == null)
@@ -303,25 +255,83 @@ public class MainDebugStarterV3 : MonoBehaviour
             equippedCount++;
         }
 
-        run.unlockedModuleSlotsInRun = Mathf.Max(0, equippedCount);
+        run.unlockedModuleSlotsInRun = Mathf.Max(run.unlockedModuleSlotsInRun, equippedCount);
+
+        // Owned recalculé a partir du nouvel equipement debug.
+        run.ownedModuleIdsInRun = BuildOwnedModulesFromEquipped(run.equippedModuleIds);
     }
 
-    private int ResolveShipHullMax(string shipId)
+    private bool HasAnyDebugModuleOverride()
     {
-        const int fallbackHullMax = 3;
+        EnsureDebugModuleArrayInitialized();
 
+        for (int i = 0; i < debugEquippedModuleIds.Length; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(debugEquippedModuleIds[i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    private List<string> BuildOwnedModulesFromEquipped(string[] equippedModuleIds)
+    {
+        HashSet<string> ownedIds = new HashSet<string>(StringComparer.Ordinal);
+
+        if (equippedModuleIds == null || equippedModuleIds.Length == 0)
+            return new List<string>();
+
+        for (int i = 0; i < equippedModuleIds.Length; i++)
+        {
+            string moduleId = string.IsNullOrWhiteSpace(equippedModuleIds[i])
+                ? null
+                : equippedModuleIds[i].Trim();
+
+            if (string.IsNullOrEmpty(moduleId))
+                continue;
+
+            ModuleDefinition equippedDef = ModuleCatalogService.GetById(moduleId);
+            if (equippedDef == null)
+                continue;
+
+            ownedIds.Add(equippedDef.id);
+
+            if (string.IsNullOrWhiteSpace(equippedDef.familyId))
+                continue;
+
+            List<ModuleDefinition> familyModules = ModuleCatalogService.GetModulesByFamily(equippedDef.familyId);
+            for (int j = 0; j < familyModules.Count; j++)
+            {
+                ModuleDefinition familyDef = familyModules[j];
+                if (familyDef == null)
+                    continue;
+
+                if (familyDef.tier <= equippedDef.tier)
+                    ownedIds.Add(familyDef.id);
+            }
+        }
+
+        return new List<string>(ownedIds);
+    }
+
+    private ShipDefinition ResolveShipDefinition(string shipId)
+    {
         if (ShipCatalogService.Catalog == null ||
             ShipCatalogService.Catalog.ships == null ||
             ShipCatalogService.Catalog.ships.Count == 0)
         {
-            return fallbackHullMax;
+            return null;
         }
 
-        var ship = ShipCatalogService.Catalog.ships.Find(s => s.id == shipId);
-        if (ship == null)
-            return fallbackHullMax;
+        return ShipCatalogService.Catalog.ships.Find(s => s != null && s.id == shipId);
+    }
 
-        return Mathf.Max(1, ship.maxHull);
+    private int ResolveShipHullMax(ShipDefinition ship)
+    {
+        if (ship == null)
+            return 3;
+
+        return Mathf.Max(1, ship.baseHull);
     }
 
     private int ResolveCurrentHull(int shipHullMax)
@@ -350,7 +360,7 @@ public class MainDebugStarterV3 : MonoBehaviour
 
         try
         {
-            var catalog = JsonUtility.FromJson<ShipCatalog>(jsonAsset.text);
+            ShipCatalog catalog = JsonUtility.FromJson<ShipCatalog>(jsonAsset.text);
             if (catalog == null || catalog.ships == null || catalog.ships.Count == 0)
             {
                 Debug.LogWarning("[MainDebugStarterV3] ShipCatalog loaded but empty/invalid.");

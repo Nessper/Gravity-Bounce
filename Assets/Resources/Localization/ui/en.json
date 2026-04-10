@@ -1,3 +1,18 @@
 {
-  "entries": []
+  "language": "en",
+  "entries": [
+    {
+      "key": "ship_select.slots.unlocked_format",
+      "text": "{0}/{1} slots unlocked"
+    },
+    {
+      "key": "ship_select.modules.none",
+      "text": "No modules installed"
+    },
+    {
+      "key": "ship_select.modules.hover_for_details",
+      "text": "Hover a module for details"
+    }
+
+  ]
 }

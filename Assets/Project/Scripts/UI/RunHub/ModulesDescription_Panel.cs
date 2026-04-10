@@ -16,6 +16,8 @@ using TMPro;
 /// </summary>
 public class ModulesDescription_Panel : MonoBehaviour
 {
+    private const string ModulesPackName = "modules";
+
     [Header("Deps")]
     [SerializeField] private ModulesHubController hub;
 
@@ -65,7 +67,6 @@ public class ModulesDescription_Panel : MonoBehaviour
 
     private void Awake()
     {
-        // Par défaut : bouton masqué
         if (buyButton != null)
             buyButton.gameObject.SetActive(false);
     }
@@ -76,11 +77,8 @@ public class ModulesDescription_Panel : MonoBehaviour
             selection.OnSelectionChanged += HandleSelectionChanged;
 
         if (hub != null && hub.RunSession != null)
-        {
             hub.RunSession.OnMoneyChanged.AddListener(HandleMoneyChanged);
-        }
 
-        // Sync immédiat
         HandleSelectionChanged(selection != null ? selection.SelectedModuleId : null);
     }
 
@@ -90,9 +88,7 @@ public class ModulesDescription_Panel : MonoBehaviour
             selection.OnSelectionChanged -= HandleSelectionChanged;
 
         if (hub != null && hub.RunSession != null)
-        {
             hub.RunSession.OnMoneyChanged.RemoveListener(HandleMoneyChanged);
-        }
     }
 
     private void HandleMoneyChanged(int _)
@@ -140,42 +136,33 @@ public class ModulesDescription_Panel : MonoBehaviour
 
         bool isOwned = hub.IsOwned(def.id);
 
-        // HEADER
         if (headerText != null)
         {
-            int t = Mathf.Max(1, def.tier);
-            string fam = string.IsNullOrEmpty(def.familyId) ? "?" : def.familyId;
-            string name = string.IsNullOrEmpty(def.displayName) ? def.id : def.displayName;
-
-            headerText.text = $"{name} - T{t}";
+            string name = GetLocalizedModuleName(def);
+            string romanTier = ToRoman(Mathf.Max(1, def.tier));
+            headerText.text = $"{name} {romanTier}";
         }
 
-        // DESCRIPTION JSON
         if (descriptionText != null)
-            descriptionText.text = def.description;
+            descriptionText.text = GetLocalizedModuleDescription(def);
 
-        // BUY button (visible si shop + non possédé)
         bool showBuy = allowBuy && !isOwned;
 
         if (buyButton != null)
         {
             buyButton.gameObject.SetActive(showBuy);
-
-            // IMPORTANT: toujours cliquable (même si pas assez d'argent)
             buyButton.interactable = true;
         }
 
         if (buyButtonText != null)
             buyButtonText.text = FormatMoney(currentCost);
 
-        // RESET STATUS
         if (equipStatusText != null)
         {
             equipStatusText.text = "";
             equipStatusText.color = Color.white;
         }
 
-        // Warning shop (pré-achat)
         if (showBuy)
         {
             if (hub.RunSession != null && equipStatusText != null)
@@ -184,14 +171,7 @@ public class ModulesDescription_Panel : MonoBehaviour
 
                 if (!ok && !string.IsNullOrEmpty(missingId))
                 {
-                    string prereqName = missingId;
-
-                    if (hub.TryGetModuleById(missingId, out ModuleDefinition prereqDef) && prereqDef != null)
-                    {
-                        prereqName = string.IsNullOrEmpty(prereqDef.displayName) ? prereqDef.id : prereqDef.displayName;
-                        int prereqTier = Mathf.Max(1, prereqDef.tier);
-                        prereqName = prereqName + " (T" + prereqTier + ")";
-                    }
+                    string prereqName = BuildPrerequisiteLabel(missingId);
 
                     equipStatusText.text =
                         "Attention ! Tu peux l'acheter, mais tu ne pourras pas l'equiper tant que tu n'as pas " + prereqName + ".";
@@ -203,7 +183,6 @@ public class ModulesDescription_Panel : MonoBehaviour
             return;
         }
 
-        // Warning tuning (échec equip réel)
         if (!allowBuy && isOwned && hub.RunSession != null && equipStatusText != null)
         {
             bool explained = hub.RunSession.TryExplainEquipFailure(
@@ -216,16 +195,7 @@ public class ModulesDescription_Panel : MonoBehaviour
             {
                 if (reason == RunSessionState.EquipFailReason.MissingPrerequisite)
                 {
-                    string prereqName = missingPrereqId;
-
-                    if (!string.IsNullOrEmpty(missingPrereqId) &&
-                        hub.TryGetModuleById(missingPrereqId, out ModuleDefinition prereqDef) &&
-                        prereqDef != null)
-                    {
-                        prereqName = string.IsNullOrEmpty(prereqDef.displayName) ? prereqDef.id : prereqDef.displayName;
-                        int prereqTier = Mathf.Max(1, prereqDef.tier);
-                        prereqName = prereqName + " (T" + prereqTier + ")";
-                    }
+                    string prereqName = BuildPrerequisiteLabel(missingPrereqId);
 
                     equipStatusText.text =
                         "Impossible d'equiper: il te manque d'abord " + prereqName + ".";
@@ -268,7 +238,6 @@ public class ModulesDescription_Panel : MonoBehaviour
             buyButtonBackground.color = affordable ? buyBgColorAffordable : buyBgColorUnaffordable;
     }
 
-    // APPELÉ PAR LE BOUTON (Inspector) OU DIRECTEMENT
     public void OnBuyPressed()
     {
         if (hub == null || hub.RunSession == null)
@@ -278,7 +247,6 @@ public class ModulesDescription_Panel : MonoBehaviour
         if (string.IsNullOrEmpty(moduleId))
             return;
 
-        // Si pas assez d'argent: son erreur + on ne tente même pas le buy
         if (hub.RunSession.Money < Mathf.Max(0, currentCost))
         {
             BootRoot.Audio?.PlayUi(errorSfx);
@@ -296,7 +264,6 @@ public class ModulesDescription_Panel : MonoBehaviour
 
         BootRoot.Audio?.PlayUi(buySfx);
 
-        // Refresh du panneau sur le même module (maintenant possédé, BUY disparaît)
         Show(moduleId);
     }
 
@@ -341,16 +308,7 @@ public class ModulesDescription_Panel : MonoBehaviour
 
         if (reason == RunSessionState.EquipFailReason.MissingPrerequisite)
         {
-            string prereqName = missingPrereqId;
-
-            if (!string.IsNullOrEmpty(missingPrereqId) &&
-                hub.TryGetModuleById(missingPrereqId, out ModuleDefinition prereqDef) &&
-                prereqDef != null)
-            {
-                prereqName = string.IsNullOrEmpty(prereqDef.displayName) ? prereqDef.id : prereqDef.displayName;
-                int prereqTier = Mathf.Max(1, prereqDef.tier);
-                prereqName = prereqName + " (T" + prereqTier + ")";
-            }
+            string prereqName = BuildPrerequisiteLabel(missingPrereqId);
 
             equipStatusText.text = "Impossible d'equiper: il te manque d'abord " + prereqName + ".";
             equipStatusText.color = Color.red;
@@ -359,5 +317,58 @@ public class ModulesDescription_Panel : MonoBehaviour
 
         equipStatusText.text = "Impossible d'equiper ce module.";
         equipStatusText.color = Color.red;
+    }
+
+    private string BuildPrerequisiteLabel(string moduleId)
+    {
+        if (string.IsNullOrEmpty(moduleId))
+            return "un module requis";
+
+        if (!hub.TryGetModuleById(moduleId, out ModuleDefinition prereqDef) || prereqDef == null)
+            return moduleId;
+
+        string name = GetLocalizedModuleName(prereqDef);
+        string romanTier = ToRoman(Mathf.Max(1, prereqDef.tier));
+
+        return $"{name} {romanTier}";
+    }
+
+    private string GetLocalizedModuleName(ModuleDefinition def)
+    {
+        if (def == null)
+            return "Unknown";
+
+        if (string.IsNullOrWhiteSpace(def.displayNameLocKey))
+            return def.id;
+
+        if (LocalizationManager.Instance == null || !LocalizationManager.Instance.IsReady)
+            return def.displayNameLocKey;
+
+        return LocalizationManager.Instance.GetTextOrKey(ModulesPackName, def.displayNameLocKey);
+    }
+
+    private string GetLocalizedModuleDescription(ModuleDefinition def)
+    {
+        if (def == null)
+            return string.Empty;
+
+        if (string.IsNullOrWhiteSpace(def.descriptionLocKey))
+            return string.Empty;
+
+        if (LocalizationManager.Instance == null || !LocalizationManager.Instance.IsReady)
+            return def.descriptionLocKey;
+
+        return LocalizationManager.Instance.GetTextOrKey(ModulesPackName, def.descriptionLocKey);
+    }
+
+    private string ToRoman(int value)
+    {
+        switch (value)
+        {
+            case 1: return "I";
+            case 2: return "II";
+            case 3: return "III";
+            default: return value.ToString();
+        }
     }
 }

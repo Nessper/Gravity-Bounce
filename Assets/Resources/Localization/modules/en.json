@@ -1,0 +1,72 @@
+{
+  "language": "en",
+  "entries": [
+    {
+      "key": "module.hull_patch.name",
+      "text": "Hull Patch"
+    },
+    {
+      "key": "module.hull_patch.t1.description",
+      "text": "Restore +1 hull after each mission."
+    },
+    {
+      "key": "module.hull_patch.t2.description",
+      "text": "Restore +1 hull and gain +1 credit after each mission."
+    },
+    {
+      "key": "module.hull_patch.t3.description",
+      "text": "Restore +2 hull and gain +1 credit after each mission."
+    },
+
+    {
+      "key": "module.scan_array.name",
+      "text": "Scan Array"
+    },
+    {
+      "key": "module.scan_array.t1.description",
+      "text": "Briefing detail: T1."
+    },
+    {
+      "key": "module.scan_array.t2.description",
+      "text": "Briefing detail: T2."
+    },
+    {
+      "key": "module.scan_array.t3.description",
+      "text": "Briefing detail: T3."
+    },
+
+    {
+      "key": "module.greed_coil.name",
+      "text": "Greed Coil"
+    },
+    {
+      "key": "module.greed_coil.t1.description",
+      "text": "Flush threshold +1 (larger combos)."
+    },
+    {
+      "key": "module.greed_coil.t2.description",
+      "text": "Flush threshold +2 (larger combos)."
+    },
+    {
+      "key": "module.greed_coil.t3.description",
+      "text": "Flush threshold +3 (larger combos)."
+    },
+
+    {
+      "key": "module.core_growth.name",
+      "text": "Core Growth"
+    },
+    {
+      "key": "module.core_growth.t1.description",
+      "text": "Final score -200. If hull is full: +1 max hull."
+    },
+    {
+      "key": "module.core_growth.t2.description",
+      "text": "Final score -100. If hull is full: +1 max hull."
+    },
+    {
+      "key": "module.core_growth.t3.description",
+      "text": "Final score +100. If hull is full: +1 max hull."
+    }
+  ]
+}

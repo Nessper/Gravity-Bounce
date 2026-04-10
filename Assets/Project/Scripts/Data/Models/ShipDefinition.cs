@@ -2,21 +2,40 @@ using System;
 using System.Collections.Generic;
 
 [Serializable]
+public class ShipModuleSlotLayout
+{
+    public int slotIndex;
+    public float normalizedX;
+    public float normalizedY;
+}
+
+[Serializable]
 public class ShipDefinition
 {
     public string id;
-    public string displayName;
-    public string description;    
-    public int maxHull;
-    public float levelDurationSec;
-    public float closeBinHoldGrace;
-    public float paddleWidthMult;
-    public bool binAutoFlushOnEvac;
-    public string imageFile;
-    public int unlockedModuleSlots; // ex: 3 => slots 0,1,2 ouverts ; 3,4,5 fermés
-    public bool debugOnly; 
-}
 
+    public string displayNameLocKey;
+    public string descriptionLocKey;
+
+    public string imagePath;
+    public string imagePathInterior;
+
+    public int baseHull;
+    public float baseLevelDurationSec;
+
+    public int totalModuleSlots;
+    public int startingUnlockedModuleSlots;
+    
+    public int startingMoney;
+
+    public List<string> startingEquippedModuleIds;
+    public List<ShipModuleSlotLayout> moduleSlotLayouts;
+
+    public int sortOrder;
+
+    public bool isUnlockedByDefault;
+    public bool isHidden;
+}
 
 [Serializable]
 public class ShipCatalog

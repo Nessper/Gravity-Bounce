@@ -189,7 +189,7 @@ public class HullSystem : MonoBehaviour
         if (def == null)
             return Mathf.Max(1, maxHull);
 
-        return Mathf.Max(1, def.maxHull);
+        return Mathf.Max(1, def.baseHull);
     }
 
     public int GetCurrentHull()

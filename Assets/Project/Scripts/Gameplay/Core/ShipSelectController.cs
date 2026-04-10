@@ -1,141 +1,180 @@
-// Chemin recommandé (projet Unity) : Scripts/UI/ShipSelect/ShipSelectController.cs
-
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 /// <summary>
 /// Controle la scene Ship Select.
-/// Gere la navigation dans le catalogue, l affichage, le choix du vaisseau et l initialisation d une run.
-/// Les transitions de scene sont deleguees a GameFlowController via BootRoot.
 ///
-/// Regle debug :
-/// - Les vaisseaux marques debugOnly ne doivent pas apparaitre en mode normal.
-/// - Ils restent visibles uniquement si le debug global est actif (PlayerPref VS_DEBUG_MAIN = 1).
+/// Responsabilites principales :
+/// - Recuperer le vaisseau courant a afficher.
+/// - Binder toutes les informations UI liees au ship selectionne.
+/// - Gerer la navigation de base entre les ships.
+/// - Gerer le lancement d une nouvelle run avec le ship choisi.
+/// - Afficher les modules equipes de depart du vaisseau.
 ///
-/// Hypothese de design :
-/// - Ce controleur est le seul endroit du jeu ou le joueur choisit son vaisseau.
-/// - On applique donc ici un filtrage local, sans refactor plus large du catalogue.
+/// Cette version est preparee pour une future transition visuelle
+/// (fade UI + fermeture/ouverture des portes du hangar).
+///
+/// Bloc modules :
+/// - Ligne 1 : X / Y emplacements debloques
+/// - Ligne 2 : "aucun module installe" ou liste horizontale de modules equipes
+/// - Ligne 3 : vide si aucun module, sinon texte d aide par defaut puis detail localise au hover
 /// </summary>
 public class ShipSelectController : MonoBehaviour
 {
     [Header("UI Refs")]
     [SerializeField] private TMP_Text shipNameText;
-    [SerializeField] private Image shipImage;
+    [SerializeField] private TMP_Text descriptionText;
+
+    [SerializeField] private TMP_Text hullText;
+    [SerializeField] private TMP_Text durationText;
+    [SerializeField] private TMP_Text moneyText;
+    [SerializeField] private TMP_Text openSlotsText;
+
+    // SpriteRenderer utilise pour afficher visuellement le vaisseau
+    // dans la zone principale de presentation.
+    [SerializeField] private SpriteRenderer shipImageRenderer;
+
+    [Header("Buttons")]
     [SerializeField] private Button startButton;
     [SerializeField] private Button backButton;
     [SerializeField] private Button previousButton;
     [SerializeField] private Button nextButton;
-    [SerializeField] private TMP_Text descriptionText;
-    [SerializeField] private TMP_Text hullText;
-    [SerializeField] private TMP_Text shieldText;
-    [SerializeField] private TMP_Text paddleWidthText;
 
-    // Index du vaisseau courant dans le catalogue brut.
-    private int index = 0;
+    [Header("Modules UI")]
+    // Parent horizontal qui accueille les icones des modules equipes.
+    [SerializeField] private Transform equippedModulesRoot;
 
-    // Cle du PlayerPref utilisee par ton flow debug.
-    private const string DebugPlayerPrefKey = "VS_DEBUG_MAIN";
+    // Prefab UI d une icone de module equipe.
+    [SerializeField] private GameObject equippedModuleIconPrefab;
 
+    // Texte alternatif affiche quand aucun module n est equipe.
+    [SerializeField] private TMP_Text noModulesText;
+
+    // Panneau qui affiche soit un texte d aide par defaut,
+    // soit le detail du module actuellement survole.
+    [SerializeField] private ModuleDetailsPanelUI moduleDetailsPanel;
+
+    // Liste runtime des items UI modules actuellement instancies.
+    // Sert notamment a debrancher proprement les events de hover.
+    private readonly List<ModuleItemUI> equippedModuleItems = new List<ModuleItemUI>();
+
+    // Association entre un item UI instancie et sa definition de module.
+    // Utilise au moment du hover pour retrouver le bon ModuleDefinition.
+    private readonly Dictionary<ModuleItemUI, ModuleDefinition> itemToModuleDef = new Dictionary<ModuleItemUI, ModuleDefinition>();
+
+    // Index courant dans la liste des ships du catalog.
+    private int currentIndex = 0;
+
+    // Noms des packs de localisation.
+    private const string ShipsPackName = "ships";
+    private const string UiPackName = "ui";
+
+    // Fallback de ship si aucune selection precedente n existe.
+    private const string DefaultShipId = "CORE_SCOUT";
+
+    /// <summary>
+    /// Index actuellement affiche.
+    /// Expose en lecture seule pour les futurs controleurs de transition.
+    /// </summary>
+    public int CurrentIndex => currentIndex;
+
+    /// <summary>
+    /// True si le catalog contient au moins un ship navigable.
+    /// </summary>
+    public bool HasShips
+    {
+        get
+        {
+            List<ShipDefinition> ships = GetShips();
+            return ships != null && ships.Count > 0;
+        }
+    }
+
+    /// <summary>
+    /// Validation minimale au chargement du composant.
+    ///
+    /// Ici on verifie que le ShipCatalog est bien charge et non vide.
+    /// Si ce n est pas le cas, on desactive le script pour eviter
+    /// toute suite de NullReference plus loin.
+    /// </summary>
     private void Awake()
     {
-        if (ShipCatalogService.Catalog == null ||
-            ShipCatalogService.Catalog.ships == null ||
-            ShipCatalogService.Catalog.ships.Count == 0)
+        if (!HasShips)
         {
             Debug.LogError("[ShipSelectController] ShipCatalog non charge ou vide.");
             enabled = false;
             return;
         }
-
-        // Securite : si aucun vaisseau visible n existe pour ce mode,
-        // on desactive le controleur pour eviter une navigation infinie.
-        if (!HasAnyVisibleShip())
-        {
-            Debug.LogError("[ShipSelectController] Aucun vaisseau visible pour le mode courant.");
-            enabled = false;
-            return;
-        }
     }
 
+    /// <summary>
+    /// Initialisation de l ecran.
+    ///
+    /// - Verifie certains services critiques.
+    /// - Resout quel ship doit etre affiche au demarrage.
+    /// - Positionne l index sur ce ship.
+    /// - Rafraichit toute l UI.
+    /// </summary>
     private void Start()
     {
         if (BootRoot.GameFlow == null)
             Debug.LogError("[ShipSelectController] BootRoot.GameFlow est null. ShipSelect doit etre charge depuis Boot/Title.");
 
+        if (LocalizationManager.Instance == null || !LocalizationManager.Instance.IsReady)
+            Debug.LogError("[ShipSelectController] LocalizationManager non pret.");
+
+        // Aligne directement le volume musique de titre sur sa cible
+        // pour eviter un etat intermediaire bizarre si on arrive ici
+        // depuis une autre scene.
         if (TitleMusicPlayer.Instance != null)
             TitleMusicPlayer.Instance.SnapToTargetVolume();
 
-        string savedId = ResolveInitialShipIdForUI();
+        string initialShipId = ResolveInitialShipIdForUI();
+        int initialIndex = FindShipIndexById(initialShipId);
 
-        var ships = ShipCatalogService.Catalog.ships;
-        int found = ships.FindIndex(s => s != null && s.id == savedId);
-
-        // Si on retrouve le ship sauvegarde, on s aligne dessus.
-        // Sinon fallback sur 0.
-        index = (found >= 0) ? found : 0;
-
-        // Si l index tombe sur un ship debug non visible en mode normal,
-        // on avance jusqu au prochain ship autorise.
-        EnsureCurrentIndexIsVisible();
-
-        RefreshUI();
+        // Si l id n existe pas dans le catalog, on retombe sur 0.
+        ApplyShipByIndex(initialIndex >= 0 ? initialIndex : 0);
     }
 
-    // ---------------------------------------------------------
-    // Navigation callbacks (Inspector)
-    // ---------------------------------------------------------
-
     /// <summary>
-    /// Navigue vers le vaisseau precedent visible.
-    /// Les ships debugOnly sont ignores en mode normal.
+    /// Navigation immediate vers le ship precedent.
+    ///
+    /// Cette methode est encore utile tant que les boutons appellent
+    /// directement ce controller. Plus tard, un TransitionController
+    /// pourra intercepter ce clic et piloter lui-meme la sequence visuelle.
     /// </summary>
     public void OnPreviousPressed()
     {
-        var ships = ShipCatalogService.Catalog.ships;
-        int count = ships.Count;
-
-        if (count == 0)
+        if (!CanNavigate())
             return;
 
-        do
-        {
-            index = (index - 1 + count) % count;
-        }
-        while (!IsShipVisibleAt(index));
-
-        RefreshUI();
+        ApplyShipByIndex(GetPreviousIndex());
     }
 
     /// <summary>
-    /// Navigue vers le vaisseau suivant visible.
-    /// Les ships debugOnly sont ignores en mode normal.
+    /// Navigation immediate vers le ship suivant.
+    ///
+    /// Cette methode est encore utile tant que les boutons appellent
+    /// directement ce controller. Plus tard, un TransitionController
+    /// pourra intercepter ce clic et piloter lui-meme la sequence visuelle.
     /// </summary>
     public void OnNextPressed()
     {
-        var ships = ShipCatalogService.Catalog.ships;
-        int count = ships.Count;
-
-        if (count == 0)
+        if (!CanNavigate())
             return;
 
-        do
-        {
-            index = (index + 1) % count;
-        }
-        while (!IsShipVisibleAt(index));
-
-        RefreshUI();
+        ApplyShipByIndex(GetNextIndex());
     }
 
-    // ---------------------------------------------------------
-    // Back button
-    // ---------------------------------------------------------
-
     /// <summary>
-    /// Retour au Title.
-    /// On indique au RunConfig de ne pas rejouer l intro title au retour.
+    /// Retourne a l ecran titre.
+    ///
+    /// On demande au RunConfig de skipper l intro du titre
+    /// lors du prochain chargement pour eviter un flow trop lourd.
     /// </summary>
     public void OnBackPressed()
     {
@@ -145,13 +184,16 @@ public class ShipSelectController : MonoBehaviour
         BootRoot.GameFlow.GoToTitle();
     }
 
-    // ---------------------------------------------------------
-    // Start button + run init (NEW CONVENTION)
-    // ---------------------------------------------------------
-
     /// <summary>
-    /// Initialise une nouvelle run avec le ship actuellement selectionne,
-    /// puis lance le RunHub apres fade out de la musique.
+    /// Lance une nouvelle run avec le ship actuellement selectionne.
+    ///
+    /// Cette methode :
+    /// - valide les dependances critiques
+    /// - recupere le ship courant
+    /// - persiste la selection
+    /// - initialise l etat runtime de la run
+    /// - sauvegarde
+    /// - lance la transition vers le RunHub apres fade musique
     /// </summary>
     public void OnStartPressed()
     {
@@ -161,66 +203,34 @@ public class ShipSelectController : MonoBehaviour
             return;
         }
 
-        EnsureCurrentIndexIsVisible();
-
-        var ship = ShipCatalogService.Catalog.ships[index];
-
-        // Securite supplementaire : empeche le demarrage d un ship debug en mode normal.
-        if (ship != null && ship.debugOnly && !IsDebugActive())
+        ShipDefinition ship = GetCurrentShip();
+        if (ship == null)
         {
-            Debug.LogWarning("[ShipSelectController] Tentative de demarrage avec un ship debug en mode normal.");
+            Debug.LogError("[ShipSelectController] Aucun ship courant.");
             return;
         }
 
-        // 1) RunConfig (UI): utile pour l affichage et le flow Title, mais pas source de verite gameplay
         if (RunConfig.Instance != null)
             RunConfig.Instance.SetSelectedShip(ship.id);
 
-        // 2) Save (source de verite): on persiste le choix du profil + le ship de run
-        GameSaveData save = SaveManager.Instance.Current;
+        bool ok = NewRunInitializer.Initialize(SaveManager.Instance.Current, ship);
 
-        // Choix persistant du profil (dernier vaisseau choisi)
-        save.selectedShipId = ship.id;
-
-        if (save.runState == null)
-            save.runState = new RunStateData();
-
-        RunStateData run = save.runState;
-
-        run.hasOngoingRun = true;
-
-        // Ship utilise pour cette run (gele)
-        run.currentShipId = ship.id;
-
-        // Convention: worldId + currentNodeIndex (next playable)
-        run.worldId = "W1";
-        run.currentNodeIndex = 0;
-
-        // Ressources de run
-        // IMPORTANT: HullMax n'est pas persisté. Il est dérivé (ship + modules) par RunSessionState.
-        // Ici on initialise simplement le hull courant "plein" sur la base du ship.
-        run.remainingHullInRun = Mathf.Max(1, ship.maxHull);
-
-        run.remainingContractLives = 3;
-        run.currentRunScore = 0;
-        run.nodesClearedInRun = 0;
-
-        // Pas en gameplay
-        run.levelInProgress = false;
-        run.abortPenaltyArmed = false;
+        if (!ok)
+        {
+            Debug.LogError("[ShipSelectController] Echec initialisation nouvelle run.");
+            return;
+        }
 
         SaveManager.Instance.Save();
 
-        Debug.Log("[ShipSelectController] StartRun shipId=" + ship.id
-                  + " profileSelected=" + save.selectedShipId
-                  + " runShip=" + run.currentShipId);
+        Debug.Log("[ShipSelectController] StartRun shipId=" + ship.id);
 
-        // 3) Demarre le niveau apres fade out musique
         StartCoroutine(StartAfterMusicFadeRoutine());
     }
 
     /// <summary>
-    /// Attend le fade out de la musique du title avant de lancer le RunHub.
+    /// Attend la fin du fade-out de la musique de titre
+    /// avant de charger le RunHub.
     /// </summary>
     private IEnumerator StartAfterMusicFadeRoutine()
     {
@@ -230,92 +240,228 @@ public class ShipSelectController : MonoBehaviour
         BootRoot.GameFlow.GoToRunHub();
     }
 
-    // ---------------------------------------------------------
-    // UI refresh
-    // ---------------------------------------------------------
+    /// <summary>
+    /// Indique si la navigation entre ships est possible.
+    /// </summary>
+    public bool CanNavigate()
+    {
+        List<ShipDefinition> ships = GetShips();
+        return ships != null && ships.Count > 0;
+    }
 
     /// <summary>
-    /// Rafraichit tout l affichage a partir du ship courant.
+    /// Retourne l index precedent en wrap circulaire.
+    /// Ne modifie pas l etat courant.
+    /// </summary>
+    public int GetPreviousIndex()
+    {
+        List<ShipDefinition> ships = GetShips();
+        if (ships == null || ships.Count == 0)
+            return -1;
+
+        return (currentIndex - 1 + ships.Count) % ships.Count;
+    }
+
+    /// <summary>
+    /// Retourne l index suivant en wrap circulaire.
+    /// Ne modifie pas l etat courant.
+    /// </summary>
+    public int GetNextIndex()
+    {
+        List<ShipDefinition> ships = GetShips();
+        if (ships == null || ships.Count == 0)
+            return -1;
+
+        return (currentIndex + 1) % ships.Count;
+    }
+
+    /// <summary>
+    /// Applique un index de ship et rafraichit toute l UI.
+    ///
+    /// C est la methode cle pour la future transition :
+    /// le TransitionController pourra l appeler une fois les portes fermees.
+    /// </summary>
+    public void ApplyShipByIndex(int newIndex)
+    {
+        List<ShipDefinition> ships = GetShips();
+        if (ships == null || ships.Count == 0)
+            return;
+
+        currentIndex = Mathf.Clamp(newIndex, 0, ships.Count - 1);
+        RefreshUI();
+    }
+
+    /// <summary>
+    /// Active ou desactive l interaction des boutons du Ship Select.
+    ///
+    /// Utile pendant une transition visuelle pour eviter
+    /// les doubles clics et le spam input.
+    /// </summary>
+    public void SetButtonsInteractable(bool interactable)
+    {
+        if (startButton != null)
+            startButton.interactable = interactable;
+
+        if (backButton != null)
+            backButton.interactable = interactable;
+
+        if (previousButton != null)
+            previousButton.interactable = interactable;
+
+        if (nextButton != null)
+            nextButton.interactable = interactable;
+    }
+
+    /// <summary>
+    /// Retourne le ship courant a partir de l index courant.
+    /// </summary>
+    public ShipDefinition GetCurrentShip()
+    {
+        List<ShipDefinition> ships = GetShips();
+        if (ships == null || ships.Count == 0)
+            return null;
+
+        currentIndex = Mathf.Clamp(currentIndex, 0, ships.Count - 1);
+        return ships[currentIndex];
+    }
+
+    /// <summary>
+    /// Retourne le ship correspondant a un index donne.
+    /// </summary>
+    public ShipDefinition GetShipAtIndex(int shipIndex)
+    {
+        List<ShipDefinition> ships = GetShips();
+        if (ships == null || ships.Count == 0)
+            return null;
+
+        if (shipIndex < 0 || shipIndex >= ships.Count)
+            return null;
+
+        return ships[shipIndex];
+    }
+
+    /// <summary>
+    /// Retourne l index d un ship a partir de son id.
+    /// Retourne -1 si introuvable.
+    /// </summary>
+    public int FindShipIndexById(string shipId)
+    {
+        if (string.IsNullOrWhiteSpace(shipId))
+            return -1;
+
+        List<ShipDefinition> ships = GetShips();
+        if (ships == null || ships.Count == 0)
+            return -1;
+
+        return ships.FindIndex(s => s != null && s.id == shipId);
+    }
+
+    /// <summary>
+    /// Retourne la liste des ships depuis le catalog.
+    /// Petit helper centralise pour eviter de repeter la meme expression partout.
+    /// </summary>
+    private List<ShipDefinition> GetShips()
+    {
+        return ShipCatalogService.Catalog != null
+            ? ShipCatalogService.Catalog.ships
+            : null;
+    }
+
+    /// <summary>
+    /// Rafraichit l ensemble de l UI a partir du ship courant.
+    ///
+    /// Concretement :
+    /// - nom
+    /// - description
+    /// - stats
+    /// - texte slots
+    /// - bloc modules
+    /// - image principale du vaisseau
     /// </summary>
     private void RefreshUI()
     {
-        EnsureCurrentIndexIsVisible();
-
-        var ship = ShipCatalogService.Catalog.ships[index];
+        ShipDefinition ship = GetCurrentShip();
         if (ship == null)
         {
-            Debug.LogWarning("[ShipSelectController] Ship null a l index " + index);
+            Debug.LogWarning("[ShipSelectController] Ship null a l index " + currentIndex);
             return;
         }
 
         if (shipNameText != null)
-            shipNameText.text = ship.displayName;
+            shipNameText.text = LocalizationManager.Instance.GetTextOrKey(ShipsPackName, ship.displayNameLocKey);
 
         if (descriptionText != null)
-            descriptionText.text = ship.description;
+            descriptionText.text = LocalizationManager.Instance.GetTextOrKey(ShipsPackName, ship.descriptionLocKey);
 
         if (hullText != null)
-            hullText.text = ship.maxHull.ToString();
+            hullText.text = ship.baseHull.ToString();
 
-        if (shieldText != null)
-            shieldText.text = ship.levelDurationSec.ToString("0") + "s";
+        if (durationText != null)
+            durationText.text = ship.baseLevelDurationSec.ToString("0") + "s";
 
-        if (paddleWidthText != null)
-            paddleWidthText.text = ship.paddleWidthMult.ToString();
+        if (moneyText != null)
+            moneyText.text = ship.startingMoney.ToString();
 
-        // Image depuis Resources (plus de StreamingAssets)
-        if (shipImage != null)
+        if (openSlotsText != null)
         {
-            string key = StripExtension(ship.imageFile);
-            Sprite sprite = Resources.Load<Sprite>("Ships/Images/" + key);
-
-            if (sprite == null)
-                Debug.LogWarning("[ShipSelectController] Sprite introuvable dans Resources: Ships/Images/" + key);
-            else
-                shipImage.sprite = sprite;
-
-            shipImage.preserveAspect = true;
+            openSlotsText.text = LocalizationManager.Instance.FormatText(
+                UiPackName,
+                "ship_select.slots.unlocked_format",
+                ship.startingUnlockedModuleSlots,
+                ship.totalModuleSlots
+            );
         }
+
+        RefreshEquippedModules(ship);
+        RefreshShipImage(ship);
     }
 
     /// <summary>
-    /// Retire l extension d un nom de fichier, car Resources.Load ne veut pas ".png".
-    /// </summary>
-    private string StripExtension(string fileName)
-    {
-        if (string.IsNullOrEmpty(fileName))
-            return string.Empty;
-
-        int dot = fileName.LastIndexOf('.');
-        if (dot <= 0)
-            return fileName;
-
-        return fileName.Substring(0, dot);
-    }
-
-    // ---------------------------------------------------------
-    // Initial selection
-    // ---------------------------------------------------------
-
-    /// <summary>
-    /// Determine quel ship doit etre selectionne a l ouverture de l ecran.
+    /// Charge et affiche le sprite principal du ship courant.
     ///
-    /// Priorite:
-    /// 1) Ship de run si une run est en cours (resume)
-    /// 2) Dernier choix persistant du profil
-    /// 3) RunConfig (fallback dev)
-    /// 4) CORE_SCOUT
+    /// Le chargement se fait depuis Resources a partir du imagePath
+    /// contenu dans le ShipDefinition.
+    /// </summary>
+    private void RefreshShipImage(ShipDefinition ship)
+    {
+        if (shipImageRenderer == null || ship == null)
+            return;
+
+        Sprite sprite = Resources.Load<Sprite>(ship.imagePath);
+
+        if (sprite == null)
+        {
+            Debug.LogWarning("[ShipSelectController] Sprite introuvable: " + ship.imagePath);
+            shipImageRenderer.sprite = null;
+            return;
+        }
+
+        shipImageRenderer.sprite = sprite;
+    }
+
+    /// <summary>
+    /// Determine quel ship doit etre affiche a l ouverture du Ship Select.
+    ///
+    /// Priorite :
+    /// 1. Ship de la run en cours s il y a une run active
+    /// 2. selectedShipId sauvegarde
+    /// 3. SelectedShipId du RunConfig
+    /// 4. DefaultShipId
     /// </summary>
     private string ResolveInitialShipIdForUI()
     {
-        string id = "CORE_SCOUT";
+        string id = DefaultShipId;
 
         if (SaveManager.Instance != null && SaveManager.Instance.Current != null)
         {
             GameSaveData save = SaveManager.Instance.Current;
 
-            if (save.runState != null && save.runState.hasOngoingRun && !string.IsNullOrEmpty(save.runState.currentShipId))
+            if (save.runState != null &&
+                save.runState.hasOngoingRun &&
+                !string.IsNullOrEmpty(save.runState.currentShipId))
+            {
                 return save.runState.currentShipId;
+            }
 
             if (!string.IsNullOrEmpty(save.selectedShipId))
                 return save.selectedShipId;
@@ -327,78 +473,185 @@ public class ShipSelectController : MonoBehaviour
         return id;
     }
 
-    // ---------------------------------------------------------
-    // Debug visibility helpers
-    // ---------------------------------------------------------
-
     /// <summary>
-    /// Retourne true si le debug global est actif.
+    /// Reconstruit integralement le bloc UI des modules equipes.
+    ///
+    /// Flow :
+    /// - clear de l UI precedente
+    /// - reset du panneau de details
+    /// - extraction des ids modules equipes au depart
+    /// - affichage soit du texte "aucun module", soit des icones
+    /// - initialisation du texte d aide par defaut sur le panneau de details
     /// </summary>
-    private bool IsDebugActive()
+    private void RefreshEquippedModules(ShipDefinition ship)
     {
-        return PlayerPrefs.GetInt(DebugPlayerPrefKey, 0) == 1;
-    }
+        ClearEquippedModulesUI();
 
-    /// <summary>
-    /// Retourne true si le ship a l index donne est visible dans le mode courant.
-    /// </summary>
-    private bool IsShipVisibleAt(int shipIndex)
-    {
-        var ships = ShipCatalogService.Catalog.ships;
+        if (moduleDetailsPanel != null)
+            moduleDetailsPanel.Clear();
 
-        if (ships == null || shipIndex < 0 || shipIndex >= ships.Count)
-            return false;
-
-        ShipDefinition ship = ships[shipIndex];
         if (ship == null)
-            return false;
+            return;
 
-        if (ship.debugOnly && !IsDebugActive())
-            return false;
+        List<string> equippedIds = ship.startingEquippedModuleIds == null
+            ? new List<string>()
+            : ship.startingEquippedModuleIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToList();
 
-        return true;
+        bool hasModules = equippedIds.Count > 0;
+
+        if (equippedModulesRoot != null)
+            equippedModulesRoot.gameObject.SetActive(hasModules);
+
+        if (noModulesText != null)
+        {
+            noModulesText.gameObject.SetActive(!hasModules);
+
+            if (!hasModules)
+            {
+                noModulesText.text = LocalizationManager.Instance.GetTextOrKey(
+                    UiPackName,
+                    "ship_select.modules.none"
+                );
+            }
+        }
+
+        if (!hasModules)
+            return;
+
+        if (moduleDetailsPanel != null)
+        {
+            string defaultText = LocalizationManager.Instance.GetTextOrKey(
+                UiPackName,
+                "ship_select.modules.hover_for_details"
+            );
+
+            moduleDetailsPanel.SetDefaultText(defaultText);
+            moduleDetailsPanel.ShowDefault();
+        }
+
+        for (int i = 0; i < equippedIds.Count; i++)
+            CreateEquippedModuleItem(equippedIds[i], i);
     }
 
     /// <summary>
-    /// Verifie qu il existe au moins un ship visible pour le mode courant.
-    /// Evite les boucles infinies dans Previous/Next.
+    /// Nettoie completement l UI des modules equipes deja affiches.
+    ///
+    /// Important :
+    /// - on debranche les events de hover des items existants
+    /// - on vide les collections runtime
+    /// - on detruit tous les enfants UI du root modules
     /// </summary>
-    private bool HasAnyVisibleShip()
+    private void ClearEquippedModulesUI()
     {
-        var ships = ShipCatalogService.Catalog.ships;
-        if (ships == null || ships.Count == 0)
-            return false;
-
-        for (int i = 0; i < ships.Count; i++)
+        for (int i = 0; i < equippedModuleItems.Count; i++)
         {
-            if (IsShipVisibleAt(i))
-                return true;
+            ModuleItemUI item = equippedModuleItems[i];
+            if (item == null)
+                continue;
+
+            item.HoverEntered -= OnModuleHoverEntered;
+            item.HoverExited -= OnModuleHoverExited;
         }
 
-        return false;
+        equippedModuleItems.Clear();
+        itemToModuleDef.Clear();
+
+        if (equippedModulesRoot == null)
+            return;
+
+        for (int i = equippedModulesRoot.childCount - 1; i >= 0; i--)
+            Destroy(equippedModulesRoot.GetChild(i).gameObject);
     }
 
     /// <summary>
-    /// Si l index courant pointe vers un ship non visible,
-    /// avance jusqu au prochain ship autorise.
+    /// Instancie un item UI pour un module equipe donne.
+    ///
+    /// Etapes :
+    /// - resolve la ModuleDefinition a partir de l id
+    /// - instancie le prefab
+    /// - bind visuellement l item
+    /// - branche les events hover
+    /// - memorise la relation item <-> definition
     /// </summary>
-    private void EnsureCurrentIndexIsVisible()
+    private void CreateEquippedModuleItem(string moduleId, int itemIndex)
     {
-        var ships = ShipCatalogService.Catalog.ships;
-        if (ships == null || ships.Count == 0)
+        if (equippedModulesRoot == null || equippedModuleIconPrefab == null)
             return;
 
-        index = Mathf.Clamp(index, 0, ships.Count - 1);
-
-        if (IsShipVisibleAt(index))
-            return;
-
-        int startIndex = index;
-
-        do
+        ModuleDefinition def = ResolveModuleDefinition(moduleId);
+        if (def == null)
         {
-            index = (index + 1) % ships.Count;
+            Debug.LogWarning("[ShipSelectController] ModuleDefinition introuvable pour: " + moduleId);
+            return;
         }
-        while (!IsShipVisibleAt(index) && index != startIndex);
+
+        GameObject instance = Instantiate(equippedModuleIconPrefab, equippedModulesRoot);
+        instance.name = "EquippedModule_" + itemIndex + "_" + moduleId;
+
+        ModuleItemUI item = instance.GetComponent<ModuleItemUI>();
+        if (item == null)
+        {
+            Debug.LogError("[ShipSelectController] Le prefab de module n'a pas de ModuleItemUI.");
+            Destroy(instance);
+            return;
+        }
+
+        item.Bind(def);
+        item.HoverEntered += OnModuleHoverEntered;
+        item.HoverExited += OnModuleHoverExited;
+
+        equippedModuleItems.Add(item);
+        itemToModuleDef[item] = def;
+    }
+
+    /// <summary>
+    /// Callback appele quand la souris entre sur une icone de module.
+    ///
+    /// On retrouve la ModuleDefinition correspondante,
+    /// puis on demande au panneau de details de l afficher.
+    /// </summary>
+    private void OnModuleHoverEntered(ModuleItemUI item)
+    {
+        if (moduleDetailsPanel == null || item == null)
+            return;
+
+        if (!itemToModuleDef.TryGetValue(item, out ModuleDefinition def) || def == null)
+            return;
+
+        moduleDetailsPanel.ShowModule(def);
+    }
+
+    /// <summary>
+    /// Callback appele quand la souris quitte une icone de module.
+    ///
+    /// On revient au texte d aide par defaut.
+    /// </summary>
+    private void OnModuleHoverExited(ModuleItemUI item)
+    {
+        if (moduleDetailsPanel == null)
+            return;
+
+        moduleDetailsPanel.ShowDefault();
+    }
+
+    /// <summary>
+    /// Recherche une ModuleDefinition dans le ModuleCatalog
+    /// a partir de son id.
+    /// </summary>
+    private ModuleDefinition ResolveModuleDefinition(string moduleId)
+    {
+        if (string.IsNullOrWhiteSpace(moduleId))
+            return null;
+
+        if (ModuleCatalogService.Catalog == null ||
+            ModuleCatalogService.Catalog.modules == null)
+        {
+            Debug.LogWarning("[ShipSelectController] ModuleCatalog non charge.");
+            return null;
+        }
+
+        return ModuleCatalogService.Catalog.modules.FirstOrDefault(m => m != null && m.id == moduleId);
     }
 }

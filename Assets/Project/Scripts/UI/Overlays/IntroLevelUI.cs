@@ -269,15 +269,24 @@ public class IntroLevelUI : MonoBehaviour
         }
 
         if (shipNameText != null)
-            shipNameText.text = ship.displayName;
+        {
+            string name = ship.displayNameLocKey;
+
+            if (LocalizationManager.Instance != null && LocalizationManager.Instance.IsReady)
+            {
+                if (LocalizationManager.Instance.HasText("ships", ship.displayNameLocKey))
+                    name = LocalizationManager.Instance.GetText("ships", ship.displayNameLocKey);
+            }
+
+            shipNameText.text = name;
+        }
 
         if (shipImage != null)
         {
-            string key = StripExtension(ship.imageFile);
-            Sprite sprite = Resources.Load<Sprite>("Ships/Images/" + key);
+            Sprite sprite = Resources.Load<Sprite>(ship.imagePath);
 
             if (sprite == null)
-                Debug.LogWarning("[IntroLevelUI] Sprite introuvable dans Resources: Ships/Images/" + key);
+                Debug.LogWarning("[IntroLevelUI] Sprite introuvable dans Resources: " + ship.imagePath);
             else
                 shipImage.sprite = sprite;
 

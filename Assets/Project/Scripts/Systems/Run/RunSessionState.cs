@@ -680,7 +680,7 @@ public class RunSessionState : ScriptableObject
         if (def == null)
             return 3;
 
-        return Mathf.Max(1, def.maxHull);
+        return Mathf.Max(1, def.baseHull);
     }
 
     // ------------------------------------------------------------
@@ -718,7 +718,7 @@ public class RunSessionState : ScriptableObject
         if (def == null)
             return Mathf.Clamp(3, 0, EquipmentSlotCount);
 
-        return Mathf.Clamp(def.unlockedModuleSlots, 0, EquipmentSlotCount);
+        return Mathf.Clamp(def.startingUnlockedModuleSlots, 0, EquipmentSlotCount);
     }
 
     /// <summary>

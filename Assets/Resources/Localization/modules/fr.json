@@ -1,0 +1,72 @@
+{
+  "language": "fr",
+  "entries": [
+    {
+      "key": "module.hull_patch.name",
+      "text": "Hull Patch"
+    },
+    {
+      "key": "module.hull_patch.t1.description",
+      "text": "Répare +1 coque après chaque mission."
+    },
+    {
+      "key": "module.hull_patch.t2.description",
+      "text": "Répare +1 coque et gagne +1 crédit après chaque mission."
+    },
+    {
+      "key": "module.hull_patch.t3.description",
+      "text": "Répare +2 coque et gagne +1 crédit après chaque mission."
+    },
+
+    {
+      "key": "module.scan_array.name",
+      "text": "Scan Array"
+    },
+    {
+      "key": "module.scan_array.t1.description",
+      "text": "Détail du briefing : T1."
+    },
+    {
+      "key": "module.scan_array.t2.description",
+      "text": "Détail du briefing : T2."
+    },
+    {
+      "key": "module.scan_array.t3.description",
+      "text": "Détail du briefing : T3."
+    },
+
+    {
+      "key": "module.greed_coil.name",
+      "text": "Greed Coil"
+    },
+    {
+      "key": "module.greed_coil.t1.description",
+      "text": "Seuil de flush +1 (combos plus grands)."
+    },
+    {
+      "key": "module.greed_coil.t2.description",
+      "text": "Seuil de flush +2 (combos plus grands)."
+    },
+    {
+      "key": "module.greed_coil.t3.description",
+      "text": "Seuil de flush +3 (combos plus grands)."
+    },
+
+    {
+      "key": "module.core_growth.name",
+      "text": "Core Growth"
+    },
+    {
+      "key": "module.core_growth.t1.description",
+      "text": "Score final -200. Si la coque est pleine : +1 coque max."
+    },
+    {
+      "key": "module.core_growth.t2.description",
+      "text": "Score final -100. Si la coque est pleine : +1 coque max."
+    },
+    {
+      "key": "module.core_growth.t3.description",
+      "text": "Score final +100. Si la coque est pleine : +1 coque max."
+    }
+  ]
+}

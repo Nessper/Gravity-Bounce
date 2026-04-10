@@ -1,0 +1,29 @@
+{
+  "language": "en",
+  "entries": [
+    {
+      "key": "ship.core_scout.name",
+      "text": "Core Scout"
+    },
+    {
+      "key": "ship.core_scout.description",
+      "text": "A versatile, reliable and well-balanced ship. Perfect for your first missions in the void."
+    },
+    {
+      "key": "ship.aether_runner.name",
+      "text": "Aether Runner"
+    },
+    {
+      "key": "ship.aether_runner.description",
+      "text": "Fast and agile, built to navigate through gravitational storms. More daring, but less stable."
+    },
+    {
+      "key": "ship.debug_ship.name",
+      "text": "Debug Ship"
+    },
+    {
+      "key": "ship.debug_ship.description",
+      "text": "Temporary debug vessel."
+    }
+  ]
+}

@@ -28,6 +28,8 @@ using UnityEngine;
 [CustomEditor(typeof(MainDebugStarterV3))]
 public class MainDebugStarterV3Editor : Editor
 {
+    private const string ModulesPackName = "modules";
+
     private SerializedProperty debugWorldIdProp;
     private SerializedProperty debugNodeIndexProp;
     private SerializedProperty debugShipIdProp;
@@ -124,8 +126,6 @@ public class MainDebugStarterV3Editor : Editor
 
         string selectedWorldId = worldIds[newIndex];
 
-        // Si le monde change, on reset le nodeIndex pour repartir proprement
-        // du premier token du tableau levelIds.
         if (!string.Equals(debugWorldIdProp.stringValue, selectedWorldId, StringComparison.Ordinal))
         {
             debugWorldIdProp.stringValue = selectedWorldId;
@@ -276,7 +276,7 @@ public class MainDebugStarterV3Editor : Editor
         slotProp.stringValue = resolved.id;
 
         EditorGUILayout.LabelField("Module Id", resolved.id);
-        EditorGUILayout.LabelField("Display Name", string.IsNullOrEmpty(resolved.displayName) ? "—" : resolved.displayName);
+        EditorGUILayout.LabelField("Display Name", GetLocalizedModuleName(resolved));
 
         EditorGUILayout.EndVertical();
     }
@@ -329,6 +329,20 @@ public class MainDebugStarterV3Editor : Editor
 
         if (arrayProp.arraySize != expectedSize)
             arrayProp.arraySize = expectedSize;
+    }
+
+    private string GetLocalizedModuleName(ModuleDefinition mod)
+    {
+        if (mod == null)
+            return "—";
+
+        if (string.IsNullOrWhiteSpace(mod.displayNameLocKey))
+            return mod.id;
+
+        if (LocalizationManager.Instance == null || !LocalizationManager.Instance.IsReady)
+            return mod.displayNameLocKey;
+
+        return LocalizationManager.Instance.GetTextOrKey(ModulesPackName, mod.displayNameLocKey);
     }
 
     private ShipCatalog LoadShipCatalog()

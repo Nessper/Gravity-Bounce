@@ -71,19 +71,19 @@ public class ShipRuntimeSetup : MonoBehaviour
         // ------------------------------------------------------------
         // BACKGROUND
         // ------------------------------------------------------------
-        if (shipBackgroundController != null && !string.IsNullOrEmpty(ship.imageFile))
+        if (shipBackgroundController != null && !string.IsNullOrEmpty(ship.imagePath))
         {
-            shipBackgroundController.Init(ship.imageFile);
+            shipBackgroundController.Init(ship.imagePath);
         }
 
         // ------------------------------------------------------------
         // DUREE RUNTIME (ship)
         // ------------------------------------------------------------
-        float duration = ship.levelDurationSec;
+        float duration = ship.baseLevelDurationSec;
 
         if (duration <= 0f)
         {
-            Debug.LogError("[ShipRuntimeSetup] levelDurationSec invalide pour ship=" + ship.id + " (" + duration + ").");
+            Debug.LogError("[ShipRuntimeSetup] baseLevelDurationSec invalide pour ship=" + ship.id + " (" + duration + ").");
             return false;
         }
 
@@ -91,10 +91,6 @@ public class ShipRuntimeSetup : MonoBehaviour
 
         // Si ton UI appelle ca "shield", c'est juste un label pour l'instant.
         shieldSeconds = duration;
-
-        Debug.Log("[ShipRuntimeSetup] Runtime OK: ship=" + ship.id
-                  + " hull(run)=" + runSession.Hull + "/" + runSession.HullMax
-                  + " levelDurationSec=" + duration);
 
         return true;
     }

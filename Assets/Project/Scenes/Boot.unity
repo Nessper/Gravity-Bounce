@@ -1347,8 +1347,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 066bc1798cef5ea45a241d5fc2f96190, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LocalizationManager
-  languageCode: fr
-  textPackNames: []
+  languageCode: en
+  textPackNames:
+  - ui
+  - ships
+  - modules
 --- !u!1 &1967514260
 GameObject:
   m_ObjectHideFlags: 0

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Données du catalog de modules (data-only).
+/// Les textes sont localisés via des clés.
 /// </summary>
 [Serializable]
 public class ModuleCatalog
@@ -14,33 +15,41 @@ public class ModuleCatalog
 public class ModuleDefinition
 {
     public string id;
-    public string familyId;          // "A", "B", "C", "G", "H", ...
-    public string displayName;
-    public string description;
+    public string familyId;              // "A", "B", "C", "G", "H", ...
+
+    // -----------------------------
+    // Localization
+    // -----------------------------
+    public string displayNameLocKey;     // ex: "module.hull_patch.name"
+    public string descriptionLocKey;     // ex: "module.hull_patch.t3.description"
+
+    // -----------------------------
+    // Core data
+    // -----------------------------
     public int tier;
     public int cost;
-    public string iconPath;          // Resources path sans extension
+    public string iconPath;              // Resources path sans extension
 
     // ----------------------------------------------------
     // Famille H : sustain en fin de mission
     // ----------------------------------------------------
-    public int endLevelHullRepair;   // +N Hull réparé en fin de mission
-    public int endLevelMoneyGain;    // +N money gagné en fin de mission
+    public int endLevelHullRepair;       // +N Hull réparé en fin de mission
+    public int endLevelMoneyGain;        // +N money gagné en fin de mission
 
     // ----------------------------------------------------
     // Famille S : infos de briefing
     // ----------------------------------------------------
-    public int scanTierSet;          // 0 si pas SCAN, sinon 1..3
+    public int scanTierSet;              // 0 si pas SCAN, sinon 1..3
 
     // ----------------------------------------------------
     // Famille G : Augmentation du seuil de flush
     // ----------------------------------------------------
-    public int flushMinBallsAdd;     // +N billes requises pour déclencher un flush
+    public int flushMinBallsAdd;         // +N billes requises pour déclencher un flush
 
     // ----------------------------------------------------
     // Bonus passifs déclaratifs
     // ----------------------------------------------------
-    public int hullMaxAdd;           // bonus permanent de HullMax
+    public int hullMaxAdd;               // bonus permanent de HullMax
 
     // ----------------------------------------------------
     // Famille C : croissance conditionnelle du HullMax

@@ -1,3 +1,18 @@
 {
-  "entries": []
+  "language": "fr",
+  "entries": [
+    {
+      "key": "ship_select.slots.unlocked_format",
+      "text": "{0}/{1} emplacements débloqués"
+    },
+    {
+      "key": "ship_select.modules.none",
+      "text": "Aucun module installé"
+    },
+    {
+      "key": "ship_select.modules.hover_for_details",
+      "text": "Survolez un module pour voir les détails"
+    }
+
+  ]
 }

@@ -6,6 +6,8 @@ using UnityEngine.UI;
 
 public class StatToastUI : MonoBehaviour
 {
+    private const string ModulesPackName = "modules";
+
     [Header("Container")]
     [SerializeField] private RectTransform container;
 
@@ -63,7 +65,7 @@ public class StatToastUI : MonoBehaviour
         if (actualAmount <= 0)
             return;
 
-        string title = mod.displayName + " T" + mod.tier;
+        string title = GetLocalizedModuleName(mod) + " T" + mod.tier;
         string value = "+" + actualAmount + " Hull";
 
         EnqueueToast(
@@ -83,7 +85,7 @@ public class StatToastUI : MonoBehaviour
         if (amount <= 0)
             return;
 
-        string title = mod.displayName + " T" + mod.tier;
+        string title = GetLocalizedModuleName(mod) + " T" + mod.tier;
         string value = "+" + amount + " Max Hull";
 
         EnqueueToast(
@@ -252,5 +254,19 @@ public class StatToastUI : MonoBehaviour
             yield return new WaitForSecondsRealtime(moduleSfxDelay);
 
         BootRoot.Audio?.PlayUi(sfxId);
+    }
+
+    private string GetLocalizedModuleName(ModuleDefinition mod)
+    {
+        if (mod == null)
+            return "Unknown";
+
+        if (string.IsNullOrWhiteSpace(mod.displayNameLocKey))
+            return mod.id;
+
+        if (LocalizationManager.Instance == null || !LocalizationManager.Instance.IsReady)
+            return mod.displayNameLocKey;
+
+        return LocalizationManager.Instance.GetTextOrKey(ModulesPackName, mod.displayNameLocKey);
     }
 }
