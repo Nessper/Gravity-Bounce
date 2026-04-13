@@ -3,155 +3,246 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Transition RunHub -> Shop (robuste).
-/// Strategie:
-/// - On desactive completement le RunHub (Canvas/UI) via SetActive(false) pendant le shop
-/// - On affiche le ShopPanel (fond) via CanvasGroup (alpha uniquement, pas de gating raycast)
-/// - On bloque l'input uniquement avec le dimmer pendant le noir
-/// - Apres les dialogues: on rend l'UI du shop interactive (blocksRaycasts=true)
+/// Gere la transition visuelle RunHub -> Shop avec le nouveau decoupage :
 ///
-/// Important:
-/// - Le fond (ShopPanel) ne doit pas piloter les raycasts.
-/// - Un seul endroit pilote l'interaction du shop: uiCanvasGroup.
+/// - RunHubUI : contenu interactif du hub
+/// - ShopBackground : fond plein ecran du shop
+/// - ShopUI : UI interactive du shop
+/// - Dimmer : noir de transition puis voile d ambiance
+///
+/// Nouveau flow :
+/// 1. Clic Next depuis RunHub
+/// 2. Dimmer monte a 1 et bloque les inputs
+/// 3. Pendant le noir :
+///    - RunHubUI cache
+///    - ShopBackground visible
+///    - ShopUI cache
+/// 4. Dimmer redescend a un alpha tres haut (ex: 0.92)
+/// 5. Le dialogue shop se joue
+/// 6. A la fin du dialogue :
+///    - dimmer redescend a un alpha plus leger (ex: 0.8)
+///    - l UI du shop fade in
+///
+/// Important :
+/// - Le background shop est purement visuel
+/// - Le dimmer ne bloque plus les clics une fois la transition terminee
+/// - La vraie interaction du shop est portee uniquement par shopUiCanvasGroup
+/// - RunHubUI est maintenant pilote via CanvasGroup pour homogeniser le comportement
 /// </summary>
 public class RunHubShopTransition : MonoBehaviour
 {
     [Header("Refs")]
     [SerializeField] private CanvasGroup dimmerCanvasGroup;
 
-    [Tooltip("CanvasGroup du ShopPanel (fond/shop frame).")]
-    [SerializeField] private CanvasGroup shopPanelCanvasGroup;
+    [Tooltip("CanvasGroup du fond plein ecran du shop.")]
+    [SerializeField] private CanvasGroup shopBackgroundCanvasGroup;
 
-    [Tooltip("CanvasGroup du package UI du shop (onglets, boutons).")]
-    [SerializeField] private CanvasGroup uiCanvasGroup;
+    [Tooltip("CanvasGroup de l UI interactive du shop (ShopRoot).")]
+    [SerializeField] private CanvasGroup shopUiCanvasGroup;
 
-    [Header("RunHub Root")]
-    [Tooltip("GO racine du RunHub UI (ex: Canvas/UI ou Canvas/UI/Principal_Panel). Sera SetActive(false) pendant le shop.")]
-    [SerializeField] private GameObject runHubUiRoot;
+    [Header("RunHub UI")]
+    [Tooltip("CanvasGroup de la racine UI du RunHub.")]
+    [SerializeField] private CanvasGroup runHubUiCanvasGroup;
 
     [Header("Timings")]
     [SerializeField] private float dimmerFadeInSeconds = 0.20f;
-    [SerializeField] private float dimmerFadeOutSeconds = 0.25f;
+    [SerializeField] private float dimmerFadeToPreDialogSeconds = 0.25f;
+    [SerializeField] private float dimmerFadeAfterDialogSeconds = 0.20f;
+    [SerializeField] private float shopUiFadeInSeconds = 0.20f;
+
+    [Header("Ambient Dim")]
+    [Range(0f, 1f)]
+    [SerializeField] private float preDialogDimAlpha = 0.92f;
+
+    [Range(0f, 1f)]
+    [SerializeField] private float postDialogDimAlpha = 0.8f;
 
     [Header("Events")]
-    public Action OnShopPanelRevealed;
+    public Action OnShopTransitionCompleted;
 
-    private bool _isRunning;
+    private bool isRunning;
+    private Coroutine revealShopUiRoutine;
 
     private void Awake()
     {
-        ResetToRunHubState();
+        RestoreRunHubState();
     }
 
     /// <summary>
-    /// Etat RunHub garanti (utile au Start et si on revient au RunHub).
+    /// Restaure l etat visuel standard du RunHub.
+    /// A utiliser au demarrage ou lors du retour depuis le shop.
     /// </summary>
-    public void ResetToRunHubState()
+    public void RestoreRunHubState()
     {
-        // RunHub visible
-        if (runHubUiRoot != null)
-            runHubUiRoot.SetActive(true);
-
-        // Shop cache
-        HideShopPanelVisual();
-        HideShopUiInteractive();
-
-        // Dimmer off
+        ShowRunHubUi();
+        HideShopBackground();
+        HideShopUiInteractiveImmediate();
         DisableDimmerHard();
 
-        _isRunning = false;
+        if (revealShopUiRoutine != null)
+        {
+            StopCoroutine(revealShopUiRoutine);
+            revealShopUiRoutine = null;
+        }
+
+        isRunning = false;
     }
 
+    /// <summary>
+    /// Lance la transition Hub -> Shop.
+    /// </summary>
     public void PlayToShopTransition()
     {
-        if (_isRunning)
+        if (isRunning)
             return;
 
         StartCoroutine(TransitionRoutine());
     }
 
     /// <summary>
-    /// A appeler apres les dialogues.
-    /// Rend l'UI du shop visible + interactive.
+    /// A appeler a la fin du dialogue shop.
+    /// Rend l UI du shop visible et interactive, apres un leger reveal du dimmer.
     /// </summary>
-    public void ShowUIAfterDialog()
+    public void ShowShopUiAfterDialog()
     {
-        ShowShopUiInteractive();
+        if (isRunning)
+            return;
+
+        if (revealShopUiRoutine != null)
+            StopCoroutine(revealShopUiRoutine);
+
+        revealShopUiRoutine = StartCoroutine(ShowShopUiAfterDialogRoutine());
     }
 
     private IEnumerator TransitionRoutine()
     {
-        _isRunning = true;
+        isRunning = true;
 
-        // 1) Noir (bloque l'input pendant la transition)
+        // 1) Fade noir total + blocage input
         EnsureDimmerReady();
         yield return FadeCanvasGroup(dimmerCanvasGroup, 0f, 1f, dimmerFadeInSeconds);
 
-        // 2) Pendant le noir:
-        // - afficher le ShopPanel (fond) sans le rendre interactif
-        // - cacher l'UI shop (toujours non interactive)
-        // - couper COMPLETEMENT le RunHub (sinon les nodes volent les raycasts)
-        ShowShopPanelVisual();
-        HideShopUiInteractive();
+        // 2) Pendant le noir :
+        // - RunHub UI cache
+        // - fond shop visible
+        // - UI shop encore cachee
+        HideRunHubUi();
+        ShowShopBackground();
+        HideShopUiInteractiveImmediate();
 
-        if (runHubUiRoot != null)
-            runHubUiRoot.SetActive(false);
+        // 3) Reveal vers un noir encore tres present avant dialogue
+        yield return FadeCanvasGroup(dimmerCanvasGroup, 1f, preDialogDimAlpha, dimmerFadeToPreDialogSeconds);
 
-        // 3) Reveal
-        yield return FadeCanvasGroup(dimmerCanvasGroup, 1f, 0f, dimmerFadeOutSeconds);
-        DisableDimmerHard();
+        // 4) Le dimmer reste visible mais ne bloque plus les clics
+        // Les clics ne doivent pas etre bloques avant le dialogue.
+        if (dimmerCanvasGroup != null)
+        {
+            dimmerCanvasGroup.interactable = false;
+            dimmerCanvasGroup.blocksRaycasts = false;
+        }
 
-        // 4) ShopPanel visible (sans UI). On declenche les dialogues via event.
-        OnShopPanelRevealed?.Invoke();
+        isRunning = false;
 
-        _isRunning = false;
+        // 5) Le flow dialogue peut commencer
+        OnShopTransitionCompleted?.Invoke();
+    }
+
+    private IEnumerator ShowShopUiAfterDialogRoutine()
+    {
+        // 1) On allege un peu le dimmer apres le dialogue
+        if (dimmerCanvasGroup != null)
+        {
+            dimmerCanvasGroup.interactable = false;
+            dimmerCanvasGroup.blocksRaycasts = false;
+
+            yield return FadeCanvasGroup(
+                dimmerCanvasGroup,
+                dimmerCanvasGroup.alpha,
+                postDialogDimAlpha,
+                dimmerFadeAfterDialogSeconds);
+        }
+
+        // 2) Puis on fade in l UI shop
+        yield return FadeShopUiInteractive();
+
+        revealShopUiRoutine = null;
     }
 
     // ------------------------------------------------------------
-    // ShopPanel (fond) : VISUEL UNIQUEMENT
+    // RunHub UI
     // ------------------------------------------------------------
 
-    private void ShowShopPanelVisual()
+    private void ShowRunHubUi()
     {
-        if (shopPanelCanvasGroup == null)
+        if (runHubUiCanvasGroup == null)
             return;
 
-        shopPanelCanvasGroup.alpha = 1f;
-
-        // On ne touche pas blocksRaycasts ici (c'est du deco).
-        // Si tu veux verrouiller a 100%: mets blocksRaycasts=false sur le ShopPanel dans la scene.
+        runHubUiCanvasGroup.alpha = 1f;
+        runHubUiCanvasGroup.interactable = true;
+        runHubUiCanvasGroup.blocksRaycasts = true;
     }
 
-    private void HideShopPanelVisual()
+    private void HideRunHubUi()
     {
-        if (shopPanelCanvasGroup == null)
+        if (runHubUiCanvasGroup == null)
             return;
 
-        shopPanelCanvasGroup.alpha = 0f;
+        runHubUiCanvasGroup.alpha = 0f;
+        runHubUiCanvasGroup.interactable = false;
+        runHubUiCanvasGroup.blocksRaycasts = false;
     }
 
     // ------------------------------------------------------------
-    // UI Shop : INTERACTIVE UNIQUEMENT QUAND READY
+    // Shop Background : visuel uniquement
     // ------------------------------------------------------------
 
-    private void ShowShopUiInteractive()
+    private void ShowShopBackground()
     {
-        if (uiCanvasGroup == null)
+        if (shopBackgroundCanvasGroup == null)
             return;
 
-        uiCanvasGroup.alpha = 1f;
-        uiCanvasGroup.interactable = true;
-        uiCanvasGroup.blocksRaycasts = true;
+        shopBackgroundCanvasGroup.alpha = 1f;
+        shopBackgroundCanvasGroup.interactable = false;
+        shopBackgroundCanvasGroup.blocksRaycasts = false;
     }
 
-    private void HideShopUiInteractive()
+    private void HideShopBackground()
     {
-        if (uiCanvasGroup == null)
+        if (shopBackgroundCanvasGroup == null)
             return;
 
-        uiCanvasGroup.alpha = 0f;
-        uiCanvasGroup.interactable = false;
-        uiCanvasGroup.blocksRaycasts = false;
+        shopBackgroundCanvasGroup.alpha = 0f;
+        shopBackgroundCanvasGroup.interactable = false;
+        shopBackgroundCanvasGroup.blocksRaycasts = false;
+    }
+
+    // ------------------------------------------------------------
+    // Shop UI : visible et interactive seulement quand prete
+    // ------------------------------------------------------------
+
+    private void HideShopUiInteractiveImmediate()
+    {
+        if (shopUiCanvasGroup == null)
+            return;
+
+        shopUiCanvasGroup.alpha = 0f;
+        shopUiCanvasGroup.interactable = false;
+        shopUiCanvasGroup.blocksRaycasts = false;
+    }
+
+    private IEnumerator FadeShopUiInteractive()
+    {
+        if (shopUiCanvasGroup == null)
+            yield break;
+
+        shopUiCanvasGroup.alpha = 0f;
+        shopUiCanvasGroup.interactable = false;
+        shopUiCanvasGroup.blocksRaycasts = false;
+
+        yield return FadeCanvasGroup(shopUiCanvasGroup, 0f, 1f, shopUiFadeInSeconds);
+
+        shopUiCanvasGroup.interactable = true;
+        shopUiCanvasGroup.blocksRaycasts = true;
     }
 
     // ------------------------------------------------------------
@@ -166,8 +257,6 @@ public class RunHubShopTransition : MonoBehaviour
         dimmerCanvasGroup.gameObject.SetActive(true);
         dimmerCanvasGroup.alpha = 0f;
         dimmerCanvasGroup.interactable = false;
-
-        // Le dimmer doit bloquer pendant le noir
         dimmerCanvasGroup.blocksRaycasts = true;
     }
 
@@ -177,8 +266,8 @@ public class RunHubShopTransition : MonoBehaviour
             return;
 
         dimmerCanvasGroup.alpha = 0f;
-        dimmerCanvasGroup.blocksRaycasts = false;
         dimmerCanvasGroup.interactable = false;
+        dimmerCanvasGroup.blocksRaycasts = false;
         dimmerCanvasGroup.gameObject.SetActive(false);
     }
 

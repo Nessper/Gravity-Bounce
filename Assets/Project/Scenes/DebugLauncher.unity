@@ -277,15 +277,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MainDebugStarterV3
   startDestination: 0
   debugWorldId: W1
-  debugNodeIndex: 4
+  debugNodeIndex: 0
   debugShipId: CORE_SCOUT
-  debugCurrentHull: 8
+  debugCurrentHull: 2
   debugContractLives: 3
   debugMoney: 200
   debugRunScore: 10000
   debugTreatAllModulesAsOwned: 1
   debugEquippedModuleIds:
-  - SCAN_ARRAY_T3
+  - SCAN_ARRAY_T2
   - GREED_COIL_T3
   - 
 --- !u!4 &292011952

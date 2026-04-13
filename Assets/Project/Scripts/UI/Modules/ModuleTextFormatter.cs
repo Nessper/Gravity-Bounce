@@ -18,7 +18,20 @@ public static class ModuleTextFormatter
 
         int tier = Mathf.Max(1, def.tier);
 
-        return $"<b>{name} {ToRoman(tier)}</b> — {desc}";
+        string title = $"<b><color=#A6FF3B>{name} {ToRoman(tier)}</color></b>";
+
+        return $"{title}\n{desc}";
+    }
+
+    public static string BuildLocalizedModuleLabel(ModuleDefinition def)
+    {
+        if (def == null)
+            return string.Empty;
+
+        string name = GetLocalizedName(def);
+        int tier = Mathf.Max(1, def.tier);
+
+        return $"{name} {ToRoman(tier)}";
     }
 
     private static string GetLocalizedName(ModuleDefinition def)
@@ -61,7 +74,7 @@ public static class ModuleTextFormatter
             return text;
 
         text = ReplaceWord(text, "hull", Icon("icon_hull"));
-        text = ReplaceWord(text, "coque", Icon("icon_hull"));
+        text = ReplaceWord(text, "PV", Icon("icon_hull"));
 
         text = ReplaceWord(text, "money", Icon("icon_money"));
         text = ReplaceWord(text, "credit", Icon("icon_money"));

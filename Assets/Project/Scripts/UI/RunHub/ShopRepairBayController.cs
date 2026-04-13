@@ -6,6 +6,7 @@ public class ShopRepairBayController : MonoBehaviour
 {
     [Header("Dependencies")]
     [SerializeField] private RunSessionState runSession;
+    [SerializeField] private HullUI hullUI;
 
     [Header("Missing Hull")]
     [SerializeField] private TMP_Text missingHullText;
@@ -14,14 +15,12 @@ public class ShopRepairBayController : MonoBehaviour
     [SerializeField] private Button repairOneButton;
     [SerializeField] private TMP_Text repairOneMetaLeftText;
     [SerializeField] private TMP_Text repairOneMetaRightText;
-    [Tooltip("Optionnel: CanvasGroup pour griser visuellement Repair One")]
     [SerializeField] private CanvasGroup repairOneVisual;
 
     [Header("Repair All")]
     [SerializeField] private Button repairAllButton;
     [SerializeField] private TMP_Text repairAllMetaLeftText;
     [SerializeField] private TMP_Text repairAllMetaRightText;
-    [Tooltip("Optionnel: CanvasGroup pour griser visuellement Repair All")]
     [SerializeField] private CanvasGroup repairAllVisual;
 
     [Header("Costs")]
@@ -38,32 +37,44 @@ public class ShopRepairBayController : MonoBehaviour
     [Header("Alignement Sprites")]
     [SerializeField] private int spriteYOffset = -6;
 
-    // Etat calculé au refresh (source de vérité pour les clicks)
+    private const string UiPackName = "ui";
+
     private bool canRepairOne;
     private bool canRepairAll;
     private int cachedMissing;
     private int cachedCostAll;
 
+    private void Awake()
+    {
+        if (runSession == null)
+        {
+            Debug.LogError("[ShopRepairBayController] runSession n est pas assigne.");
+            enabled = false;
+            return;
+        }
+
+        if (hullUI == null)
+        {
+            Debug.LogError("[ShopRepairBayController] hullUI n est pas assigne.");
+            enabled = false;
+            return;
+        }
+    }
+
     private void OnEnable()
     {
-        if (runSession != null)
-        {
-            runSession.OnMoneyChanged.AddListener(HandleAnyChanged);
-            runSession.OnHullChanged.AddListener(HandleAnyChanged);
-            runSession.OnHullMaxChanged.AddListener(HandleAnyChanged);
-        }
+        runSession.OnMoneyChanged.AddListener(HandleAnyChanged);
+        runSession.OnHullChanged.AddListener(HandleAnyChanged);
+        runSession.OnHullMaxChanged.AddListener(HandleAnyChanged);
 
         RefreshAll();
     }
 
     private void OnDisable()
     {
-        if (runSession != null)
-        {
-            runSession.OnMoneyChanged.RemoveListener(HandleAnyChanged);
-            runSession.OnHullChanged.RemoveListener(HandleAnyChanged);
-            runSession.OnHullMaxChanged.RemoveListener(HandleAnyChanged);
-        }
+        runSession.OnMoneyChanged.RemoveListener(HandleAnyChanged);
+        runSession.OnHullChanged.RemoveListener(HandleAnyChanged);
+        runSession.OnHullMaxChanged.RemoveListener(HandleAnyChanged);
     }
 
     private void HandleAnyChanged(int _)
@@ -73,9 +84,6 @@ public class ShopRepairBayController : MonoBehaviour
 
     private void RefreshAll()
     {
-        if (runSession == null)
-            return;
-
         int money = Mathf.Max(0, runSession.Money);
         int hull = Mathf.Max(0, runSession.Hull);
         int hullMax = Mathf.Max(1, runSession.HullMax);
@@ -86,19 +94,30 @@ public class ShopRepairBayController : MonoBehaviour
         int costOne = perHull;
         cachedCostAll = cachedMissing * perHull;
 
-        // Missing hull text
         if (missingHullText != null)
-            missingHullText.text = "MISSING HULL : " + cachedMissing;
+        {
+            string text = $"Dégâts reçus : {cachedMissing}";
 
-        // Meta texts
+            if (LocalizationManager.Instance != null && LocalizationManager.Instance.IsReady)
+            {
+                text = LocalizationManager.Instance.FormatText(
+                    UiPackName,
+                    "repair.missing_hull",
+                    cachedMissing
+                );
+            }
+
+            missingHullText.text = text;
+        }
+
         if (repairOneMetaLeftText != null)
-            repairOneMetaLeftText.text = FormatWithSprite("+1", hullSpriteName);
+            repairOneMetaLeftText.text = FormatWithSprite(GetPlusHullText(1), hullSpriteName);
 
         if (repairOneMetaRightText != null)
             repairOneMetaRightText.text = FormatCost(costOne);
 
         if (repairAllMetaLeftText != null)
-            repairAllMetaLeftText.text = FormatWithSprite("+" + cachedMissing, hullSpriteName);
+            repairAllMetaLeftText.text = FormatWithSprite(GetPlusHullText(cachedMissing), hullSpriteName);
 
         if (repairAllMetaRightText != null)
             repairAllMetaRightText.text = FormatCost(cachedCostAll);
@@ -108,38 +127,28 @@ public class ShopRepairBayController : MonoBehaviour
         canRepairOne = !isFull && money >= costOne;
         canRepairAll = !isFull && money >= cachedCostAll && cachedCostAll > 0;
 
-        // IMPORTANT: on laisse les boutons cliquables
-        // (sinon pas de log, pas de son, pas de feedback)
         if (repairOneButton != null)
             repairOneButton.interactable = true;
 
         if (repairAllButton != null)
             repairAllButton.interactable = true;
 
-        // Visuel "gris" (optionnel)
         SetVisualEnabled(repairOneVisual, canRepairOne);
         SetVisualEnabled(repairAllVisual, canRepairAll);
     }
 
     private void SetVisualEnabled(CanvasGroup cg, bool enabled)
     {
-        if (cg == null) return;
+        if (cg == null)
+            return;
 
         cg.alpha = enabled ? 1f : 0.45f;
-        // On ne coupe PAS les raycasts, sinon plus cliquable.
         cg.blocksRaycasts = true;
         cg.interactable = true;
     }
 
-    // ------------------------------------------------------------
-    // OnClick
-    // ------------------------------------------------------------
-
     public void OnRepairOnePressed()
     {
-        if (runSession == null)
-            return;
-
         if (!canRepairOne)
         {
             BootRoot.Audio?.PlayUi(errorSfx);
@@ -154,14 +163,13 @@ public class ShopRepairBayController : MonoBehaviour
 
         BootRoot.Audio?.PlayUi(buySfx);
         runSession.RepairHull(1);
+        hullUI.PlayRepairFeedback();
+
         RefreshAll();
     }
 
     public void OnRepairAllPressed()
     {
-        if (runSession == null)
-            return;
-
         if (!canRepairAll)
         {
             BootRoot.Audio?.PlayUi(errorSfx);
@@ -176,12 +184,26 @@ public class ShopRepairBayController : MonoBehaviour
 
         BootRoot.Audio?.PlayUi(buySfx);
         runSession.RepairHull(cachedMissing);
+        hullUI.PlayRepairFeedback();
+
         RefreshAll();
     }
 
-    // ------------------------------------------------------------
-    // TMP helpers
-    // ------------------------------------------------------------
+    private string GetPlusHullText(int value)
+    {
+        string text = "+" + value;
+
+        if (LocalizationManager.Instance != null && LocalizationManager.Instance.IsReady)
+        {
+            text = LocalizationManager.Instance.FormatText(
+                UiPackName,
+                "repair.plus_hull",
+                value
+            );
+        }
+
+        return text;
+    }
 
     private string FormatWithSprite(string value, string spriteName)
     {
@@ -194,8 +216,8 @@ public class ShopRepairBayController : MonoBehaviour
     private string FormatCost(int cost)
     {
         if (string.IsNullOrEmpty(moneySpriteName))
-            return "COST : " + cost;
+            return cost.ToString();
 
-        return $"COST : {cost} <voffset={spriteYOffset}><sprite name=\"{moneySpriteName}\"></voffset>";
+        return $"<voffset={spriteYOffset}><sprite name=\"{moneySpriteName}\"></voffset> {cost}";
     }
 }

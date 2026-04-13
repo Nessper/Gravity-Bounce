@@ -11,11 +11,11 @@
     },
     {
       "key": "module.hull_patch.t2.description",
-      "text": "Restore +1 hull and gain +1 credit after each mission."
+      "text": "Restore +1 hull. Gain +1 credit after each mission."
     },
     {
       "key": "module.hull_patch.t3.description",
-      "text": "Restore +2 hull and gain +1 credit after each mission."
+      "text": "Restore +2 hull. Gain +1 credit after each mission."
     },
 
     {
@@ -41,15 +41,15 @@
     },
     {
       "key": "module.greed_coil.t1.description",
-      "text": "Flush threshold +1 (larger combos)."
+      "text": "Flush threshold +1. Larger combos."
     },
     {
       "key": "module.greed_coil.t2.description",
-      "text": "Flush threshold +2 (larger combos)."
+      "text": "Flush threshold +2. Larger combos."
     },
     {
       "key": "module.greed_coil.t3.description",
-      "text": "Flush threshold +3 (larger combos)."
+      "text": "Flush threshold +3. Larger combos."
     },
 
     {

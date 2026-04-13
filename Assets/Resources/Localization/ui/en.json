@@ -12,7 +12,27 @@
     {
       "key": "ship_select.modules.hover_for_details",
       "text": "Hover a module for details"
-    }
+    },
 
+    {
+      "key": "repair.missing_hull",
+      "text": "Hull Damage : {0}"
+    },
+    {
+      "key": "repair.plus_hull",
+      "text": "+{0}"
+    },
+    {
+      "key": "shop.modules.none",
+      "text": "No modules for sale"
+    },
+    {
+      "key": "shop.warning.missing_modules_single",
+      "text": "Missing prerequisite: {0}"
+    },
+    {
+      "key": "shop.warning.missing_modules_plural",
+      "text": "Missing prerequisites: {0}"
+    }
   ]
 }

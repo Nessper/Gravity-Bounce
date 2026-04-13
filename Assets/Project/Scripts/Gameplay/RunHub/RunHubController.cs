@@ -2,15 +2,16 @@ using TMPro;
 using UnityEngine;
 
 /// <summary>
-/// RunHub controller (map/steps of the run).
-/// Responsibilities:
-/// - Load/display world name
-/// - Build the node list (map)
-/// - Route NEXT to Shop / Level(Boss) / Credits
+/// Controleur principal du RunHub.
 ///
-/// Rules:
-/// - Ending nodes are NOT displayed on the hub list.
-/// - If the current node is Ending, we automatically route to CreditsScene.
+/// Responsabilites :
+/// - Charger l'etat de run
+/// - Mettre a jour le nom du monde
+/// - Construire la liste des nodes visibles
+/// - Router les actions principales du hub (Next / Menu)
+///
+/// Ce controller reste volontairement "haut niveau".
+/// La logique specifique du shop est deleguee a RunHubShopController.
 /// </summary>
 public class RunHubController : MonoBehaviour
 {
@@ -22,9 +23,8 @@ public class RunHubController : MonoBehaviour
     [SerializeField] private Transform listRoot;
     [SerializeField] private RunHubNodeView nodePrefab;
 
-    [Header("Shop")]
-    [SerializeField] private RunHubShopTransition shopTransition;
-    [SerializeField] private ShopDialogController shopDialogController;
+    [Header("Sub Controllers")]
+    [SerializeField] private RunHubShopController shopController;
 
     [Header("Icons")]
     [SerializeField] private Sprite levelIcon;
@@ -35,9 +35,6 @@ public class RunHubController : MonoBehaviour
     {
         if (runSession != null)
             runSession.LoadFromSave();
-
-        if (shopTransition != null)
-            shopTransition.OnShopPanelRevealed = HandleShopPanelRevealed;
     }
 
     private void Start()
@@ -45,87 +42,53 @@ public class RunHubController : MonoBehaviour
         if (runSession == null)
             return;
 
+        RefreshHub();
 
-        UpdateWorldName();
-        BuildList();
-
-        // If we're already on Ending, don't stay on the hub.
+        // Si on est deja sur un noeud de fin, on ne reste pas sur le hub.
         TryAutoRouteEnding();
-
-        if (shopTransition != null)
-            shopTransition.ResetToRunHubState();
     }
 
     /// <summary>
-    /// NEXT button (hub).
-    /// Routes according to the current node:
-    /// - Ending => consume + Credits
-    /// - Shop   => transition + dialog
-    /// - Else   => StartLevel (Level/Boss)
+    /// Bouton NEXT depuis le hub.
+    ///
+    /// Regles :
+    /// - Ending => route automatiquement vers Credits
+    /// - Shop   => ouvre le shop
+    /// - Sinon  => lance le niveau
     /// </summary>
     public void OnNextPressed()
     {
-        if (runSession == null)
+        if (!TryGetCurrentNode(out RunPlan plan, out int index, out RunNode node))
             return;
 
-        if (!runSession.EnsurePlanLoaded())
-            return;
-
-        RunPlan plan = runSession.CurrentRunPlan;
-        if (plan == null || !plan.HasNodes)
-            return;
-
-        int idx = runSession.CurrentNodeIndex;
-        if (idx < 0 || idx >= plan.nodes.Count)
-            return;
-
-        RunNode node = plan.nodes[idx];
-        if (node == null)
-            return;
-
-        // Ending first (safety + deterministic)
+        // Securite : si on est sur Ending, on route tout de suite.
         if (TryAutoRouteEnding())
             return;
 
-        // Shop
         if (node.type == RunNodeType.Shop)
         {
-            if (shopTransition != null)
-                shopTransition.PlayToShopTransition();
+            if (shopController != null)
+                shopController.OpenShop();
             else
-                HandleShopPanelRevealed();
+                Debug.LogWarning("[RunHub] shopController is not assigned.");
 
             return;
         }
 
-        // Level / Boss
+        // Level / Boss / Event route actuellement vers StartLevel.
         if (BootRoot.GameFlow != null)
             BootRoot.GameFlow.StartLevel();
     }
 
     /// <summary>
-    /// NEXT button (shop UI).
-    /// Consumes the SHOP node, then returns to the RunHub.
-    /// The next action will be decided from the hub based on the new current node.
+    /// Bouton NEXT depuis l'UI du shop.
+    ///
+    /// Le shop consomme le noeud Shop courant, avance la run,
+    /// puis revient au hub sur le noeud suivant.
     /// </summary>
     public void OnShopNextPressed()
     {
-        if (runSession == null)
-            return;
-
-        if (!runSession.EnsurePlanLoaded())
-            return;
-
-        RunPlan plan = runSession.CurrentRunPlan;
-        if (plan == null || !plan.HasNodes)
-            return;
-
-        int idx = runSession.CurrentNodeIndex;
-        if (idx < 0 || idx >= plan.nodes.Count)
-            return;
-
-        RunNode node = plan.nodes[idx];
-        if (node == null)
+        if (!TryGetCurrentNode(out RunPlan plan, out int index, out RunNode node))
             return;
 
         if (node.type != RunNodeType.Shop)
@@ -133,40 +96,36 @@ public class RunHubController : MonoBehaviour
 
         runSession.CommitVictoryAndAdvanceNode();
 
-        UpdateWorldName();
-        BuildList();
+        RefreshHub();
 
-        if (shopTransition != null)
-            shopTransition.ResetToRunHubState();
+        if (shopController != null)
+            shopController.CloseShopToHub();
     }
 
+    /// <summary>
+    /// Bouton MENU depuis le hub.
+    /// </summary>
     public void OnMenuPressed()
     {
         if (BootRoot.GameFlow != null)
             BootRoot.GameFlow.GoToTitle();
     }
 
-    // ---------------------------------------------------------
-    // Internals
-    // ---------------------------------------------------------
-
-    private void HandleShopPanelRevealed()
+    /// <summary>
+    /// Rafraichit les elements principaux du hub.
+    /// </summary>
+    private void RefreshHub()
     {
-        if (shopDialogController == null)
-        {
-            Debug.LogWarning("[RunHub] shopDialogController is not assigned.");
-            if (shopTransition != null)
-                shopTransition.ShowUIAfterDialog();
-            return;
-        }
+        UpdateWorldName();
+        BuildList();
 
-        shopDialogController.PlayWelcomeThenShowUI(() =>
-        {
-            if (shopTransition != null)
-                shopTransition.ShowUIAfterDialog();
-        });
+        if (shopController != null)
+            shopController.ResetToRunHubState();
     }
 
+    /// <summary>
+    /// Met a jour le nom du monde affiche.
+    /// </summary>
     private void UpdateWorldName()
     {
         if (worldNameText == null || runSession == null)
@@ -181,8 +140,10 @@ public class RunHubController : MonoBehaviour
     }
 
     /// <summary>
-    /// Builds the hub list.
-    /// Ending nodes are intentionally not displayed.
+    /// Construit la liste visible des nodes du hub.
+    ///
+    /// Regle :
+    /// - les noeuds Ending ne sont pas affiches dans la liste
     /// </summary>
     private void BuildList()
     {
@@ -195,8 +156,7 @@ public class RunHubController : MonoBehaviour
 
         int currentIndex = runSession.CurrentNodeIndex;
 
-        for (int i = listRoot.childCount - 1; i >= 0; i--)
-            Destroy(listRoot.GetChild(i).gameObject);
+        ClearList();
 
         for (int i = 0; i < plan.nodes.Count; i++)
         {
@@ -204,7 +164,7 @@ public class RunHubController : MonoBehaviour
             if (node == null)
                 continue;
 
-            // Hide ending from the hub map
+            // Le hub n'affiche pas les noeuds Ending.
             if (node.type == RunNodeType.Ending)
                 continue;
 
@@ -220,28 +180,22 @@ public class RunHubController : MonoBehaviour
     }
 
     /// <summary>
-    /// If current node is Ending:
-    /// - consume the node (advance) to avoid looping
-    /// - route to CreditsScene
+    /// Supprime proprement les vues existantes de la liste.
+    /// </summary>
+    private void ClearList()
+    {
+        for (int i = listRoot.childCount - 1; i >= 0; i--)
+            Destroy(listRoot.GetChild(i).gameObject);
+    }
+
+    /// <summary>
+    /// Si le noeud courant est un Ending :
+    /// - on le consomme pour eviter une boucle
+    /// - on route vers les credits
     /// </summary>
     private bool TryAutoRouteEnding()
     {
-        if (runSession == null)
-            return false;
-
-        if (!runSession.EnsurePlanLoaded())
-            return false;
-
-        RunPlan plan = runSession.CurrentRunPlan;
-        if (plan == null || !plan.HasNodes)
-            return false;
-
-        int idx = runSession.CurrentNodeIndex;
-        if (idx < 0 || idx >= plan.nodes.Count)
-            return false;
-
-        RunNode node = plan.nodes[idx];
-        if (node == null)
+        if (!TryGetCurrentNode(out RunPlan plan, out int index, out RunNode node))
             return false;
 
         if (node.type != RunNodeType.Ending)
@@ -255,18 +209,57 @@ public class RunHubController : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Helper central pour recuperer le noeud courant de maniere sure.
+    /// Evite de dupliquer les memes checks partout dans le controller.
+    /// </summary>
+    private bool TryGetCurrentNode(out RunPlan plan, out int index, out RunNode node)
+    {
+        plan = null;
+        index = -1;
+        node = null;
+
+        if (runSession == null)
+            return false;
+
+        if (!runSession.EnsurePlanLoaded())
+            return false;
+
+        plan = runSession.CurrentRunPlan;
+        if (plan == null || !plan.HasNodes)
+            return false;
+
+        index = runSession.CurrentNodeIndex;
+        if (index < 0 || index >= plan.nodes.Count)
+            return false;
+
+        node = plan.nodes[index];
+        return node != null;
+    }
+
+    /// <summary>
+    /// Retourne l'icone adaptee au type de noeud.
+    /// </summary>
     private Sprite GetIconForNode(RunNodeType type)
     {
         switch (type)
         {
-            case RunNodeType.Shop: return shopIcon;
-            case RunNodeType.Boss: return bossIcon;
+            case RunNodeType.Shop:
+                return shopIcon;
+
+            case RunNodeType.Boss:
+                return bossIcon;
+
             case RunNodeType.Level:
             case RunNodeType.Event:
-            default: return levelIcon;
+            default:
+                return levelIcon;
         }
     }
 
+    /// <summary>
+    /// Resout le label affiche pour un noeud.
+    /// </summary>
     private string ResolveLabel(RunNode node)
     {
         if (node == null)
@@ -280,9 +273,11 @@ public class RunHubController : MonoBehaviour
 
         if (!string.IsNullOrEmpty(node.levelId))
         {
-            LevelCatalogService.LevelCatalogEntry meta;
-            if (LevelCatalogService.TryGet(node.levelId, out meta) && !string.IsNullOrEmpty(meta.title))
+            if (LevelCatalogService.TryGet(node.levelId, out LevelCatalogService.LevelCatalogEntry meta) &&
+                !string.IsNullOrEmpty(meta.title))
+            {
                 return meta.title;
+            }
 
             return node.levelId;
         }

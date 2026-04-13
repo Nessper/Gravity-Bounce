@@ -7,15 +7,15 @@
     },
     {
       "key": "module.hull_patch.t1.description",
-      "text": "Répare +1 coque après chaque mission."
+      "text": "+1 PV après chaque mission."
     },
     {
       "key": "module.hull_patch.t2.description",
-      "text": "Répare +1 coque et gagne +1 crédit après chaque mission."
+      "text": "+1 PV et +1 crédit après chaque mission."
     },
     {
       "key": "module.hull_patch.t3.description",
-      "text": "Répare +2 coque et gagne +1 crédit après chaque mission."
+      "text": "+2 PV et +1 crédit après chaque mission."
     },
 
     {
@@ -41,15 +41,15 @@
     },
     {
       "key": "module.greed_coil.t1.description",
-      "text": "Seuil de flush +1 (combos plus grands)."
+      "text": "Seuil de flush +1. Combos plus grands."
     },
     {
       "key": "module.greed_coil.t2.description",
-      "text": "Seuil de flush +2 (combos plus grands)."
+      "text": "Seuil de flush +2. Combos plus grands."
     },
     {
       "key": "module.greed_coil.t3.description",
-      "text": "Seuil de flush +3 (combos plus grands)."
+      "text": "Seuil de flush +3. Combos plus grands."
     },
 
     {
@@ -58,15 +58,15 @@
     },
     {
       "key": "module.core_growth.t1.description",
-      "text": "Score final -200. Si la coque est pleine : +1 coque max."
+      "text": "Score final -200. Si PV max : +1 PV max."
     },
     {
       "key": "module.core_growth.t2.description",
-      "text": "Score final -100. Si la coque est pleine : +1 coque max."
+      "text": "Score final -100. Si PV max : +1 PV max."
     },
     {
       "key": "module.core_growth.t3.description",
-      "text": "Score final +100. Si la coque est pleine : +1 coque max."
+      "text": "Score final +100. Si PV max : +1 PV max."
     }
   ]
 }

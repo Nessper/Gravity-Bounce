@@ -101,6 +101,7 @@ public static class NewRunInitializer
 
         run.shopOfferModuleIds = null;
         run.shopRerollCount = 0;
+        run.shopOfferInitialized = false;
 
         Debug.Log("[NewRunInitializer] New run initialized for shipId=" + ship.id);
         Debug.Log("[NewRunInitializer] money=" + save.money);
@@ -111,18 +112,45 @@ public static class NewRunInitializer
     }
 
     /// <summary>
-    /// Construit la liste des modules equipes de depart de la run
+    /// Construit le tableau des modules equipes de depart de la run
     /// a partir du ship.
+    ///
+    /// IMPORTANT :
+    /// - Le tableau retourne doit etre de taille fixe (nombre total de slots du ship)
+    /// - Les modules sont places dans les premiers slots
+    /// - Les slots restants restent a null
+    ///
+    /// Cela garantit la compatibilite avec RunSessionState,
+    /// qui attend un tableau d equipement indexe par slot.
     /// </summary>
     private static string[] BuildEquippedModulesForNewRun(ShipDefinition ship)
     {
-        if (ship == null || ship.startingEquippedModuleIds == null)
+        if (ship == null)
             return Array.Empty<string>();
 
-        return ship.startingEquippedModuleIds
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Distinct()
-            .ToArray();
+        int slotCount = Mathf.Max(0, ship.totalModuleSlots);
+        string[] equipped = new string[slotCount];
+
+        if (ship.startingEquippedModuleIds == null || ship.startingEquippedModuleIds.Count == 0)
+            return equipped;
+
+        int writeIndex = 0;
+
+        for (int i = 0; i < ship.startingEquippedModuleIds.Count; i++)
+        {
+            string moduleId = ship.startingEquippedModuleIds[i];
+
+            if (string.IsNullOrWhiteSpace(moduleId))
+                continue;
+
+            if (writeIndex >= equipped.Length)
+                break;
+
+            equipped[writeIndex] = moduleId;
+            writeIndex++;
+        }
+
+        return equipped;
     }
 
     /// <summary>

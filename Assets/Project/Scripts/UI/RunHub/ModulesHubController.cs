@@ -3,25 +3,26 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Facade métier simplifiée pour le système Modules côté UI.
+/// Facade metier simplifiee pour le systeme Modules cote UI.
 ///
-/// Responsabilités principales :
-/// - Accès au catalogue de modules
-/// - Lecture de l'inventaire owned via SaveManager
-/// - Achat d'un module (débit money + ajout owned)
-/// - Équipement run-only via RunSessionState
-/// - Chargement et cache des icônes
-/// - Gestion de l'offre du shop :
-///   - deal initial de 3 modules
-///   - consommation sans refill automatique
-///   - reroll persistant
+/// Responsabilites principales :
+/// - acces au catalogue de modules
+/// - lecture du statut owned via SaveManager
+/// - achat d'un module depuis le shop
+/// - gestion de l'offre shop persistante
+/// - reroll du shop
+/// - chargement et cache des icones
 ///
 /// Important :
-/// - Les règles métier d'équipement ne vivent PAS ici.
-///   Elles restent dans RunSessionState / RunModuleEquipmentService.
-/// - Les règles de composition d'offre ne vivent PAS ici.
-///   Elles restent dans ModulesShopOfferRules.
-/// - Ce controller orchestre et relie les systèmes, sans dupliquer la logique métier.
+/// - les regles de composition d'offre ne vivent PAS ici
+///   elles restent dans ModulesShopOfferRules
+/// - les regles metier d'equipement ne vivent PAS ici
+///   elles restent dans RunSessionState / RunModuleEquipmentService
+/// - ce controller orchestre le shop et expose une facade simple a l'UI
+///
+/// Compatibilite temporaire :
+/// - On conserve OnInventoryChanged pour ne pas casser les anciens scripts.
+/// - Quand la migration sera terminee, cet event legacy pourra etre supprime.
 /// </summary>
 public class ModulesHubController : MonoBehaviour
 {
@@ -42,18 +43,24 @@ public class ModulesHubController : MonoBehaviour
     [SerializeField] private RunSessionState runSession;
 
     /// <summary>
-    /// Accès public au RunSessionState utilisé par ce hub.
+    /// Acces public au RunSessionState utilise par ce hub.
     /// </summary>
     public RunSessionState RunSession => runSession;
 
     /// <summary>
-    /// Émis quand l'inventaire visible côté UI change
-    /// (achat, reroll, deal vidé, etc.).
+    /// Event principal du nouveau systeme UI modules.
+    /// </summary>
+    public event Action OnModulesCollectionChanged;
+
+    /// <summary>
+    /// Event legacy conserve temporairement pour compatibilite
+    /// avec les anciens scripts UI.
     /// </summary>
     public event Action OnInventoryChanged;
 
     /// <summary>
-    /// Émis quand l'équipement change.
+    /// Emis quand l'equipement change.
+    /// Conserve pour compatibilite avec le reste du projet.
     /// </summary>
     public event Action OnEquipmentChanged;
 
@@ -93,6 +100,20 @@ public class ModulesHubController : MonoBehaviour
     }
 
     // ---------------------------------------------------------------------
+    // PUBLIC REFRESH
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Permet de notifier manuellement les vues UI modules.
+    /// Declenche a la fois le nouvel event et l'ancien event legacy.
+    /// </summary>
+    public void NotifyModulesCollectionChanged()
+    {
+        OnModulesCollectionChanged?.Invoke();
+        OnInventoryChanged?.Invoke();
+    }
+
+    // ---------------------------------------------------------------------
     // CATALOG ACCESS
     // ---------------------------------------------------------------------
 
@@ -114,7 +135,7 @@ public class ModulesHubController : MonoBehaviour
     }
 
     /// <summary>
-    /// Retourne un module à partir de son id.
+    /// Retourne un module a partir de son id.
     /// </summary>
     public bool TryGetModuleById(string moduleId, out ModuleDefinition module)
     {
@@ -135,14 +156,17 @@ public class ModulesHubController : MonoBehaviour
     }
 
     // ---------------------------------------------------------------------
-    // OWNED / INVENTORY
+    // OWNED
     // ---------------------------------------------------------------------
 
     /// <summary>
-    /// Indique si un module est déjà possédé.
+    /// Indique si un module est deja possede.
     /// </summary>
     public bool IsOwned(string moduleId)
     {
+        if (string.IsNullOrEmpty(moduleId))
+            return false;
+
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
             return false;
 
@@ -154,7 +178,8 @@ public class ModulesHubController : MonoBehaviour
     // ---------------------------------------------------------------------
 
     /// <summary>
-    /// Retourne true si le module est actuellement équipé dans un slot.
+    /// Retourne true si le module est actuellement equipe dans un slot.
+    /// Conserve pour compatibilite.
     /// </summary>
     public bool IsEquipped(string moduleId)
     {
@@ -172,7 +197,8 @@ public class ModulesHubController : MonoBehaviour
     }
 
     /// <summary>
-    /// Nombre total de slots d'équipement.
+    /// Nombre total de slots d'equipement.
+    /// Conserve pour compatibilite.
     /// </summary>
     public int EquipmentSlotCount
     {
@@ -186,7 +212,8 @@ public class ModulesHubController : MonoBehaviour
     }
 
     /// <summary>
-    /// Indique si un slot est verrouillé.
+    /// Indique si un slot est verrouille.
+    /// Conserve pour compatibilite.
     /// </summary>
     public bool IsSlotLocked(int slotIndex)
     {
@@ -197,7 +224,8 @@ public class ModulesHubController : MonoBehaviour
     }
 
     /// <summary>
-    /// Retourne le module équipé dans un slot.
+    /// Retourne le module equipe dans un slot.
+    /// Conserve pour compatibilite.
     /// </summary>
     public string GetEquippedModuleIdInSlot(int slotIndex)
     {
@@ -209,7 +237,7 @@ public class ModulesHubController : MonoBehaviour
 
     /// <summary>
     /// Retourne la liste des slots ouverts.
-    /// Aucune règle d'équipement n'est appliquée ici.
+    /// Conserve pour compatibilite.
     /// </summary>
     public List<int> GetOpenSlots()
     {
@@ -229,8 +257,9 @@ public class ModulesHubController : MonoBehaviour
     }
 
     /// <summary>
-    /// Tente d'équiper un module dans un slot.
-    /// La validation métier reste dans RunSessionState.
+    /// Tente d'equiper un module dans un slot.
+    /// La validation metier reste dans RunSessionState.
+    /// Conserve pour compatibilite.
     /// </summary>
     public bool TryEquipModuleInSlot(string moduleId, int slotIndex)
     {
@@ -241,7 +270,8 @@ public class ModulesHubController : MonoBehaviour
     }
 
     /// <summary>
-    /// Tente de déséquiper un slot.
+    /// Tente de desequiper un slot.
+    /// Conserve pour compatibilite.
     /// </summary>
     public bool TryUnequipSlot(int slotIndex)
     {
@@ -256,18 +286,27 @@ public class ModulesHubController : MonoBehaviour
     // ---------------------------------------------------------------------
 
     /// <summary>
-    /// Tente d'acheter un module :
-    /// - vérifie qu'il n'est pas déjà owned
-    /// - dépense la money
-    /// - ajoute le module à l'inventaire owned
-    /// - retire le module de l'offre courante
+    /// Tente d'acheter un module.
+    ///
+    /// Regles :
+    /// - uniquement en contexte shop
+    /// - le module doit etre dans l'offre courante
+    /// - le module ne doit pas deja etre possede
+    /// - la money doit etre suffisante
+    /// - si achat valide : ajout owned + retrait de l'offre
     /// </summary>
     public bool TryBuy(string moduleId)
     {
         if (string.IsNullOrEmpty(moduleId))
             return false;
 
+        if (GetCurrentShopStage() == ShopStage.None)
+            return false;
+
         if (IsOwned(moduleId))
+            return false;
+
+        if (!IsModuleCurrentlyInShopOffer(moduleId))
             return false;
 
         if (!TryGetModuleById(moduleId, out ModuleDefinition def) || def == null)
@@ -275,7 +314,13 @@ public class ModulesHubController : MonoBehaviour
 
         if (runSession == null)
         {
-            Debug.LogError("[ModulesHubController] RunSessionState manquant (money event impossible).");
+            Debug.LogError("[ModulesHubController] RunSessionState manquant.");
+            return false;
+        }
+
+        if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
+        {
+            Debug.LogError("[ModulesHubController] SaveManager indisponible.");
             return false;
         }
 
@@ -288,22 +333,47 @@ public class ModulesHubController : MonoBehaviour
         bool added = SaveManager.Instance.TryAddOwnedModule(moduleId);
         if (!added)
         {
-            Debug.LogWarning("[ModulesHubController] Achat incohérent: money dépensée mais module non ajouté. " + moduleId);
+            Debug.LogError("[ModulesHubController] Achat incoherent: money depensee mais module non ajoute. moduleId=" + moduleId);
 
-            // Cohérence UX :
-            // si l'achat est considéré comme passé, on retire quand même l'offre.
+            // Etat incoherent.
+            // On retire quand meme l'offre pour eviter les doubles clics ou doubles achats.
             RemoveFromShopOffer(moduleId);
-            OnInventoryChanged?.Invoke();
-            return true;
+            NotifyModulesCollectionChanged();
+            return false;
         }
 
         spriteCacheByModuleId.Remove(moduleId);
 
-        // Une fois acheté, le module disparaît de l'offre courante.
         RemoveFromShopOffer(moduleId);
-        OnInventoryChanged?.Invoke();
+        NotifyModulesCollectionChanged();
 
         return true;
+    }
+
+    /// <summary>
+    /// Retourne true si un module est actuellement present dans l'offre shop persistante.
+    /// </summary>
+    public bool IsModuleCurrentlyInShopOffer(string moduleId)
+    {
+        if (string.IsNullOrEmpty(moduleId))
+            return false;
+
+        if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
+            return false;
+
+        SaveManager.Instance.EnsureShopOfferArrays(ShopOfferCount);
+
+        RunStateData run = SaveManager.Instance.GetRunState();
+        if (run == null || run.shopOfferModuleIds == null)
+            return false;
+
+        for (int i = 0; i < run.shopOfferModuleIds.Length; i++)
+        {
+            if (string.Equals(run.shopOfferModuleIds[i], moduleId, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
     }
 
     // ---------------------------------------------------------------------
@@ -311,7 +381,7 @@ public class ModulesHubController : MonoBehaviour
     // ---------------------------------------------------------------------
 
     /// <summary>
-    /// Retourne le nombre de rerolls déjà effectués pour le shop courant.
+    /// Retourne le nombre de rerolls deja effectues pour le shop courant.
     /// </summary>
     public int GetShopRerollCount()
     {
@@ -326,7 +396,49 @@ public class ModulesHubController : MonoBehaviour
     }
 
     /// <summary>
-    /// Vide l'offre courante de shop pour forcer un nouveau deal au prochain refresh.
+    /// Tente un reroll du shop courant.
+    ///
+    /// Pour l'instant :
+    /// - autorise uniquement en contexte shop
+    /// - ne depense aucun cout
+    /// - incremente le compteur de reroll
+    /// - vide l'offre courante
+    /// - persiste
+    /// - notifie l'UI
+    /// </summary>
+    public bool TryRerollShop()
+    {
+        if (GetCurrentShopStage() == ShopStage.None)
+            return false;
+
+        if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
+            return false;
+
+        SaveManager.Instance.EnsureShopOfferArrays(ShopOfferCount);
+
+        RunStateData run = SaveManager.Instance.GetRunState();
+        if (run == null)
+            return false;
+
+        run.shopRerollCount = Mathf.Max(0, run.shopRerollCount) + 1;
+
+        if (run.shopOfferModuleIds != null)
+        {
+            for (int i = 0; i < run.shopOfferModuleIds.Length; i++)
+                run.shopOfferModuleIds[i] = null;
+        }
+
+        run.shopOfferInitialized = false;
+
+        SaveManager.Instance.Save();
+        NotifyModulesCollectionChanged();
+
+        return true;
+    }
+
+    /// <summary>
+    /// Ancienne API conservee temporairement pour compatibilite.
+    /// Preferer TryRerollShop().
     /// </summary>
     public void ForceRerollShopOfferAndPersist()
     {
@@ -342,13 +454,15 @@ public class ModulesHubController : MonoBehaviour
         for (int i = 0; i < run.shopOfferModuleIds.Length; i++)
             run.shopOfferModuleIds[i] = null;
 
-        SaveManager.Instance.Save();
+        run.shopOfferInitialized = false;
 
-        OnInventoryChanged?.Invoke();
+        SaveManager.Instance.Save();
+        NotifyModulesCollectionChanged();
     }
 
     /// <summary>
-    /// Incrémente et persiste le compteur de rerolls.
+    /// Ancienne API conservee temporairement pour compatibilite.
+    /// Preferer TryRerollShop().
     /// </summary>
     public void IncrementShopRerollCountAndPersist()
     {
@@ -368,7 +482,7 @@ public class ModulesHubController : MonoBehaviour
     // ---------------------------------------------------------------------
 
     /// <summary>
-    /// Retourne le sprite d'icône d'un module depuis Resources avec cache.
+    /// Retourne le sprite d'icone d'un module depuis Resources avec cache.
     /// </summary>
     public Sprite GetModuleIconSprite(string moduleId)
     {
@@ -403,7 +517,7 @@ public class ModulesHubController : MonoBehaviour
     }
 
     /// <summary>
-    /// Vide le cache d'icônes.
+    /// Vide le cache d'icones.
     /// </summary>
     public void ClearIconCache()
     {
@@ -427,7 +541,6 @@ public class ModulesHubController : MonoBehaviour
     {
         modules = new List<ModuleDefinition>();
 
-        // Hors contexte shop : pas d'erreur, pas de deal, liste vide.
         ShopStage shopStage = GetCurrentShopStage();
         if (shopStage == ShopStage.None)
             return true;
@@ -441,6 +554,30 @@ public class ModulesHubController : MonoBehaviour
         return modules != null;
     }
 
+    /// <summary>
+    /// Retourne true si au moins un slot de l'offre persistante contient un module.
+    /// Utile pour debug et verification d'etat.
+    /// </summary>
+    public bool HasAnyShopOfferPersisted()
+    {
+        if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
+            return false;
+
+        SaveManager.Instance.EnsureShopOfferArrays(ShopOfferCount);
+
+        RunStateData run = SaveManager.Instance.GetRunState();
+        if (run == null || run.shopOfferModuleIds == null)
+            return false;
+
+        for (int i = 0; i < run.shopOfferModuleIds.Length; i++)
+        {
+            if (!string.IsNullOrEmpty(run.shopOfferModuleIds[i]))
+                return true;
+        }
+
+        return false;
+    }
+
     // ---------------------------------------------------------------------
     // SHOP OFFER - INTERNAL
     // ---------------------------------------------------------------------
@@ -449,7 +586,7 @@ public class ModulesHubController : MonoBehaviour
     /// Deal une nouvelle offre de shop si l'offre courante est vide.
     /// Ne fait rien :
     /// - hors contexte shop
-    /// - si une offre existe déjà
+    /// - si une offre existe deja
     /// - si la save n'est pas disponible
     /// </summary>
     private void EnsureShopOfferDealt(List<ModuleDefinition> allModules, ShopStage shopStage)
@@ -463,21 +600,14 @@ public class ModulesHubController : MonoBehaviour
         SaveManager.Instance.EnsureShopOfferArrays(ShopOfferCount);
 
         RunStateData run = SaveManager.Instance.GetRunState();
-        if (run == null)
+        if (run == null || run.shopOfferModuleIds == null)
             return;
 
-        // Si au moins un slot contient déjà un id, on considère que l'offre existe.
-        bool offerIsEmpty = true;
-        for (int i = 0; i < run.shopOfferModuleIds.Length; i++)
-        {
-            if (!string.IsNullOrEmpty(run.shopOfferModuleIds[i]))
-            {
-                offerIsEmpty = false;
-                break;
-            }
-        }
-
-        if (!offerIsEmpty)
+        // Important :
+        // si l offre a deja ete initialisee pour ce shop,
+        // on ne redeal PAS, meme si elle est maintenant vide
+        // parce qu elle a pu etre completement achetee.
+        if (run.shopOfferInitialized)
             return;
 
         string worldId = run.worldId;
@@ -491,23 +621,24 @@ public class ModulesHubController : MonoBehaviour
             rerollCount,
             ShopOfferCount);
 
-        if (offer == null || offer.Count == 0)
-            return;
-
         for (int i = 0; i < run.shopOfferModuleIds.Length; i++)
             run.shopOfferModuleIds[i] = null;
 
-        for (int i = 0; i < offer.Count && i < run.shopOfferModuleIds.Length; i++)
-            run.shopOfferModuleIds[i] = offer[i].id;
+        if (offer != null)
+        {
+            for (int i = 0; i < offer.Count && i < run.shopOfferModuleIds.Length; i++)
+                run.shopOfferModuleIds[i] = offer[i].id;
+        }
 
+        run.shopOfferInitialized = true;
         SaveManager.Instance.Save();
     }
 
     /// <summary>
-    /// Reconstruit la liste des modules visibles à partir des ids persistés en save.
+    /// Reconstruit la liste des modules visibles a partir des ids persistes en save.
     ///
     /// Nettoie automatiquement :
-    /// - les modules déjà owned
+    /// - les modules deja owned
     /// - les ids devenus invalides
     /// </summary>
     private List<ModuleDefinition> BuildShopModulesFromOfferIds(List<ModuleDefinition> allModules)
@@ -531,7 +662,6 @@ public class ModulesHubController : MonoBehaviour
             if (string.IsNullOrEmpty(moduleId))
                 continue;
 
-            // Si le module est maintenant owned, on purge l'offre.
             if (IsOwned(moduleId))
             {
                 run.shopOfferModuleIds[i] = null;
@@ -546,7 +676,6 @@ public class ModulesHubController : MonoBehaviour
             }
             else
             {
-                // Sécurité : si le module n'existe plus dans le catalogue, on purge le slot.
                 run.shopOfferModuleIds[i] = null;
                 changed = true;
             }
@@ -559,8 +688,8 @@ public class ModulesHubController : MonoBehaviour
     }
 
     /// <summary>
-    /// Retire un module précis de l'offre courante.
-    /// Utilisé après achat.
+    /// Retire un module precis de l'offre courante.
+    /// Utilise apres achat.
     /// </summary>
     private void RemoveFromShopOffer(string moduleId)
     {
@@ -600,7 +729,7 @@ public class ModulesHubController : MonoBehaviour
     ///
     /// Retourne None si :
     /// - le RunSessionState n'est pas disponible
-    /// - le plan n'est pas chargé
+    /// - le plan n'est pas charge
     /// - le node courant n'est pas un shop
     /// </summary>
     private ShopStage GetCurrentShopStage()

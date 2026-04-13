@@ -116,6 +116,23 @@ public class RunStateData
     // ------------------------------------------------------------
     public string[] shopOfferModuleIds;
 
+    /// <summary>
+    /// Indique si une offre de shop a deja ete generee pour ce node.
+    ///
+    /// IMPORTANT :
+    /// - false => aucune offre n a encore ete generee -> on doit deal
+    /// - true  => une offre a deja ete generee (meme si elle est maintenant vide)
+    ///
+    /// Permet de distinguer :
+    /// - "shop jamais initialisé"
+    /// - "shop deja consommé (tous les modules achetés)"
+    ///
+    /// Reset à false :
+    /// - au debut d une nouvelle run
+    /// - lors d un reroll
+    /// </summary>
+    public bool shopOfferInitialized = false;
+
     // ------------------------------------------------------------
     // SHOP REROLL (pour fixer le prix du reroll)
     // ------------------------------------------------------------
