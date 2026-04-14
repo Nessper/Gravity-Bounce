@@ -41,7 +41,8 @@ public class ModulesListPanelUI : MonoBehaviour
     [SerializeField] private string missingModulesWarningKey = "shop.warning.missing_modules";
 
     private readonly List<ModuleItemUI> spawnedItems = new List<ModuleItemUI>();
-    private readonly Dictionary<ModuleItemUI, ModuleDefinition> itemToDefinition = new Dictionary<ModuleItemUI, ModuleDefinition>();
+    private readonly Dictionary<ModuleItemUI, ModuleDefinition> itemToDefinition =
+        new Dictionary<ModuleItemUI, ModuleDefinition>();
 
     private ModuleItemUI selectedItem;
     private string defaultHoverText = string.Empty;
@@ -55,6 +56,12 @@ public class ModulesListPanelUI : MonoBehaviour
     /// Emis quand la selection persistante change.
     /// </summary>
     public event Action<ModuleDefinition> OnSelectedModuleChanged;
+
+    /// <summary>
+    /// Emis a chaque clic sur un module,
+    /// independamment de la selection persistante locale.
+    /// </summary>
+    public event Action<ModuleDefinition> OnModuleClicked;
 
     /// <summary>
     /// Reconstruit integralement la liste de modules.
@@ -87,7 +94,10 @@ public class ModulesListPanelUI : MonoBehaviour
         if (!hasModules)
         {
             if (detailsPanel != null)
+            {
+                detailsPanel.SetDefaultText(string.Empty);
                 detailsPanel.Clear();
+            }
 
             RefreshWarning(null);
             return;
@@ -135,7 +145,11 @@ public class ModulesListPanelUI : MonoBehaviour
         }
 
         if (detailsPanel != null)
+        {
             detailsPanel.Clear();
+            detailsPanel.SetDefaultText(defaultHoverText);
+            detailsPanel.ShowDefault();
+        }
 
         RefreshWarning(null);
         OnSelectedModuleChanged?.Invoke(null);
@@ -158,6 +172,56 @@ public class ModulesListPanelUI : MonoBehaviour
 
         RefreshWarning(null);
         OnSelectedModuleChanged?.Invoke(null);
+    }
+
+    /// <summary>
+    /// Force la selection visuelle d un module dans la liste.
+    /// Utilise par des controllers externes (ex: Ship Systems).
+    /// </summary>
+    public void SetSelectedModule(ModuleDefinition targetDef)
+    {
+        if (targetDef == null)
+        {
+            ClearSelection();
+            return;
+        }
+
+        ModuleItemUI foundItem = null;
+
+        foreach (var pair in itemToDefinition)
+        {
+            ModuleItemUI item = pair.Key;
+            ModuleDefinition def = pair.Value;
+
+            if (item == null || def == null)
+                continue;
+
+            if (def.id == targetDef.id)
+            {
+                foundItem = item;
+                break;
+            }
+        }
+
+        if (foundItem == null)
+        {
+            ClearSelection();
+            return;
+        }
+
+        if (selectedItem != null && selectedItem != foundItem)
+            selectedItem.SetSelected(false);
+
+        selectedItem = foundItem;
+        selectedItem.SetSelected(true);
+
+        SelectedModule = targetDef;
+
+        if (detailsPanel != null)
+            detailsPanel.ShowModule(targetDef);
+
+        RefreshWarning(targetDef);
+        OnSelectedModuleChanged?.Invoke(SelectedModule);
     }
 
     private void CreateItem(ModuleDefinition def, int index)
@@ -230,9 +294,10 @@ public class ModulesListPanelUI : MonoBehaviour
         if (!itemToDefinition.TryGetValue(item, out ModuleDefinition def) || def == null)
             return;
 
+        OnModuleClicked?.Invoke(def);
+
         if (selectedItem == item)
         {
-            // Re-clic => deselection
             selectedItem.SetSelected(false);
             selectedItem = null;
             SelectedModule = null;
@@ -324,7 +389,8 @@ public class ModulesListPanelUI : MonoBehaviour
             ModuleDefinition prereqDef = ModuleCatalogService.Catalog.modules.FirstOrDefault(
                 m => m != null &&
                      m.familyId == targetDef.familyId &&
-                     m.tier == tier);
+                     m.tier == tier
+            );
 
             if (prereqDef == null)
                 continue;

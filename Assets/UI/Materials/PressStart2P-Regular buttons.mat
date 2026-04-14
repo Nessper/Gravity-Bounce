@@ -13,6 +13,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - GLOW_ON
+  - UNDERLAY_ON
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -61,9 +62,9 @@ Material:
     - _FaceUVSpeedX: 0
     - _FaceUVSpeedY: 0
     - _GlowInner: 0
-    - _GlowOffset: 0
-    - _GlowOuter: 0.3
-    - _GlowPower: 0.35
+    - _GlowOffset: 0.05
+    - _GlowOuter: 0.823
+    - _GlowPower: 0.417
     - _GradientScale: 10
     - _LightAngle: 3.1416
     - _MaskSoftnessX: 0
@@ -91,7 +92,7 @@ Material:
     - _TextureWidth: 1024
     - _UnderlayDilate: 0
     - _UnderlayOffsetX: 0.53
-    - _UnderlayOffsetY: 0
+    - _UnderlayOffsetY: 0.64
     - _UnderlaySoftness: 0
     - _VertexOffsetX: 0
     - _VertexOffsetY: 0
@@ -100,13 +101,13 @@ Material:
     m_Colors:
     - _ClipRect: {r: -32767, g: -32767, b: 32767, a: 32767}
     - _EnvMatrixRotation: {r: 0, g: 0, b: 0, a: 0}
-    - _FaceColor: {r: 0.5671057, g: 0.63821864, b: 0.6792453, a: 1}
+    - _FaceColor: {r: 0.3956924, g: 0.45367074, b: 0.49056602, a: 1}
     - _GlowColor: {r: 0.20291919, g: 0.4182271, b: 0.4528302, a: 1}
     - _MaskCoord: {r: 0, g: 0, b: 32767, a: 32767}
     - _OutlineColor: {r: 0.016064432, g: 0.11842324, b: 0.1792453, a: 1}
     - _ReflectFaceColor: {r: 0, g: 0, b: 0, a: 1}
     - _ReflectOutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
-    - _UnderlayColor: {r: 0, g: 0, b: 0, a: 0.5}
+    - _UnderlayColor: {r: 0.010490831, g: 0.05382965, b: 0.05424528, a: 0.5}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

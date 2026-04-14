@@ -287,7 +287,7 @@ MonoBehaviour:
   debugEquippedModuleIds:
   - SCAN_ARRAY_T2
   - GREED_COIL_T3
-  - 
+  - HULL_PATCH_1
 --- !u!4 &292011952
 Transform:
   m_ObjectHideFlags: 0

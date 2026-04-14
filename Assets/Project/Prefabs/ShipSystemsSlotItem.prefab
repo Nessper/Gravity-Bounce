@@ -226,7 +226,7 @@ GameObject:
   - component: {fileID: 5901600191152839044}
   - component: {fileID: 2243242880044191605}
   m_Layer: 5
-  m_Name: ModuleSlotAndIcon
+  m_Name: ShipSystemsSlotItem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -411,7 +411,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: -0, y: 0}
-  m_SizeDelta: {x: 65, y: 65}
+  m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3115006734859261180
 CanvasRenderer:

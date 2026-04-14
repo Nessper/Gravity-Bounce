@@ -2211,7 +2211,10 @@ MonoBehaviour:
   itemsRoot: {fileID: 5275962907924183575}
   noModulesText: {fileID: 5275962907924183574}
   detailsPanel: {fileID: 5275962907924183573}
+  warningText: {fileID: 0}
   moduleItemPrefab: {fileID: 2158880771846123035, guid: 71b56fcb028887346b3f17ecccca40bb, type: 3}
+  warningPackName: ui
+  missingModulesWarningKey: shop.warning.missing_modules
 --- !u!4 &1683391220
 Transform:
   m_ObjectHideFlags: 0
@@ -3154,6 +3157,10 @@ PrefabInstance:
     - target: {fileID: 3886738894010268656, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3998684715641914783, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
+      propertyPath: m_text
+      value: ACTIVE SYSTEMS
       objectReference: {fileID: 0}
     - target: {fileID: 5004067159543140302, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
       propertyPath: m_AnchorMax.y

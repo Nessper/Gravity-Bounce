@@ -2,14 +2,38 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Gère la zone de réparation du shop.
+///
+/// Responsabilités :
+/// - affiche l'état de la coque
+/// - calcule les coûts de réparation
+/// - met à jour le visuel des options Repair One / Repair All
+/// - exécute l'achat de réparation via RunSessionState
+///
+/// Règles UI :
+/// - si le vaisseau est endommagé :
+///   affiche "Dégâts reçus : X"
+/// - si le vaisseau est intact :
+///   affiche un message positif
+///   applique un material TMP dédié (ex : vert)
+/// - les boutons restent cliquables pour jouer un son d'erreur,
+///   mais leur visuel indique clairement qu'ils sont indisponibles
+/// </summary>
 public class ShopRepairBayController : MonoBehaviour
 {
     [Header("Dependencies")]
     [SerializeField] private RunSessionState runSession;
     [SerializeField] private HullUI hullUI;
 
-    [Header("Missing Hull")]
+    [Header("State Text")]
     [SerializeField] private TMP_Text missingHullText;
+
+    [Tooltip("Material TMP normal pour l'état endommagé.")]
+    [SerializeField] private Material missingHullNormalMaterial;
+
+    [Tooltip("Material TMP alternatif pour l'état 'coque intacte' (ex : vert).")]
+    [SerializeField] private Material missingHullFullMaterial;
 
     [Header("Repair One")]
     [SerializeField] private Button repairOneButton;
@@ -34,8 +58,11 @@ public class ShopRepairBayController : MonoBehaviour
     [SerializeField] private string hullSpriteName = "icon_hull";
     [SerializeField] private string moneySpriteName = "icon_money";
 
-    [Header("Alignement Sprites")]
+    [Header("Sprite Alignment")]
     [SerializeField] private int spriteYOffset = -6;
+
+    [Header("Visual States")]
+    [SerializeField] private float disabledOptionAlpha = 0.45f;
 
     private const string UiPackName = "ui";
 
@@ -48,16 +75,21 @@ public class ShopRepairBayController : MonoBehaviour
     {
         if (runSession == null)
         {
-            Debug.LogError("[ShopRepairBayController] runSession n est pas assigne.");
+            Debug.LogError("[ShopRepairBayController] runSession n'est pas assigné.");
             enabled = false;
             return;
         }
 
         if (hullUI == null)
         {
-            Debug.LogError("[ShopRepairBayController] hullUI n est pas assigne.");
+            Debug.LogError("[ShopRepairBayController] hullUI n'est pas assigné.");
             enabled = false;
             return;
+        }
+
+        if (missingHullText != null && missingHullNormalMaterial == null)
+        {
+            missingHullNormalMaterial = missingHullText.fontSharedMaterial;
         }
     }
 
@@ -77,11 +109,17 @@ public class ShopRepairBayController : MonoBehaviour
         runSession.OnHullMaxChanged.RemoveListener(HandleAnyChanged);
     }
 
+    /// <summary>
+    /// Callback unique pour tous les changements utiles.
+    /// </summary>
     private void HandleAnyChanged(int _)
     {
         RefreshAll();
     }
 
+    /// <summary>
+    /// Recalcule tout l'état logique et visuel du panneau.
+    /// </summary>
     private void RefreshAll()
     {
         int money = Mathf.Max(0, runSession.Money);
@@ -94,9 +132,27 @@ public class ShopRepairBayController : MonoBehaviour
         int costOne = perHull;
         cachedCostAll = cachedMissing * perHull;
 
-        if (missingHullText != null)
+        RefreshStateText();
+        RefreshRepairTexts(costOne);
+        RefreshButtonsState(money, costOne);
+    }
+
+    /// <summary>
+    /// Met à jour le texte d'état de la coque.
+    /// - état endommagé : texte standard
+    /// - état full : message positif + material vert si assigné
+    /// </summary>
+    private void RefreshStateText()
+    {
+        if (missingHullText == null)
+            return;
+
+        bool isFull = cachedMissing <= 0;
+        string text;
+
+        if (!isFull)
         {
-            string text = $"Dégâts reçus : {cachedMissing}";
+            text = $"Dégâts reçus : {cachedMissing}";
 
             if (LocalizationManager.Instance != null && LocalizationManager.Instance.IsReady)
             {
@@ -107,9 +163,47 @@ public class ShopRepairBayController : MonoBehaviour
                 );
             }
 
-            missingHullText.text = text;
+            ApplyStateTextMaterial(missingHullNormalMaterial);
+        }
+        else
+        {
+            text = "Coque intacte. Votre vaisseau est prêt pour la prochaine mission.";
+
+            if (LocalizationManager.Instance != null && LocalizationManager.Instance.IsReady)
+            {
+                // Remplace cette clé par la tienne si besoin
+                text = LocalizationManager.Instance.GetText(
+                    UiPackName,
+                    "repair.hull_full"
+                );
+            }
+
+            ApplyStateTextMaterial(
+                missingHullFullMaterial != null
+                    ? missingHullFullMaterial
+                    : missingHullNormalMaterial
+            );
         }
 
+        missingHullText.text = text;
+    }
+
+    /// <summary>
+    /// Applique le material TMP voulu sur le texte d'état.
+    /// </summary>
+    private void ApplyStateTextMaterial(Material targetMaterial)
+    {
+        if (missingHullText == null || targetMaterial == null)
+            return;
+
+        missingHullText.fontSharedMaterial = targetMaterial;
+    }
+
+    /// <summary>
+    /// Met à jour les textes des options de réparation.
+    /// </summary>
+    private void RefreshRepairTexts(int costOne)
+    {
         if (repairOneMetaLeftText != null)
             repairOneMetaLeftText.text = FormatWithSprite(GetPlusHullText(1), hullSpriteName);
 
@@ -121,32 +215,45 @@ public class ShopRepairBayController : MonoBehaviour
 
         if (repairAllMetaRightText != null)
             repairAllMetaRightText.text = FormatCost(cachedCostAll);
+    }
 
+    /// <summary>
+    /// Calcule les états disponibles et met à jour le rendu des options.
+    /// </summary>
+    private void RefreshButtonsState(int money, int costOne)
+    {
         bool isFull = cachedMissing <= 0;
 
         canRepairOne = !isFull && money >= costOne;
         canRepairAll = !isFull && money >= cachedCostAll && cachedCostAll > 0;
 
+        // On laisse les boutons interactables pour pouvoir jouer le son d'erreur.
         if (repairOneButton != null)
             repairOneButton.interactable = true;
 
         if (repairAllButton != null)
             repairAllButton.interactable = true;
 
-        SetVisualEnabled(repairOneVisual, canRepairOne);
-        SetVisualEnabled(repairAllVisual, canRepairAll);
+        SetOptionVisualEnabled(repairOneVisual, canRepairOne);
+        SetOptionVisualEnabled(repairAllVisual, canRepairAll);
     }
 
-    private void SetVisualEnabled(CanvasGroup cg, bool enabled)
+    /// <summary>
+    /// Met à jour le visuel d'une option active / inactive.
+    /// </summary>
+    private void SetOptionVisualEnabled(CanvasGroup cg, bool isEnabled)
     {
         if (cg == null)
             return;
 
-        cg.alpha = enabled ? 1f : 0.45f;
+        cg.alpha = isEnabled ? 1f : disabledOptionAlpha;
         cg.blocksRaycasts = true;
         cg.interactable = true;
     }
 
+    /// <summary>
+    /// Action du bouton Repair One.
+    /// </summary>
     public void OnRepairOnePressed()
     {
         if (!canRepairOne)
@@ -168,6 +275,9 @@ public class ShopRepairBayController : MonoBehaviour
         RefreshAll();
     }
 
+    /// <summary>
+    /// Action du bouton Repair All.
+    /// </summary>
     public void OnRepairAllPressed()
     {
         if (!canRepairAll)
@@ -189,6 +299,9 @@ public class ShopRepairBayController : MonoBehaviour
         RefreshAll();
     }
 
+    /// <summary>
+    /// Formate le texte de gain de coque.
+    /// </summary>
     private string GetPlusHullText(int value)
     {
         string text = "+" + value;
@@ -205,6 +318,9 @@ public class ShopRepairBayController : MonoBehaviour
         return text;
     }
 
+    /// <summary>
+    /// Ajoute un sprite TMP inline à droite d'une valeur.
+    /// </summary>
     private string FormatWithSprite(string value, string spriteName)
     {
         if (string.IsNullOrEmpty(spriteName))
@@ -213,6 +329,9 @@ public class ShopRepairBayController : MonoBehaviour
         return $"{value} <voffset={spriteYOffset}><sprite name=\"{spriteName}\"></voffset>";
     }
 
+    /// <summary>
+    /// Formate un coût avec sprite de monnaie.
+    /// </summary>
     private string FormatCost(int cost)
     {
         if (string.IsNullOrEmpty(moneySpriteName))

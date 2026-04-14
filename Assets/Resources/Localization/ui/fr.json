@@ -19,9 +19,14 @@
       "text": "Dégâts reçus : {0}"
     },
     {
+      "key": "repair.hull_full",
+      "text": "Intégrité du vaisseau : OK"
+    },
+    {
       "key": "repair.plus_hull",
       "text": "+{0}"
     },
+
     {
       "key": "shop.modules.none",
       "text": "Aucun module en vente"
@@ -33,6 +38,19 @@
     {
       "key": "shop.warning.missing_modules_plural",
       "text": "Pré-requis manquants : {0}"
+    },
+
+    {
+      "key": "ship_systems.modules.none_available",
+      "text": "Aucun module en réserve"
+    },
+    {
+      "key": "ship_systems.modules.hover_for_details",
+      "text": "Survolez un module pour voir les détails"
+    },
+    {
+      "key": "ship_systems.modules.count",
+      "text": "{0} modules"
     }
   ]
 }

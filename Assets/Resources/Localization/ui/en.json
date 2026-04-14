@@ -16,12 +16,17 @@
 
     {
       "key": "repair.missing_hull",
-      "text": "Hull Damage : {0}"
+      "text": "Hull damage: {0}"
+    },
+    {
+      "key": "repair.hull_full",
+      "text": "Ship integrity: OK"
     },
     {
       "key": "repair.plus_hull",
       "text": "+{0}"
     },
+
     {
       "key": "shop.modules.none",
       "text": "No modules for sale"
@@ -33,6 +38,19 @@
     {
       "key": "shop.warning.missing_modules_plural",
       "text": "Missing prerequisites: {0}"
+    },
+
+    {
+      "key": "ship_systems.modules.none_available",
+      "text": "No modules in reserve"
+    },
+    {
+      "key": "ship_systems.modules.hover_for_details",
+      "text": "Hover a module for details"
+    },
+    {
+      "key": "ship_systems.modules.count",
+      "text": "{0} modules"
     }
   ]
 }
