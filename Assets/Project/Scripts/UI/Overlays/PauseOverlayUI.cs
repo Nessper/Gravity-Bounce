@@ -21,7 +21,7 @@ public class PauseOverlayUI : MonoBehaviour
     [SerializeField] private GameObject overlayRoot;
 
     [Header("Briefing (prefab commun)")]
-    [SerializeField] private LevelBriefingPanelUI briefingPanel;
+    //[SerializeField] private LevelBriefingPanelUI briefingPanel;
 
     // --------------------------------------------------------------------
     // RUN STATUS
@@ -87,8 +87,8 @@ public class PauseOverlayUI : MonoBehaviour
         if (data == null)
             return;
 
-        if (briefingPanel != null)
-            briefingPanel.Render(data, phasePlans, worldName, title, tier);
+        //if (briefingPanel != null)
+        //    briefingPanel.Render(data, phasePlans, worldName, title, tier);
 
         FillRunStatus(runScore, contractsLeft, credits);
     }

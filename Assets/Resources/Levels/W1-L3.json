@@ -24,6 +24,12 @@
     }
   ],
 
+   "ScanText": {
+    "T1": "Attention, les choses se corsent : davantage de noires sont à prévoir.",
+    "T2": "Les noires deviennent de plus en plus fréquentes, jusqu’à représenter environ un tiers des billes en fin de mission.",
+    "T3": "Attention, jusqu’à un tiers des billes seront noires en fin de mission. Profitez de la première moitié pour sécuriser vos prises : chaque erreur se paie immédiatement."
+  },
+
   "Balls": [
     { "Type": "White", "Points": 100 },
     { "Type": "Blue", "Points": 150 },

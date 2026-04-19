@@ -9,7 +9,7 @@ using UnityEngine;
 /// - animation du vaisseau
 /// - dialogues d intro
 /// - assemblage du plateau
-/// - fade de l overlay
+/// - fade du dimmer global
 /// - HUD on
 /// - countdown
 /// - callback final
@@ -18,12 +18,20 @@ using UnityEngine;
 /// - utilise un overlay partage
 /// - ce controller ne fait jamais de ForceHideImmediate()
 /// - il fait seulement Show(this, ...) et Hide(this)
+///
+/// IMPORTANT :
+/// - le noir plein ecran n appartient plus a ce controller
+/// - il passe par MainOverlaysController et son dimmer global
+/// - l intro reprend le dimmer laisse par le briefing
 /// </summary>
 public class LevelIntroSequenceController : MonoBehaviour
 {
     [Header("Core refs")]
     [SerializeField] private LevelControlsController controlsController;
     [SerializeField] private CountdownUI countdownUI;
+
+    [Header("Main Overlays")]
+    [SerializeField] private MainUIController mainUIController;
 
     [Header("Intro HUD")]
     [SerializeField] private GameObject introHUDRoot;
@@ -38,9 +46,7 @@ public class LevelIntroSequenceController : MonoBehaviour
     [SerializeField] private HoldToSkipOverlayUI holdToSkipOverlay;
 
     [Header("Visual Intro")]
-    [SerializeField] private CanvasGroup introOverlayCanvasGroup;
     [SerializeField] private GameObject boardRoot;
-    [SerializeField] private float overlayInitialAlpha = 0.9f;
 
     [Header("Ship Intro")]
     [SerializeField] private Transform shipRoot;
@@ -170,15 +176,20 @@ public class LevelIntroSequenceController : MonoBehaviour
 
     /// <summary>
     /// Prepare l etat visuel initial de l intro.
+    /// IMPORTANT :
+    /// - on ne reset plus brutalement l alpha du dimmer
+    /// - on reprend simplement le dimmer laisse par le briefing
     /// </summary>
     private void SetupInitialVisualState()
     {
-        if (introOverlayCanvasGroup != null)
+        if (mainUIController != null)
         {
-            introOverlayCanvasGroup.gameObject.SetActive(true);
-            introOverlayCanvasGroup.alpha = overlayInitialAlpha;
-            introOverlayCanvasGroup.blocksRaycasts = true;
-            introOverlayCanvasGroup.interactable = true;
+            // Le briefing a deja remonté le dimmer a 1.
+            // L intro prend le relais ici :
+            // - background coupe
+            // - dimmer pose a 0.9
+            mainUIController.SetBackgroundImmediate(0f, false, false);
+            mainUIController.SetDimmerImmediate(0.9f, true, true);
         }
 
         if (introHUDRoot != null)
@@ -291,7 +302,7 @@ public class LevelIntroSequenceController : MonoBehaviour
             holdToSkipOverlay.Hide(this);
 
         if (!skipRequested)
-            yield return StartCoroutine(FadeIntroOverlayOnly());
+            yield return StartCoroutine(FadeGlobalDimmerOnly());
 
         while (!boardDone && !skipRequested)
             yield return null;
@@ -415,11 +426,13 @@ public class LevelIntroSequenceController : MonoBehaviour
 
         ActivateAllBoardRootChildren();
 
-        if (introOverlayCanvasGroup != null)
+        if (mainUIController != null)
         {
-            introOverlayCanvasGroup.alpha = 0f;
-            introOverlayCanvasGroup.blocksRaycasts = false;
-            introOverlayCanvasGroup.interactable = false;
+            mainUIController.SetDimmerImmediate(
+                0f,
+                interactable: false,
+                blocksRaycasts: false
+            );
         }
 
         if (topHUDRoot != null)
@@ -493,32 +506,31 @@ public class LevelIntroSequenceController : MonoBehaviour
     }
 
     /// <summary>
-    /// Fait disparaitre l overlay noir de l intro.
+    /// Fait disparaitre le dimmer global de l intro.
     /// </summary>
-    private IEnumerator FadeIntroOverlayOnly()
+    private IEnumerator FadeGlobalDimmerOnly()
     {
-        if (introOverlayCanvasGroup == null)
+        if (mainUIController == null)
             yield break;
 
-        float duration = Mathf.Max(0.01f, overlayFadeDuration);
-        float elapsed = 0f;
-        float startAlpha = introOverlayCanvasGroup.alpha;
+        bool fadeDone = false;
 
-        while (elapsed < duration)
+        mainUIController.FadeDimmerTo(
+            this,
+            0f,
+            overlayFadeDuration,
+            interactableAtEnd: false,
+            blocksRaycastsAtEnd: false,
+            onComplete: () => fadeDone = true
+        );
+
+        while (!fadeDone)
         {
             if (skipRequested)
                 yield break;
 
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-
-            introOverlayCanvasGroup.alpha = Mathf.Lerp(startAlpha, 0f, t);
             yield return null;
         }
-
-        introOverlayCanvasGroup.alpha = 0f;
-        introOverlayCanvasGroup.blocksRaycasts = false;
-        introOverlayCanvasGroup.interactable = false;
     }
 
     /// <summary>

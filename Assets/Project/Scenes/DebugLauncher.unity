@@ -283,9 +283,9 @@ MonoBehaviour:
   debugContractLives: 3
   debugMoney: 200
   debugRunScore: 10000
-  debugTreatAllModulesAsOwned: 1
+  debugTreatAllModulesAsOwned: 0
   debugEquippedModuleIds:
-  - SCAN_ARRAY_T2
+  - SCAN_ARRAY_T1
   - GREED_COIL_T3
   - HULL_PATCH_1
 --- !u!4 &292011952

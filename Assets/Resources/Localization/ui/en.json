@@ -51,6 +51,10 @@
     {
       "key": "ship_systems.modules.count",
       "text": "{0} modules"
+    },
+    {
+      "key": "briefing.scan.no_data",
+      "text": "NO SCAN DATA AVAILABLE"
     }
   ]
 }

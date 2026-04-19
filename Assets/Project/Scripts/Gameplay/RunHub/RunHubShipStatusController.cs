@@ -118,6 +118,7 @@ public class RunHubShipStatusController : MonoBehaviour
         {
             hullUI.SetMaxHull(max);
             hullUI.SetCurrentHull(current);
+
             return;
         }
 

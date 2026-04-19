@@ -14,7 +14,7 @@ public class HullBinder : MonoBehaviour
 
     [Header("Targets")]
     [SerializeField] private HullSystem hullSystem;
-    [SerializeField] private LevelBriefingController briefingController;
+    [SerializeField] private LevelBriefingOverlayController briefingController;
 
     private bool hullSystemInitialized;
 
@@ -82,7 +82,7 @@ public class HullBinder : MonoBehaviour
             }
         }
 
-        if (briefingController != null)
-            briefingController.SetShipRuntimeHull(h, m);
+       // if (briefingController != null)
+         //   briefingController.SetShipRuntimeHull(h, m);
     }
 }

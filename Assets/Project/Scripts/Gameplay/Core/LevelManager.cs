@@ -56,8 +56,8 @@ public class LevelManager : MonoBehaviour
     // ----------------------------------------------------------
 
     [Header("UI / Overlays")]
-    [SerializeField] private LevelBriefingController briefingController;
-    [SerializeField] private PauseController pauseController;
+    [SerializeField] private MainUIController mainUIController;
+    [SerializeField] private LevelBriefingOverlayController briefingOverlayController;
     [SerializeField] private ProgressBarUI progressBarUI;
     [SerializeField] private ProgressCountUI progressCountUI;
     [Header("UI / End Level")]
@@ -103,8 +103,6 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private LevelEvacuationController evacuationController;
     [SerializeField] private LevelEndModuleBonusController endModuleBonusController;
 
-    [Header("Flow Helpers")]
-    [SerializeField] private LevelPauseFlowHandler pauseFlowHandler;
 
     [Header("Bootstrapping")]
     [SerializeField] private LevelBootstrapper levelBootstrapper;
@@ -173,6 +171,9 @@ public class LevelManager : MonoBehaviour
 
     private void Start()
     {
+        // 0) Reset visuel global de la scene
+        mainUIController?.SetInitialState();
+
         // 1) Bootstrap context
         if (!BuildLevelContext())
         {
@@ -185,8 +186,6 @@ public class LevelManager : MonoBehaviour
         SetupSecondaryObjectives();
 
         // 3) Profil de mission du vaisseau
-        // IMPORTANT: configure durée/shield + init visuels (background) + init systèmes (score, etc.)
-        // Le Hull n'est PAS géré ici (source de vérité = RunSessionState, sync via HullBinder).
         if (!ApplyShipMissionProfile())
         {
             Debug.LogError("[LevelManager] ApplyShipMissionProfile a echoue. Niveau non demarre.");
@@ -194,7 +193,7 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        // 3bis) RESUME SNAPSHOT (après ApplyShipMissionProfile, sinon background vide)
+        // 3bis) RESUME SNAPSHOT
         if (TryResumeEndCeremonyFromSnapshot())
             return;
 
@@ -216,13 +215,18 @@ public class LevelManager : MonoBehaviour
             );
         }
 
-        // 8) Briefing / intro
+        // 8) Pause
+        mainUIController?.SetupPause(
+            levelMeta,
+            data,
+            onRetry: () => BootRoot.GameFlow.RetryLevel(),
+            onMenu: () => BootRoot.GameFlow.GoToTitle()
+        );
+
+        // 9) Briefing / intro
         levelMusicDirector?.SelectRandomPair();
         levelMusicDirector?.PlayBriefingMusic();
         SetupIntroOrAutoStart();
-
-        // 9) Pause
-        BindPauseOverlay();
     }
 
 
@@ -463,79 +467,35 @@ public class LevelManager : MonoBehaviour
 
     private void SetupIntroOrAutoStart()
     {
-        // Briefing obligatoire dans ton flow.
-        // Fallback en debug / scene incomplete: start direct.
-        if (briefingController == null || data == null)
+        if (mainUIController == null || briefingOverlayController == null || data == null)
         {
-            Debug.LogWarning("[LevelManager] Briefing manquant ou data null. Demarrage direct du niveau.");
+            Debug.LogWarning("[LevelManager] Briefing/MainOverlays manquant ou data null. Demarrage direct du niveau.");
             StartLevel();
             return;
         }
 
-        // Injecte les valeurs hull runtime dans le briefing (affichage current/max).
-        // Source : currentHull depuis SaveManager (runState), maxHull depuis ShipRuntimeSetup.
-
-        if (briefingController != null)
-        {
-            int currentHull = 0;
-            if (SaveManager.Instance != null)
-                currentHull = SaveManager.Instance.GetRemainingHullInRun();
-
-            briefingController.SetShipRuntimeHull(currentHull, maxHull);
-
-            // >>> AJOUT ICI <<<
-            briefingController.SetShipRuntimeShield(shieldSeconds);
-        }
-
-
-        briefingController.Show(
+        briefingOverlayController.Show(
             levelMeta,
             data,
-            phasePlanInfos,
-            onPlay: () =>
+            onMenu: () => BootRoot.GameFlow.GoToTitle(),
+            onNext: () =>
             {
-                // Intro optionnelle
-                if (introSequenceController != null)
+                mainUIController.CloseBriefingForIntro(() =>
                 {
-                    // Configure le levelId au cas ou (safe)
-                    introSequenceController.ConfigureLevelId(levelID);
-
-                    // Quand l intro se termine -> tuto -> start level
-                    introSequenceController.Play(BeginTutorialOrStartLevel);
-                }
-                else
-                {
-                    StartLevel();
-                }
-            },
-            onMenu: () => BootRoot.GameFlow.GoToTitle()
+                    if (introSequenceController != null)
+                    {
+                        introSequenceController.ConfigureLevelId(levelID);
+                        introSequenceController.Play(BeginTutorialOrStartLevel);
+                    }
+                    else
+                    {
+                        StartLevel();
+                    }
+                });
+            }
         );
-    }
 
-    // =====================================================================
-    // PAUSE
-    // =====================================================================
-
-    private void BindPauseOverlay()
-    {
-        if (pauseController == null)
-            return;
-
-        // Idempotent: retire puis ajoute
-        pauseController.OnPauseOpening -= HandlePauseOpening;
-        pauseController.OnPauseOpening += HandlePauseOpening;
-    }
-
-    private void HandlePauseOpening()
-    {
-        if (pauseFlowHandler == null)
-        {
-            Debug.LogWarning("[LevelManager] pauseFlowHandler manquant.");
-            return;
-        }
-
-        // Délègue la cuisine du contenu + callbacks Menu/Retry
-        pauseFlowHandler.ShowPause(levelMeta, data, phasePlanInfos);
+        mainUIController.ShowLevelBriefing();
     }
 
     // =====================================================================
@@ -549,9 +509,6 @@ public class LevelManager : MonoBehaviour
         gameplaySealed = false;
         Time.timeScale = 1f;
 
-        // Analytics :
-        // - BeginRun uniquement sur le premier node de la run
-        // - BeginLevel a chaque niveau
         if (runSessionState != null && runSessionState.CurrentNodeIndex == 0)
             AlphaAnalytics.Instance?.BeginRun();
 
@@ -559,33 +516,29 @@ public class LevelManager : MonoBehaviour
 
         levelMusicDirector?.PlayGameplayMusic();
 
-        // Evac controller reset (evite les restes d etat si rerun)
         evacuationController?.ResetState();
 
-        // Arme le timer (il doit avoir ete StartTimer(...) avant)
         if (levelTimer != null)
             levelTimer.enabled = true;
 
         runStateController?.MarkLevelStarted();
 
         EnableGameplayControls();
+        mainUIController?.EnablePause(true);
 
-        // Demarre le spawner
         ballSpawner?.StartSpawning();
     }
 
     private void HandleTimerEnd()
     {
-        // Protections:
-        // - endSequenceRunning: evite double trigger
-        // - hardStopped: si GameOver immediate, on ignore la fin de timer
         if (endSequenceRunning || hardStopped)
             return;
+
+        mainUIController?.EnablePause(false);
 
         ballSpawner?.StopSpawning();
         endSequenceRunning = true;
 
-        // Phase evacuation (si controller present), puis finalize
         if (evacuationController != null)
         {
             evacuationController.BeginEvacuationPhase(() =>
@@ -643,6 +596,9 @@ public class LevelManager : MonoBehaviour
         hardStopped = true;
         endSequenceRunning = true;
 
+        mainUIController?.EnablePause(false);
+        mainUIController?.ForceResumePause();
+
         CursorController.Unlock();
 
         runStateController?.MarkLevelEnded();
@@ -655,21 +611,16 @@ public class LevelManager : MonoBehaviour
         if (levelTimer != null)
             levelTimer.enabled = false;
 
-        // IMPORTANT :
-        // on annule explicitement toute evacuation / countdown / final flush en cours
         evacuationController?.AbortEvacuation();
 
         ballSpawner?.StopSpawning();
 
-        // Fige les bins
         closeBinController?.ForceCloseAndLock();
 
         DisableGameplayControls();
 
-        // Coupe les coroutines du LevelManager
         StopAllCoroutines();
 
-        // Stop intro si encore en cours
         introSequenceController?.StopIntro();
     }
 
@@ -760,6 +711,9 @@ public class LevelManager : MonoBehaviour
             Debug.LogWarning("[LevelManager] ScoreManager ou LevelData manquants, evaluation impossible.");
             yield break;
         }
+
+        mainUIController?.EnablePause(false);
+        mainUIController?.ForceResumePause();
 
         int elapsed = Mathf.RoundToInt(levelTimer != null ? levelTimer.GetElapsedTime() : 0f);
 
@@ -968,10 +922,6 @@ public class LevelManager : MonoBehaviour
         // Detach planned handler
         if (ballSpawner != null && onPlannedReadyHandler != null)
             ballSpawner.OnPlannedReady -= onPlannedReadyHandler;
-
-        // Detach pause hook
-        if (pauseController != null)
-            pauseController.OnPauseOpening -= HandlePauseOpening;
 
         // Detach phase handler
         if (ballSpawner != null && onPhaseChangedHandler != null)

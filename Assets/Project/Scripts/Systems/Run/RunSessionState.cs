@@ -26,20 +26,6 @@ using UnityEngine.Events;
 [CreateAssetMenu(fileName = "RunSessionState", menuName = "Game/Run Session State")]
 public class RunSessionState : ScriptableObject
 {
-    // ------------------------------------------------------------
-    // DEBUG GLOBAL (runtime only)
-    // ------------------------------------------------------------
-
-    /// <summary>
-    /// Flag global de debug : si vrai, tous les modules sont considérés comme "owned"
-    /// pour les règles runtime d'équipement.
-    ///
-    /// Important :
-    /// - Runtime only
-    /// - Non persisté en save
-    /// - Piloté par MainDebugStarterV3
-    /// </summary>
-    public static bool DebugTreatAllModulesAsOwnedGlobal = false;
 
     // ------------------------------------------------------------
     // NODES / PLAN

@@ -1,19 +1,22 @@
+// Chemin recommandé (projet Unity) : Scripts/Debug/MainDebugStarterV3.cs
+
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// MainDebugStarterV3
-/// ------------------------------------------------------------
 /// Injecte un état de run de debug dans la sauvegarde, puis charge
 /// directement la scène demandée (RunHub / Main / Credits).
 ///
-/// Règle importante :
-/// - la création de la run passe d abord par NewRunInitializer
-/// - puis seulement les overrides debug sont appliqués
+/// Règles importantes :
+/// - la création de la run passe d'abord par NewRunInitializer
+/// - les overrides debug sont appliqués ensuite
+/// - le debug modules ne doit pas casser les règles runtime normales
 ///
-/// Objectif : garder UNE source de vérité pour l init d une nouvelle run.
+/// Objectif :
+/// garder une seule source de vérité pour l'initialisation d'une run,
+/// même en debug.
 /// </summary>
 [DefaultExecutionOrder(-500)]
 public class MainDebugStarterV3 : MonoBehaviour
@@ -26,11 +29,11 @@ public class MainDebugStarterV3 : MonoBehaviour
     private const string MainSceneName = "Main";
     private const string CreditsSceneName = "CreditsScene";
 
-    // IMPORTANT :
-    // Doit rester aligné avec RunSessionState.equipmentSlotCount.
+    // Important :
+    // doit rester aligné avec RunSessionState.equipmentSlotCount.
     private const int RunEquipmentSlotCount = 6;
 
-    // Nombre de slots de pré-équipement debug dans l inspector.
+    // Nombre de slots configurables dans l'inspector pour le loadout debug.
     private const int DebugModuleLoadoutSlotCount = 3;
 
     public enum StartDestination
@@ -55,16 +58,14 @@ public class MainDebugStarterV3 : MonoBehaviour
     [SerializeField] private string debugShipId = "CORE_SCOUT";
 
     [Header("Run state overrides")]
-    [Tooltip("0 = utilise le hull max du vaisseau. Sinon simule un hull courant deja endommage.")]
+    [Tooltip("0 = utilise le hull max du vaisseau. Sinon simule un hull courant déjà endommagé.")]
     [SerializeField] private int debugCurrentHull = 0;
 
     [SerializeField] private int debugContractLives = 3;
     [SerializeField] private int debugMoney = 0;
     [SerializeField] private int debugRunScore = 0;
 
-    [Header("Debug modules")]
-    [SerializeField] private bool debugTreatAllModulesAsOwned = true;
-
+    [Header("Modules (Debug Loadout)")]
     [HideInInspector]
     [SerializeField] private string[] debugEquippedModuleIds = new string[DebugModuleLoadoutSlotCount];
 
@@ -85,8 +86,6 @@ public class MainDebugStarterV3 : MonoBehaviour
 
         s_hasAppliedThisPlaySession = true;
 
-        RunSessionState.DebugTreatAllModulesAsOwnedGlobal = debugTreatAllModulesAsOwned;
-
         Debug.Log("[MainDebugStarterV3] Debug injection active. Destination=" + startDestination);
 
         TryEnsureShipCatalogLoaded();
@@ -101,6 +100,9 @@ public class MainDebugStarterV3 : MonoBehaviour
         LoadDestinationScene();
     }
 
+    /// <summary>
+    /// Garantit que le tableau de loadout debug a toujours la bonne taille.
+    /// </summary>
     private void EnsureDebugModuleArrayInitialized()
     {
         if (debugEquippedModuleIds == null || debugEquippedModuleIds.Length != DebugModuleLoadoutSlotCount)
@@ -117,6 +119,9 @@ public class MainDebugStarterV3 : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Charge la scène cible sélectionnée dans l'inspector.
+    /// </summary>
     private void LoadDestinationScene()
     {
         string target =
@@ -140,6 +145,9 @@ public class MainDebugStarterV3 : MonoBehaviour
         SceneManager.LoadScene(target, LoadSceneMode.Single);
     }
 
+    /// <summary>
+    /// Initialise une run de debug dans la save.
+    /// </summary>
     private bool SetupRunStateInSave()
     {
         if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
@@ -157,7 +165,8 @@ public class MainDebugStarterV3 : MonoBehaviour
             return false;
         }
 
-        // Base commune : toute nouvelle run passe par le meme init que le vrai jeu.
+        // Base commune :
+        // toute nouvelle run passe par le même init que le vrai jeu.
         bool ok = NewRunInitializer.Initialize(save, ship);
         if (!ok)
             return false;
@@ -167,7 +176,7 @@ public class MainDebugStarterV3 : MonoBehaviour
             return false;
 
         // ------------------------------------------------------------
-        // OVERRIDES DEBUG
+        // Overrides debug
         // ------------------------------------------------------------
         run.worldId = resolvedWorldId;
         run.currentNodeIndex = Mathf.Max(0, debugNodeIndex);
@@ -180,7 +189,7 @@ public class MainDebugStarterV3 : MonoBehaviour
         SaveManager.Instance.SetCurrentRunScore(Mathf.Max(0, debugRunScore));
         SaveManager.Instance.SetMoney(Mathf.Max(0, debugMoney));
 
-        // Si un loadout debug est renseigne, il remplace l equipement de depart du ship.
+        // Si un loadout debug est renseigné, il remplace l'équipement de départ du ship.
         ApplyDebugEquipmentOverride(run);
 
         SaveManager.Instance.Save();
@@ -201,6 +210,16 @@ public class MainDebugStarterV3 : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Remplace l'équipement initial de la run par le loadout debug.
+    ///
+    /// Règle :
+    /// - un seul module par famille
+    /// - les slots sont remplis dans l'ordre
+    /// - l'ownership est recalculé à partir des modules équipés
+    /// - les tiers inférieurs d'une même famille sont automatiquement ajoutés
+    ///   à l'ownership pour garder une run cohérente
+    /// </summary>
     private void ApplyDebugEquipmentOverride(RunStateData run)
     {
         EnsureDebugModuleArrayInitialized();
@@ -256,11 +275,12 @@ public class MainDebugStarterV3 : MonoBehaviour
         }
 
         run.unlockedModuleSlotsInRun = Mathf.Max(run.unlockedModuleSlotsInRun, equippedCount);
-
-        // Owned recalculé a partir du nouvel equipement debug.
         run.ownedModuleIdsInRun = BuildOwnedModulesFromEquipped(run.equippedModuleIds);
     }
 
+    /// <summary>
+    /// Retourne true si au moins un slot du loadout debug est renseigné.
+    /// </summary>
     private bool HasAnyDebugModuleOverride()
     {
         EnsureDebugModuleArrayInitialized();
@@ -274,6 +294,15 @@ public class MainDebugStarterV3 : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// Reconstruit l'ownership debug à partir de l'équipement.
+    ///
+    /// Exemple :
+    /// - si un module T3 est équipé
+    /// - alors T1, T2 et T3 de la même famille deviennent owned
+    ///
+    /// Cela permet de garder des règles runtime identiques au play normal.
+    /// </summary>
     private List<string> BuildOwnedModulesFromEquipped(string[] equippedModuleIds)
     {
         HashSet<string> ownedIds = new HashSet<string>(StringComparer.Ordinal);
@@ -314,6 +343,9 @@ public class MainDebugStarterV3 : MonoBehaviour
         return new List<string>(ownedIds);
     }
 
+    /// <summary>
+    /// Résout la définition du ship de debug.
+    /// </summary>
     private ShipDefinition ResolveShipDefinition(string shipId)
     {
         if (ShipCatalogService.Catalog == null ||
@@ -326,6 +358,9 @@ public class MainDebugStarterV3 : MonoBehaviour
         return ShipCatalogService.Catalog.ships.Find(s => s != null && s.id == shipId);
     }
 
+    /// <summary>
+    /// Retourne le hull max de base du ship.
+    /// </summary>
     private int ResolveShipHullMax(ShipDefinition ship)
     {
         if (ship == null)
@@ -334,6 +369,10 @@ public class MainDebugStarterV3 : MonoBehaviour
         return Mathf.Max(1, ship.baseHull);
     }
 
+    /// <summary>
+    /// Retourne le hull courant de debug.
+    /// Si debugCurrentHull vaut 0, on utilise le hull max du ship.
+    /// </summary>
     private int ResolveCurrentHull(int shipHullMax)
     {
         if (debugCurrentHull > 0)
@@ -342,6 +381,9 @@ public class MainDebugStarterV3 : MonoBehaviour
         return Mathf.Max(1, shipHullMax);
     }
 
+    /// <summary>
+    /// Tente de charger le ShipCatalog si nécessaire.
+    /// </summary>
     private void TryEnsureShipCatalogLoaded()
     {
         if (ShipCatalogService.Catalog != null &&
@@ -375,6 +417,9 @@ public class MainDebugStarterV3 : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Indique si le mode debug launcher est actif.
+    /// </summary>
     private bool IsDebugActive()
     {
         return PlayerPrefs.GetInt(DebugPlayerPrefKey, 0) == 1;

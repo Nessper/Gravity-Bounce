@@ -16,26 +16,19 @@ public class ShipBackgroundController : MonoBehaviour
             targetRenderer = GetComponent<SpriteRenderer>();
     }
 
-    public void Init(string fileName)
+    public void Init(string path)
     {
-        if (string.IsNullOrEmpty(fileName))
+        if (string.IsNullOrEmpty(path))
         {
-            Debug.LogError("[ShipBackgroundLoader] Init called with empty fileName.");
+            Debug.LogError("[ShipBackgroundLoader] empty path.");
             return;
         }
 
-        if (targetRenderer == null)
-        {
-            Debug.LogError("[ShipBackgroundLoader] No SpriteRenderer assigned.");
-            return;
-        }
-
-        string key = StripExtension(fileName);
-        Sprite sprite = Resources.Load<Sprite>("Ships/Images/" + key);
+        Sprite sprite = Resources.Load<Sprite>(path);
 
         if (sprite == null)
         {
-            Debug.LogError("[ShipBackgroundLoader] Sprite introuvable dans Resources: Ships/Images/" + key);
+            Debug.LogError("[ShipBackgroundLoader] Sprite introuvable: " + path);
             return;
         }
 

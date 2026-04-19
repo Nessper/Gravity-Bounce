@@ -20,6 +20,13 @@
       "UiText": "Trigger 3 White Streak combos."
     }
   ],
+  
+    "ScanText": {
+      "T1": "Mission très lisible et peu dangereuse.",
+      "T2": "Très peu de noires. Les blanches dominent largement.",
+      "T3": "Un White Streak se déclenche avec 5 blanches dans un bac. C’est facile à réaliser ici."
+  },
+
   "Balls": [
     { "Type": "White", "Points": 100 },
     { "Type": "Blue", "Points": 150 },

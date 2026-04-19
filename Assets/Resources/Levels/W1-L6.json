@@ -32,6 +32,12 @@
     }
   ],
 
+   "ScanText": {
+    "T1": "Le milieu de la mission est votre meilleure phase pour collecter.",
+    "T2": "Le milieu de la mission est votre meilleure phase pour collecter.\n Une bille rouge y apparaît.",
+    "T3": "Le milieu de la mission est votre meilleure phase pour collecter. Une bille rouge y apparaît.\n Le début et la fin du niveau sont dominés par les noires (≈85 %)."
+  },
+
   "Balls": [
     { "Type": "White", "Points": 100 },
     { "Type": "Blue",  "Points": 150 },
