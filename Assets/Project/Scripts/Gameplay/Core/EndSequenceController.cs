@@ -30,7 +30,7 @@ public class EndSequenceController : MonoBehaviour
     [SerializeField] private BinCollector collector;
     [SerializeField] private PlayerController player;
     [SerializeField] private CloseBinController closeBinController;
-    [SerializeField] private PauseController pauseController;
+    [SerializeField] private PauseOverlayController pauseOverlayController;
 
     [Header("Run / Persistance")]
     [SerializeField] private LevelRunStateController runStateController;
@@ -118,7 +118,7 @@ public class EndSequenceController : MonoBehaviour
         BinCollector c,
         PlayerController p,
         CloseBinController cb,
-        PauseController pc,
+        PauseOverlayController pc,
         float evacDuration = -1f,
         float tickInterval = -1f,
         Action onEvacStartCb = null,
@@ -129,7 +129,7 @@ public class EndSequenceController : MonoBehaviour
         collector = c;
         player = p;
         closeBinController = cb;
-        pauseController = pc;
+        pauseOverlayController = pc;
 
         if (evacDuration > 0f)
             evacDurationSec = evacDuration;
@@ -182,7 +182,8 @@ public class EndSequenceController : MonoBehaviour
             closeBinController?.SetActiveControl(false);
         }
 
-        pauseController?.EnablePause(false);
+        pauseOverlayController?.EnablePause(false);
+        pauseOverlayController?.ForceResume();
     }
 
     /// <summary>
@@ -221,11 +222,10 @@ public class EndSequenceController : MonoBehaviour
         // 1) Debut d evacuation
         // --------------------------------------------------------------------
 
-        // Duck musique des le debut de la sequence d evacuation
         if (duckMusicDuringEvacuation)
             AudioManager.Instance?.SetMusicVolumeMultiplier(evacuationMusicVolumeMult, evacuationMusicDuckFadeSec);
 
-        pauseController?.EnablePause(true);
+        pauseOverlayController?.EnablePause(true);
 
         if (levelControls != null)
         {
@@ -332,6 +332,9 @@ public class EndSequenceController : MonoBehaviour
             player?.SetActiveControl(false);
             closeBinController?.SetActiveControl(false);
         }
+
+        pauseOverlayController?.EnablePause(false);
+        pauseOverlayController?.ForceResume();
 
         // --------------------------------------------------------------------
         // 7) Outro visuelle du board

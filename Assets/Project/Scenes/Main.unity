@@ -900,7 +900,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 794936362}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: PauseController, Assembly-CSharp
         m_MethodName: OnPauseButtonClicked
         m_Mode: 1
@@ -3335,6 +3335,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7966645779857862448, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
+      propertyPath: m_MinHeight
+      value: 600
+      objectReference: {fileID: 0}
+    - target: {fileID: 7966645779857862448, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
       propertyPath: m_FlexibleHeight
       value: -1
       objectReference: {fileID: 0}
@@ -4136,18 +4140,18 @@ PrefabInstance:
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 1949251875}
+      objectReference: {fileID: 751752660}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: OnMenuClicked
+      value: HandleMenuRequested
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: LevelBriefingOverlayController, Assembly-CSharp
+      value: LevelPauseFlowHandler, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
@@ -4752,7 +4756,7 @@ MonoBehaviour:
   hullSystem: {fileID: 428569276}
   comboEngine: {fileID: 749236653}
   dialogRunner: {fileID: 730246086}
-  darkOverlay: {fileID: 1807684009}
+  mainUIController: {fileID: 855623659}
   hullUI: {fileID: 6918410642100143045}
   tutorialLevelId: W1-L1
   pauseAfterDialogSec: 0.3
@@ -5840,7 +5844,6 @@ Transform:
   - {fileID: 1850992639}
   - {fileID: 1633717151}
   - {fileID: 731247178}
-  - {fileID: 1627237883}
   - {fileID: 623067357}
   m_Father: {fileID: 1215621184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -8662,6 +8665,7 @@ MonoBehaviour:
   endLevelUI: {fileID: 102698616}
   runStateController: {fileID: 4523183}
   hullBinder: {fileID: 648814747}
+  levelPauseFlowHandler: {fileID: 0}
   finalBallCleanupService: {fileID: 807205216}
   evacuationController: {fileID: 1092451723}
   endModuleBonusController: {fileID: 1318013699}
@@ -19142,6 +19146,51 @@ Transform:
   m_Children: []
   m_Father: {fileID: 874433117}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &751752659
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 751752661}
+  - component: {fileID: 751752660}
+  m_Layer: 0
+  m_Name: LevelPauseFlowHandler
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &751752660
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 751752659}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d8026b74a66c714abe63358cc6f6af2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelPauseFlowHandler
+  abortPenaltyAmount: 1
+--- !u!4 &751752661
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 751752659}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 999612948}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &756336879
 GameObject:
   m_ObjectHideFlags: 0
@@ -19981,53 +20030,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 790400566}
   m_CullTransparentMesh: 1
---- !u!1 &794936360
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 794936361}
-  - component: {fileID: 794936362}
-  m_Layer: 0
-  m_Name: PauseController
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &794936361
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 794936360}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1832921328}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &794936362
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 794936360}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9d10b0e872f27d245adaa255c7fc4426, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PauseController
-  overlayUI: {fileID: 2136299651}
-  toggleKey: 27
-  mobileControlsRoot: {fileID: 1451150150}
 --- !u!1 &807205215
 GameObject:
   m_ObjectHideFlags: 0
@@ -20844,7 +20846,7 @@ PrefabInstance:
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2070221526}
+      objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -21996,7 +21998,6 @@ Transform:
   - {fileID: 454216871}
   - {fileID: 1146657382}
   - {fileID: 521229132}
-  - {fileID: 1832921328}
   - {fileID: 2038155743}
   - {fileID: 1106222931}
   - {fileID: 648814748}
@@ -25224,39 +25225,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4864016616219880901, guid: 64228844d2f986a4f855bb80143581a1, type: 3}
   m_PrefabInstance: {fileID: 977040191}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &977040193 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2119190130896375990, guid: 64228844d2f986a4f855bb80143581a1, type: 3}
-  m_PrefabInstance: {fileID: 977040191}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
---- !u!114 &977040194 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2903164240304122387, guid: 64228844d2f986a4f855bb80143581a1, type: 3}
-  m_PrefabInstance: {fileID: 977040191}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
---- !u!114 &977040195 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4880893405490187567, guid: 64228844d2f986a4f855bb80143581a1, type: 3}
-  m_PrefabInstance: {fileID: 977040191}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!1 &980053035
 GameObject:
   m_ObjectHideFlags: 0
@@ -25732,6 +25700,7 @@ Transform:
   - {fileID: 1519496214}
   - {fileID: 809009688}
   - {fileID: 1330176479}
+  - {fileID: 751752661}
   m_Father: {fileID: 248501698}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1007891884
@@ -26165,7 +26134,7 @@ PrefabInstance:
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2070221526}
+      objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -28068,7 +28037,7 @@ MonoBehaviour:
   collector: {fileID: 111438863}
   player: {fileID: 1951299655167747591, guid: cc4ece5cc2effbc4599c4ad7c0d92b5d, type: 3}
   closeBinController: {fileID: 2049829430}
-  pauseController: {fileID: 794936362}
+  pauseOverlayController: {fileID: 1519496213}
   evacTimerUI: {fileID: 731247179}
   progressBarUI: {fileID: 892579293}
 --- !u!4 &1092451724
@@ -31589,7 +31558,7 @@ MonoBehaviour:
   collector: {fileID: 111438863}
   player: {fileID: 1330354634}
   closeBinController: {fileID: 2049829430}
-  pauseController: {fileID: 794936362}
+  pauseOverlayController: {fileID: 1519496213}
   runStateController: {fileID: 4523183}
   runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
   evacDurationSec: 10
@@ -33210,7 +33179,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 2070221526}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: LevelPauseFlowHandler, Assembly-CSharp
         m_MethodName: OnResumePressed
         m_Mode: 1
@@ -34902,192 +34871,6 @@ CanvasRenderer:
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 6208778210885876381, guid: 74dc8912fc0c0ec4faa6cd016e36227c, type: 3}
   m_PrefabInstance: {fileID: 4863381746546256473}
-  m_PrefabAsset: {fileID: 0}
---- !u!1001 &1406900113
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1627237883}
-    m_Modifications:
-    - target: {fileID: 5828728015597114025, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -874.27026
-      objectReference: {fileID: 0}
-    - target: {fileID: 5828728015597114025, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 112.58844
-      objectReference: {fileID: 0}
-    - target: {fileID: 5828728015597114025, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5828728015597114025, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5828728015597114025, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5828728015597114025, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5828728015597114025, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5828728015597114025, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5828728015597114025, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5828728015597114025, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6296184522087861354, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: m_Name
-      value: LevelBriefingPanel
-      objectReference: {fileID: 0}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: titleText
-      value: 
-      objectReference: {fileID: 977040193}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: levelIdText
-      value: 
-      objectReference: {fileID: 977040195}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: goldGoalText
-      value: 
-      objectReference: {fileID: 1980759725}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: bronzeGoalText
-      value: 
-      objectReference: {fileID: 358137181}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: silverGoalText
-      value: 
-      objectReference: {fileID: 1321277885}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: worldLevelText
-      value: 
-      objectReference: {fileID: 977040194}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: mainObjectiveText
-      value: 
-      objectReference: {fileID: 434861543}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: phaseMixTexts.Array.size
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: phaseNameTexts.Array.size
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: phaseNodesTexts.Array.size
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseMixTexts.Array.data[0]'
-      value: 
-      objectReference: {fileID: 210439854}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseMixTexts.Array.data[1]'
-      value: 
-      objectReference: {fileID: 274659744}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseMixTexts.Array.data[2]'
-      value: 
-      objectReference: {fileID: 444065787}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseNameTexts.Array.data[0]'
-      value: 
-      objectReference: {fileID: 1712517116}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseNameTexts.Array.data[1]'
-      value: 
-      objectReference: {fileID: 1464441283}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseNameTexts.Array.data[2]'
-      value: 
-      objectReference: {fileID: 1641097930}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: phaseDurationTexts.Array.size
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseNodesTexts.Array.data[0]'
-      value: 
-      objectReference: {fileID: 387389804}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseNodesTexts.Array.data[1]'
-      value: 
-      objectReference: {fileID: 2016482870}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseNodesTexts.Array.data[2]'
-      value: 
-      objectReference: {fileID: 278113603}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: phaseSpawnSpeedTexts.Array.size
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseDurationTexts.Array.data[0]'
-      value: 
-      objectReference: {fileID: 1207865886}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseDurationTexts.Array.data[1]'
-      value: 
-      objectReference: {fileID: 1583504704}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseDurationTexts.Array.data[2]'
-      value: 
-      objectReference: {fileID: 912122442}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: optionalDirectiveTexts.Array.size
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseSpawnSpeedTexts.Array.data[0]'
-      value: 
-      objectReference: {fileID: 1087123491}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseSpawnSpeedTexts.Array.data[1]'
-      value: 
-      objectReference: {fileID: 1237847376}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'phaseSpawnSpeedTexts.Array.data[2]'
-      value: 
-      objectReference: {fileID: 1492247904}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'optionalDirectiveTexts.Array.data[0]'
-      value: 
-      objectReference: {fileID: 1078643942}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'optionalDirectiveTexts.Array.data[1]'
-      value: 
-      objectReference: {fileID: 643909066}
-    - target: {fileID: 6766810329140748975, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-      propertyPath: 'optionalDirectiveTexts.Array.data[2]'
-      value: 
-      objectReference: {fileID: 350763436}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
---- !u!4 &1406900114 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5828728015597114025, guid: f7e42ccdc7a77154bba0a5af4203ceb8, type: 3}
-  m_PrefabInstance: {fileID: 1406900113}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1414350792
 GameObject:
@@ -42099,39 +41882,6 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
---- !u!1 &1627237882
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1627237883}
-  m_Layer: 0
-  m_Name: PauseOverlayLEGACY
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1627237883
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1627237882}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2136299650}
-  - {fileID: 1406900114}
-  m_Father: {fileID: 207393966}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1632826699
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -45498,7 +45248,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 48
+  m_fontSize: 47.15
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -46457,94 +46207,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1794292410}
   m_CullTransparentMesh: 1
---- !u!1 &1807684008
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1807684012}
-  - component: {fileID: 1807684011}
-  - component: {fileID: 1807684010}
-  - component: {fileID: 1807684009}
-  m_Layer: 5
-  m_Name: TutoDarkOverlay
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!225 &1807684009
-CanvasGroup:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1807684008}
-  m_Enabled: 1
-  m_Alpha: 0
-  m_Interactable: 0
-  m_BlocksRaycasts: 0
-  m_IgnoreParentGroups: 0
---- !u!114 &1807684010
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1807684008}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0, b: 0, a: 0.6509804}
-  m_RaycastTarget: 0
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 1
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &1807684011
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1807684008}
-  m_CullTransparentMesh: 1
---- !u!224 &1807684012
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1807684008}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1902270935}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1811206632
 GameObject:
   m_ObjectHideFlags: 0
@@ -46998,39 +46660,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f81f0f81f269918478e714fc8b11c016, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
---- !u!1 &1832921327
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1832921328}
-  m_Layer: 0
-  m_Name: PauseLEGACY
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!4 &1832921328
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1832921327}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2070221527}
-  - {fileID: 794936361}
-  m_Father: {fileID: 874433117}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1836331273
 GameObject:
   m_ObjectHideFlags: 0
@@ -47841,18 +47470,18 @@ PrefabInstance:
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 1949251875}
+      objectReference: {fileID: 751752660}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: OnNextClicked
+      value: HandleRetryRequested
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: LevelBriefingOverlayController, Assembly-CSharp
+      value: LevelPauseFlowHandler, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
@@ -50080,7 +49709,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1675457487}
-  - {fileID: 1807684012}
   - {fileID: 343408491}
   - {fileID: 876886473}
   - {fileID: 1934073753}
@@ -52382,18 +52010,18 @@ PrefabInstance:
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 1949251875}
+      objectReference: {fileID: 1519496213}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: OnNextClicked
+      value: Resume
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: LevelBriefingOverlayController, Assembly-CSharp
+      value: PauseOverlayController, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 6621587212193043043, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
@@ -53749,53 +53377,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 472894612}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &2070221525
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2070221527}
-  - component: {fileID: 2070221526}
-  m_Layer: 0
-  m_Name: LevelPauseFlowHandler
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2070221526
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2070221525}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00029bb2cc8ce38419df1c0b7f026f82, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LevelPauseFlowHandler
-  pauseController: {fileID: 794936362}
-  pauseOverlayUI: {fileID: 2136299651}
-  runSession: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
---- !u!4 &2070221527
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2070221525}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1832921328}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2076756797
 GameObject:
   m_ObjectHideFlags: 0
@@ -54820,61 +54401,6 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
---- !u!1 &2136299649
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2136299650}
-  - component: {fileID: 2136299651}
-  m_Layer: 0
-  m_Name: PauseUI
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2136299650
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2136299649}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1627237883}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2136299651
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2136299649}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 34c4cee3251f0364e8ecb61c0988e65f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PauseOverlayUI
-  overlayRoot: {fileID: 885047742}
-  runScoreText: {fileID: 360362247}
-  creditsText: {fileID: 648810112}
-  moneySpriteName: icon_money
-  spriteYOffset: -6
-  contractLedImages:
-  - {fileID: 1691683860}
-  - {fileID: 2076756799}
-  - {fileID: 1028779289}
-  contractLedGreen: {fileID: 21300000, guid: 5884539e53312f64f8e0f9eb46fd716e, type: 3}
-  contractLedRed: {fileID: 21300000, guid: 97024dd2251f23c43a4acbe882c723ef, type: 3}
 --- !u!1001 &2142159872
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -18,7 +18,7 @@ public class LevelEvacuationController : MonoBehaviour
     [SerializeField] private BinCollector collector;
     [SerializeField] private PlayerController player;
     [SerializeField] private CloseBinController closeBinController;
-    [SerializeField] private PauseController pauseController;
+    [SerializeField] private PauseOverlayController pauseOverlayController;
 
     [Header("UI")]
     [SerializeField] private EvacTimerUI evacTimerUI;
@@ -56,7 +56,7 @@ public class LevelEvacuationController : MonoBehaviour
             collector,
             player,
             closeBinController,
-            pauseController,
+            pauseOverlayController,
             evacDuration: evacDuration,
             tickInterval: 1f,
             onEvacStartCb: () =>

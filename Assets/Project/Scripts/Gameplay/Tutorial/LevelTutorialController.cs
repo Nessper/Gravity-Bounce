@@ -19,6 +19,10 @@ using UnityEngine;
 /// - Les messages tuto sont joues en mode interactif.
 /// - Les textes et speakers viennent des sequences JSON.
 /// - Au retry, on ne rejoue que des phrases courtes dediees.
+///
+/// IMPORTANT :
+/// - Le tuto ne pilote plus directement le dimmer global.
+/// - Toute demande visuelle de dimmer passe par MainUIController.
 /// </summary>
 public class LevelTutorialController : MonoBehaviour
 {
@@ -45,7 +49,7 @@ public class LevelTutorialController : MonoBehaviour
 
     [Header("References UI")]
     [SerializeField] private DialogSequenceRunner dialogRunner;
-    [SerializeField] private CanvasGroup darkOverlay;
+    [SerializeField] private MainUIController mainUIController;
     [SerializeField] private HullUI hullUI;
 
     [Header("Configuration generale")]
@@ -57,7 +61,6 @@ public class LevelTutorialController : MonoBehaviour
     [SerializeField] private float pauseAfterTutorialOutroSec = 0.45f;
     [SerializeField] private float pauseBeforeMissionStartSec = 0.35f;
     [SerializeField] private float blackHullFeedbackDelaySec = 0.15f;
-    [SerializeField] private float overlayFadeOutDuration = 0.25f;
 
     [Header("Tutorial Sequences")]
     [SerializeField] private string tutorialIntroSequenceId = "W1_L1_tutorial_intro";
@@ -161,12 +164,7 @@ public class LevelTutorialController : MonoBehaviour
         stepFailed = false;
         currentStepMode = TutorialStepMode.None;
 
-        if (darkOverlay != null)
-        {
-            darkOverlay.alpha = 0f;
-            darkOverlay.blocksRaycasts = false;
-            darkOverlay.interactable = false;
-        }
+        mainUIController?.HideTutorialDimmerImmediate();
 
         if (binCollector != null)
             binCollector.SetAutoFlushEnabled(true);
@@ -207,7 +205,7 @@ public class LevelTutorialController : MonoBehaviour
         if (pauseBeforeTutorialOutroSec > 0f)
             yield return new WaitForSeconds(pauseBeforeTutorialOutroSec);
 
-        // Reset sous overlay noir, pour que la transition soit invisible.
+        // Reset sous overlay, pour que la transition soit invisible.
         ResetGameplayStateAfterTutorial();
 
         yield return ShowStepSequence(tutorialOutroSequenceId, keepOverlayVisibleAfter: true);
@@ -215,7 +213,7 @@ public class LevelTutorialController : MonoBehaviour
         if (pauseAfterTutorialOutroSec > 0f)
             yield return new WaitForSeconds(pauseAfterTutorialOutroSec);
 
-        yield return FadeOutOverlay();
+        yield return FadeOutTutorialDimmer();
 
         if (pauseBeforeMissionStartSec > 0f)
             yield return new WaitForSeconds(pauseBeforeMissionStartSec);
@@ -255,8 +253,7 @@ public class LevelTutorialController : MonoBehaviour
         if (hullUI != null)
             hullUI.StopAttentionFlash();
 
-        // On garde l overlay actif ici volontairement.
-        SetOverlayVisible(true);
+        mainUIController?.ShowTutorialDimmerImmediate();
 
         scoreManager?.ResetForLevelStart(0);
         comboEngine?.ResetRuntimeState();
@@ -574,7 +571,7 @@ public class LevelTutorialController : MonoBehaviour
             yield break;
         }
 
-        SetOverlayVisible(true);
+        yield return ShowTutorialDimmer();
 
         bool dialogDone = false;
 
@@ -594,29 +591,44 @@ public class LevelTutorialController : MonoBehaviour
             yield return new WaitForSeconds(pauseAfterDialogSec);
 
         if (!keepOverlayVisibleAfter)
-            SetOverlayVisible(false);
+            yield return HideTutorialDimmer();
     }
 
-    private IEnumerator FadeOutOverlay()
+    private IEnumerator FadeOutTutorialDimmer()
     {
-        if (darkOverlay == null)
+        yield return HideTutorialDimmer();
+    }
+
+    private IEnumerator ShowTutorialDimmer()
+    {
+        if (mainUIController == null)
             yield break;
 
-        float duration = Mathf.Max(0.01f, overlayFadeOutDuration);
-        float elapsed = 0f;
-        float startAlpha = darkOverlay.alpha;
+        bool done = false;
 
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            darkOverlay.alpha = Mathf.Lerp(startAlpha, 0f, t);
+        mainUIController.ShowTutorialDimmer(
+            this,
+            () => done = true
+        );
+
+        while (!done)
             yield return null;
-        }
+    }
 
-        darkOverlay.alpha = 0f;
-        darkOverlay.blocksRaycasts = false;
-        darkOverlay.interactable = false;
+    private IEnumerator HideTutorialDimmer()
+    {
+        if (mainUIController == null)
+            yield break;
+
+        bool done = false;
+
+        mainUIController.HideTutorialDimmer(
+            this,
+            () => done = true
+        );
+
+        while (!done)
+            yield return null;
     }
 
     private void SpawnActiveTutorialBall(Vector3 position, Vector3 velocity, BallType type)
@@ -912,15 +924,5 @@ public class LevelTutorialController : MonoBehaviour
             return rightBinTrigger;
 
         return null;
-    }
-
-    private void SetOverlayVisible(bool visible)
-    {
-        if (darkOverlay == null)
-            return;
-
-        darkOverlay.alpha = visible ? 1f : 0f;
-        darkOverlay.blocksRaycasts = visible;
-        darkOverlay.interactable = false;
     }
 }

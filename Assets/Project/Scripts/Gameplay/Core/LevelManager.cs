@@ -96,6 +96,9 @@ public class LevelManager : MonoBehaviour
     [Header("Binders")]
     [SerializeField] private HullBinder hullBinder;
 
+    [Header("Pause")]
+    [SerializeField] private LevelPauseFlowHandler levelPauseFlowHandler;
+
     [Header("Services")]
     [SerializeField] private FinalBallCleanupService finalBallCleanupService;
 
@@ -216,11 +219,11 @@ public class LevelManager : MonoBehaviour
         }
 
         // 8) Pause
-        mainUIController?.SetupPause(
+        mainUIController?.InitializePauseOverlay(
             levelMeta,
             data,
-            onRetry: () => BootRoot.GameFlow.RetryLevel(),
-            onMenu: () => BootRoot.GameFlow.GoToTitle()
+            onRetry: levelPauseFlowHandler != null ? levelPauseFlowHandler.HandleRetryRequested : null,
+            onMenu: levelPauseFlowHandler != null ? levelPauseFlowHandler.HandleMenuRequested : null
         );
 
         // 9) Briefing / intro

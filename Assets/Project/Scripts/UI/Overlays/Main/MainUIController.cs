@@ -12,10 +12,12 @@ using UnityEngine;
 /// - exposer des setters simples pour background / dimmer
 /// - servir de point d entree pour la pause
 /// - gerer la visibilite de la pause a partir des evenements du PauseOverlayController
+/// - exposer des helpers dedies au dimmer du tuto
 ///
 /// IMPORTANT :
+/// - ce script ne connait pas la logique metier Retry / Menu de la pause
 /// - ce script ne connait pas le contenu detaille des overlays
-/// - il orchestre les controllers d overlays depuis l exterieur
+/// - il orchestre seulement les controllers d overlays depuis l exterieur
 /// </summary>
 public class MainUIController : MonoBehaviour
 {
@@ -31,6 +33,11 @@ public class MainUIController : MonoBehaviour
     [Header("Timings")]
     [SerializeField] private float briefingFadeDuration = 0.25f;
     [SerializeField] private float closeBriefingFadeDuration = 0.25f;
+
+    [Header("Tutorial Dimmer")]
+    [SerializeField] private float tutorialDimmerDialogueAlpha = 0.65f;
+    [SerializeField] private float tutorialDimmerRestAlpha = 0.15f;
+    [SerializeField] private float tutorialDimmerFadeDuration = 0.2f;
 
     private Coroutine currentRoutine;
 
@@ -71,9 +78,13 @@ public class MainUIController : MonoBehaviour
     }
 
     /// <summary>
-    /// Configure l overlay de pause une seule fois au debut du niveau.
+    /// Initialise l overlay de pause une seule fois au debut du niveau.
+    /// - configure le contenu mission
+    /// - branche les callbacks Retry / Menu
+    /// - force un etat visuel ferme
+    /// - desactive la pause tant que le gameplay n a pas commence
     /// </summary>
-    public void SetupPause(
+    public void InitializePauseOverlay(
         LevelCatalogService.LevelCatalogEntry levelMeta,
         LevelData levelData,
         Action onRetry,
@@ -173,6 +184,52 @@ public class MainUIController : MonoBehaviour
                 onComplete
             )
         );
+    }
+
+    /// <summary>
+    /// Affiche le dimmer du tuto pendant les dialogues.
+    /// </summary>
+    public Coroutine ShowTutorialDimmer(MonoBehaviour owner, Action onComplete = null)
+    {
+        return FadeDimmerTo(
+            owner,
+            tutorialDimmerDialogueAlpha,
+            tutorialDimmerFadeDuration,
+            interactableAtEnd: false,
+            blocksRaycastsAtEnd: true,
+            onComplete: onComplete
+        );
+    }
+
+    /// <summary>
+    /// Replace le dimmer du tuto dans son etat de repos entre les etapes.
+    /// </summary>
+    public Coroutine HideTutorialDimmer(MonoBehaviour owner, Action onComplete = null)
+    {
+        return FadeDimmerTo(
+            owner,
+            tutorialDimmerRestAlpha,
+            tutorialDimmerFadeDuration,
+            interactableAtEnd: false,
+            blocksRaycastsAtEnd: false,
+            onComplete: onComplete
+        );
+    }
+
+    /// <summary>
+    /// Force immediatement le dimmer du tuto dans son etat "dialogue".
+    /// </summary>
+    public void ShowTutorialDimmerImmediate()
+    {
+        SetDimmerImmediate(tutorialDimmerDialogueAlpha, false, true);
+    }
+
+    /// <summary>
+    /// Force immediatement le dimmer du tuto dans son etat de repos.
+    /// </summary>
+    public void HideTutorialDimmerImmediate()
+    {
+        SetDimmerImmediate(tutorialDimmerRestAlpha, false, false);
     }
 
     /// <summary>
