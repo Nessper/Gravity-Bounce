@@ -10,7 +10,34 @@
     { "Type": "Silver", "Points": 350 },
     { "Type": "Gold", "Points": 500 }
   ],
-  "SecondaryObjectives": [],
+
+   "SecondaryObjectives": [
+    {
+      "Id": "W1L1_SO_WS_3",
+      "Type": "ComboCount",
+      "TargetId": "WhiteStreak",
+      "Threshold": 3,
+      "RewardScore": 250,
+      "UiText": "Trigger 3 White Streak combos."
+    },
+    {
+      "Id": "W1L5_SO_RED_1",
+      "Type": "BallCount",
+      "TargetId": "Red",
+      "Threshold": 1,
+      "RewardScore": 350,
+      "UiText": "Collect the red node."
+    },
+    {
+      "Id": "W1L5_SO_NOBLACK_2",
+      "Type": "MaxCount",
+      "TargetId": "Black",
+      "Threshold": 2,
+      "RewardScore": 300,
+      "UiText": "Collect at most 2 black node."
+    }
+  ],
+ 
   "Balls": [
     { "Type": "White", "Points": 100 },
     { "Type": "Blue", "Points": 150 },

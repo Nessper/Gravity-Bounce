@@ -13,11 +13,12 @@ using UnityEngine;
 /// - servir de point d entree pour la pause
 /// - gerer la visibilite de la pause a partir des evenements du PauseOverlayController
 /// - exposer des helpers dedies au dimmer du tuto
+/// - centraliser progressivement les couches globales de fin de niveau
 ///
 /// IMPORTANT :
-/// - ce script ne connait pas la logique metier Retry / Menu de la pause
+/// - ce script ne connait pas la logique metier Retry / Menu / Score
 /// - ce script ne connait pas le contenu detaille des overlays
-/// - il orchestre seulement les controllers d overlays depuis l exterieur
+/// - il orchestre seulement l affichage global des couches UI
 /// </summary>
 public class MainUIController : MonoBehaviour
 {
@@ -27,12 +28,21 @@ public class MainUIController : MonoBehaviour
     [SerializeField] private CanvasGroup levelBriefingGroup;
     [SerializeField] private CanvasGroup pauseOverlayGroup;
 
+    [Header("End Level")]
+    [SerializeField] private CanvasGroup gameplayHudGroup;
+    [SerializeField] private CanvasGroup resultsCeremonyOverlayGroup;
+    [SerializeField] private CanvasGroup endResultOverlayGroup;
+
     [Header("Overlay Controllers")]
     [SerializeField] private PauseOverlayController pauseOverlayController;
 
     [Header("Timings")]
     [SerializeField] private float briefingFadeDuration = 0.25f;
     [SerializeField] private float closeBriefingFadeDuration = 0.25f;
+
+    [Header("End Flow Transitions")]
+    [SerializeField] private float resultsCeremonyFadeDuration = 0.5f;
+    [SerializeField] private float endResultFadeDuration = 0.5f;
 
     [Header("Tutorial Dimmer")]
     [SerializeField] private float tutorialDimmerDialogueAlpha = 0.65f;
@@ -75,15 +85,12 @@ public class MainUIController : MonoBehaviour
         SetCanvasGroup(dimmerGroup, 1f, false, false);
         SetCanvasGroup(levelBriefingGroup, 0f, false, false);
         SetCanvasGroup(pauseOverlayGroup, 0f, false, false);
+
+        SetCanvasGroup(gameplayHudGroup, 1f, true, true);
+        SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, false, false);
+        SetCanvasGroup(endResultOverlayGroup, 0f, false, false);
     }
 
-    /// <summary>
-    /// Initialise l overlay de pause une seule fois au debut du niveau.
-    /// - configure le contenu mission
-    /// - branche les callbacks Retry / Menu
-    /// - force un etat visuel ferme
-    /// - desactive la pause tant que le gameplay n a pas commence
-    /// </summary>
     public void InitializePauseOverlay(
         LevelCatalogService.LevelCatalogEntry levelMeta,
         LevelData levelData,
@@ -100,44 +107,152 @@ public class MainUIController : MonoBehaviour
         HidePauseOverlay();
     }
 
-    /// <summary>
-    /// Active ou non la possibilite d ouvrir la pause.
-    /// </summary>
     public void EnablePause(bool enabled)
     {
         pauseOverlayController?.EnablePause(enabled);
     }
 
-    /// <summary>
-    /// Force la fermeture de la pause si elle est ouverte.
-    /// </summary>
     public void ForceResumePause()
     {
         pauseOverlayController?.ForceResume();
     }
 
-    /// <summary>
-    /// Affiche visuellement le briefing.
-    /// </summary>
     public void ShowLevelBriefing(Action onComplete = null)
     {
         StopRunningRoutine();
         currentRoutine = StartCoroutine(ShowLevelBriefingRoutine(onComplete));
     }
 
-    /// <summary>
-    /// Ferme visuellement le briefing et remonte le dimmer a 1
-    /// pour passer le relais a l intro.
-    /// </summary>
     public void CloseBriefingForIntro(Action onComplete = null)
     {
         StopRunningRoutine();
         currentRoutine = StartCoroutine(CloseBriefingForIntroRoutine(onComplete));
     }
 
+    public void ShowGameplayHud()
+    {
+        SetCanvasGroup(gameplayHudGroup, 1f, true, true);
+    }
+
+    public void HideGameplayHud()
+    {
+        SetCanvasGroup(gameplayHudGroup, 0f, false, false);
+    }
+
     /// <summary>
-    /// Force immediatement l etat du background global.
+    /// Affiche la vue globale de la Results Ceremony.
+    /// Cette methode ne joue pas la ceremony.
     /// </summary>
+    public Coroutine ShowResultsCeremonyView(MonoBehaviour owner, Action onComplete = null)
+    {
+        if (owner == null)
+            return null;
+
+        return owner.StartCoroutine(ShowResultsCeremonyViewRoutine(onComplete));
+    }
+
+    private IEnumerator ShowResultsCeremonyViewRoutine(Action onComplete)
+    {
+        HideGameplayHud();
+
+        SetCanvasGroup(backgroundGroup, 1f, false, false);
+        SetCanvasGroup(dimmerGroup, 1f, false, false);
+        SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, true, true);
+        SetCanvasGroup(endResultOverlayGroup, 0f, false, false);
+
+        Coroutine dimmerFade = StartCoroutine(
+            FadeCanvasGroup(
+                dimmerGroup,
+                1f,
+                0f,
+                resultsCeremonyFadeDuration,
+                false,
+                false
+            )
+        );
+
+        Coroutine overlayFade = StartCoroutine(
+            FadeCanvasGroup(
+                resultsCeremonyOverlayGroup,
+                0f,
+                1f,
+                resultsCeremonyFadeDuration,
+                true,
+                true
+            )
+        );
+
+        yield return dimmerFade;
+        yield return overlayFade;
+
+        onComplete?.Invoke();
+    }
+
+    public void HideResultsCeremonyView()
+    {
+        SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, false, false);
+    }
+
+    /// <summary>
+    /// Transition globale Results Ceremony -> End Result.
+    /// Flow vise :
+    /// - dimmer remis instant a 1
+    /// - Results Ceremony cachee instant
+    /// - End Result visible a 0
+    /// - fade dimmer vers 0
+    /// - fade End Result vers 1
+    ///
+    /// IMPORTANT :
+    /// - cette methode ne joue pas le contenu interne de l overlay finale
+    /// - elle prepare seulement la transition globale entre les deux vues
+    /// </summary>
+    public Coroutine ShowEndResultView(MonoBehaviour owner, Action onComplete = null)
+    {
+        if (owner == null)
+            return null;
+
+        return owner.StartCoroutine(ShowEndResultViewRoutine(onComplete));
+    }
+
+    private IEnumerator ShowEndResultViewRoutine(Action onComplete)
+    {
+        SetCanvasGroup(dimmerGroup, 1f, false, false);
+        SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, false, false);
+        SetCanvasGroup(endResultOverlayGroup, 0f, true, true);
+
+        Coroutine dimmerFade = StartCoroutine(
+            FadeCanvasGroup(
+                dimmerGroup,
+                1f,
+                0f,
+                endResultFadeDuration,
+                false,
+                false
+            )
+        );
+
+        Coroutine endResultFade = StartCoroutine(
+            FadeCanvasGroup(
+                endResultOverlayGroup,
+                0f,
+                1f,
+                endResultFadeDuration,
+                true,
+                true
+            )
+        );
+
+        yield return dimmerFade;
+        yield return endResultFade;
+
+        onComplete?.Invoke();
+    }
+
+    public void HideEndResultView()
+    {
+        SetCanvasGroup(endResultOverlayGroup, 0f, false, false);
+    }
+
     public void SetBackgroundImmediate(
         float alpha,
         bool interactable = false,
@@ -146,9 +261,6 @@ public class MainUIController : MonoBehaviour
         SetCanvasGroup(backgroundGroup, alpha, interactable, blocksRaycasts);
     }
 
-    /// <summary>
-    /// Force immediatement l etat du dimmer global.
-    /// </summary>
     public void SetDimmerImmediate(
         float alpha,
         bool interactable = false,
@@ -157,9 +269,6 @@ public class MainUIController : MonoBehaviour
         SetCanvasGroup(dimmerGroup, alpha, interactable, blocksRaycasts);
     }
 
-    /// <summary>
-    /// Lance un fade du dimmer global.
-    /// </summary>
     public Coroutine FadeDimmerTo(
         MonoBehaviour owner,
         float targetAlpha,
@@ -186,9 +295,6 @@ public class MainUIController : MonoBehaviour
         );
     }
 
-    /// <summary>
-    /// Affiche le dimmer du tuto pendant les dialogues.
-    /// </summary>
     public Coroutine ShowTutorialDimmer(MonoBehaviour owner, Action onComplete = null)
     {
         return FadeDimmerTo(
@@ -201,9 +307,6 @@ public class MainUIController : MonoBehaviour
         );
     }
 
-    /// <summary>
-    /// Replace le dimmer du tuto dans son etat de repos entre les etapes.
-    /// </summary>
     public Coroutine HideTutorialDimmer(MonoBehaviour owner, Action onComplete = null)
     {
         return FadeDimmerTo(
@@ -216,33 +319,21 @@ public class MainUIController : MonoBehaviour
         );
     }
 
-    /// <summary>
-    /// Force immediatement le dimmer du tuto dans son etat "dialogue".
-    /// </summary>
     public void ShowTutorialDimmerImmediate()
     {
         SetDimmerImmediate(tutorialDimmerDialogueAlpha, false, true);
     }
 
-    /// <summary>
-    /// Force immediatement le dimmer du tuto dans son etat de repos.
-    /// </summary>
     public void HideTutorialDimmerImmediate()
     {
         SetDimmerImmediate(tutorialDimmerRestAlpha, false, false);
     }
 
-    /// <summary>
-    /// Affiche l overlay pause.
-    /// </summary>
     public void ShowPauseOverlay()
     {
         SetCanvasGroup(pauseOverlayGroup, 1f, true, true);
     }
 
-    /// <summary>
-    /// Cache l overlay pause.
-    /// </summary>
     public void HidePauseOverlay()
     {
         SetCanvasGroup(pauseOverlayGroup, 0f, false, false);

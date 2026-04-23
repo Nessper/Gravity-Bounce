@@ -16,16 +16,8 @@ using UnityEngine.UI;
 /// </summary>
 public class EndLevelAccordionUI : MonoBehaviour
 {
-    // ----------------------------------------------------------
-    // LAYOUT REBUILD
-    // ----------------------------------------------------------
-
     [Header("Layout Rebuild")]
     [SerializeField] private RectTransform panelContainer;
-
-    // ----------------------------------------------------------
-    // GOALS
-    // ----------------------------------------------------------
 
     [Header("Goals")]
     [SerializeField] private Button goalsTitleButton;
@@ -34,10 +26,6 @@ public class EndLevelAccordionUI : MonoBehaviour
     [SerializeField] private RectTransform goalsArrowIcon;
     [SerializeField] private float goalsToggleDuration = 0.18f;
 
-    // ----------------------------------------------------------
-    // BONUS
-    // ----------------------------------------------------------
-
     [Header("Bonus")]
     [SerializeField] private Button bonusTitleButton;
     [SerializeField] private RectTransform bonusLinesBlock;
@@ -45,26 +33,14 @@ public class EndLevelAccordionUI : MonoBehaviour
     [SerializeField] private RectTransform bonusArrowIcon;
     [SerializeField] private float bonusToggleDuration = 0.18f;
 
-    // ----------------------------------------------------------
-    // ICONES
-    // ----------------------------------------------------------
-
     [Header("Arrow Icons")]
     [SerializeField] private float arrowRotateDuration = 0.12f;
-
-    // ----------------------------------------------------------
-    // ANTI-SPAM
-    // ----------------------------------------------------------
 
     [Header("Anti-spam tap")]
     [SerializeField] private float toggleCooldownSec = 0.18f;
 
     private float nextGoalsToggleTime = 0f;
     private float nextBonusToggleTime = 0f;
-
-    // ----------------------------------------------------------
-    // STATE
-    // ----------------------------------------------------------
 
     private bool togglesEnabled = false;
 
@@ -76,35 +52,14 @@ public class EndLevelAccordionUI : MonoBehaviour
 
     private Coroutine goalsToggleRoutine;
     private Coroutine bonusToggleRoutine;
-
-    // Coroutine d accordéon : fermer puis ouvrir.
     private Coroutine accordionRoutine;
 
-    // Cache de hauteur pour eviter les surprises si l objet est desactive.
     private float cachedGoalsHeight = -1f;
     private float cachedBonusHeight = -1f;
 
-    // ----------------------------------------------------------
-    // PROPERTIES
-    // ----------------------------------------------------------
+    public float GoalsToggleDurationSec => goalsToggleDuration;
+    public float BonusToggleDurationSec => bonusToggleDuration;
 
-    public float GoalsToggleDurationSec
-    {
-        get { return goalsToggleDuration; }
-    }
-
-    public float BonusToggleDurationSec
-    {
-        get { return bonusToggleDuration; }
-    }
-
-    // ----------------------------------------------------------
-    // API
-    // ----------------------------------------------------------
-
-    /// <summary>
-    /// Active ou desactive l interaction utilisateur sur les titres.
-    /// </summary>
     public void SetInteractable(bool value)
     {
         togglesEnabled = value;
@@ -116,31 +71,11 @@ public class EndLevelAccordionUI : MonoBehaviour
             bonusTitleButton.interactable = value;
     }
 
-    public bool AreTogglesEnabled()
-    {
-        return togglesEnabled;
-    }
+    public bool AreTogglesEnabled() => togglesEnabled;
+    public bool IsGoalsExpanded() => goalsExpanded;
+    public bool IsBonusExpanded() => bonusExpanded;
+    public bool IsAnimating() => goalsIsAnimating || bonusIsAnimating;
 
-    public bool IsGoalsExpanded()
-    {
-        return goalsExpanded;
-    }
-
-    public bool IsBonusExpanded()
-    {
-        return bonusExpanded;
-    }
-
-    public bool IsAnimating()
-    {
-        return goalsIsAnimating || bonusIsAnimating;
-    }
-
-    /// <summary>
-    /// Helper simple.
-    /// Pour un etat final de ceremonie robuste, preferer
-    /// ForceCeremonyStartStateInstant ou ForceCeremonyEndStateInstant.
-    /// </summary>
     public void SetState(bool goalsExpandedValue, bool bonusExpandedValue, bool instant)
     {
         SetGoalsExpanded(goalsExpandedValue, instant);
@@ -160,6 +95,9 @@ public class EndLevelAccordionUI : MonoBehaviour
 
         goalsExpanded = true;
         bonusExpanded = false;
+
+        bool prevGoalsActive = goalsLinesBlock != null && goalsLinesBlock.gameObject.activeSelf;
+        bool prevBonusActive = bonusLinesBlock != null && bonusLinesBlock.gameObject.activeSelf;
 
         if (goalsLinesBlock != null)
             goalsLinesBlock.gameObject.SetActive(true);
@@ -234,43 +172,41 @@ public class EndLevelAccordionUI : MonoBehaviour
     }
 
     /// <summary>
-    /// A appeler si le contenu Goals a change.
-    /// Recalcule la hauteur ouverte cachee.
+    /// Recalcule la hauteur ouverte de Goals sans casser son etat actif/inactif.
     /// </summary>
     public void RefreshGoalsCachedHeight()
     {
         if (goalsLinesBlock == null)
             return;
 
+        bool wasActive = goalsLinesBlock.gameObject.activeSelf;
+
         goalsLinesBlock.gameObject.SetActive(true);
         ForceLayoutRebuild();
         cachedGoalsHeight = Mathf.Max(0f, LayoutUtility.GetPreferredHeight(goalsLinesBlock));
+
+        goalsLinesBlock.gameObject.SetActive(wasActive);
+        ForceLayoutRebuild();
     }
 
     /// <summary>
-    /// A appeler si le contenu Bonus a change.
-    /// Recalcule la hauteur ouverte cachee.
+    /// Recalcule la hauteur ouverte de Bonus sans casser son etat actif/inactif.
     /// </summary>
     public void RefreshBonusCachedHeight()
     {
         if (bonusLinesBlock == null)
             return;
 
+        bool wasActive = bonusLinesBlock.gameObject.activeSelf;
+
         bonusLinesBlock.gameObject.SetActive(true);
         ForceLayoutRebuild();
         cachedBonusHeight = Mathf.Max(0f, LayoutUtility.GetPreferredHeight(bonusLinesBlock));
+
+        bonusLinesBlock.gameObject.SetActive(wasActive);
+        ForceLayoutRebuild();
     }
 
-    // ----------------------------------------------------------
-    // BOUTONS (INSPECTOR)
-    // ----------------------------------------------------------
-
-    /// <summary>
-    /// Clique sur le titre Goals.
-    /// Respecte la regle d accordéon :
-    /// si Bonus est ouvert et qu on veut ouvrir Goals,
-    /// on ferme Bonus avant d ouvrir Goals.
-    /// </summary>
     public void OnGoalsTitleClicked()
     {
         if (!togglesEnabled)
@@ -298,12 +234,6 @@ public class EndLevelAccordionUI : MonoBehaviour
         SetGoalsExpanded(targetExpandGoals, instant: false);
     }
 
-    /// <summary>
-    /// Clique sur le titre Bonus.
-    /// Respecte la regle d accordéon :
-    /// si Goals est ouvert et qu on veut ouvrir Bonus,
-    /// on ferme Goals avant d ouvrir Bonus.
-    /// </summary>
     public void OnBonusTitleClicked()
     {
         if (!togglesEnabled)
@@ -331,13 +261,6 @@ public class EndLevelAccordionUI : MonoBehaviour
         SetBonusExpanded(targetExpandBonus, instant: false);
     }
 
-    // ----------------------------------------------------------
-    // ACCORDEON ROUTINES
-    // ----------------------------------------------------------
-
-    /// <summary>
-    /// Ferme Bonus puis ouvre Goals.
-    /// </summary>
     private IEnumerator CloseBonusThenOpenGoals()
     {
         SetBonusExpanded(false, instant: false);
@@ -348,9 +271,6 @@ public class EndLevelAccordionUI : MonoBehaviour
         accordionRoutine = null;
     }
 
-    /// <summary>
-    /// Ferme Goals puis ouvre Bonus.
-    /// </summary>
     private IEnumerator CloseGoalsThenOpenBonus()
     {
         SetGoalsExpanded(false, instant: false);
@@ -361,13 +281,6 @@ public class EndLevelAccordionUI : MonoBehaviour
         accordionRoutine = null;
     }
 
-    // ----------------------------------------------------------
-    // EXPAND / COLLAPSE GOALS
-    // ----------------------------------------------------------
-
-    /// <summary>
-    /// Ouvre ou ferme Goals.
-    /// </summary>
     public void SetGoalsExpanded(bool expanded, bool instant)
     {
         if (accordionRoutine != null)
@@ -406,6 +319,8 @@ public class EndLevelAccordionUI : MonoBehaviour
 
             if (!expanded)
                 goalsLinesBlock.gameObject.SetActive(false);
+            else
+                goalsLinesBlock.gameObject.SetActive(true);
 
             ForceLayoutRebuild();
             return;
@@ -424,13 +339,6 @@ public class EndLevelAccordionUI : MonoBehaviour
         ));
     }
 
-    // ----------------------------------------------------------
-    // EXPAND / COLLAPSE BONUS
-    // ----------------------------------------------------------
-
-    /// <summary>
-    /// Ouvre ou ferme Bonus.
-    /// </summary>
     public void SetBonusExpanded(bool expanded, bool instant)
     {
         if (accordionRoutine != null)
@@ -469,6 +377,8 @@ public class EndLevelAccordionUI : MonoBehaviour
 
             if (!expanded)
                 bonusLinesBlock.gameObject.SetActive(false);
+            else
+                bonusLinesBlock.gameObject.SetActive(true);
 
             ForceLayoutRebuild();
             return;
@@ -487,13 +397,6 @@ public class EndLevelAccordionUI : MonoBehaviour
         ));
     }
 
-    // ----------------------------------------------------------
-    // ICONES
-    // ----------------------------------------------------------
-
-    /// <summary>
-    /// Met a jour la rotation de la fleche.
-    /// </summary>
     private void UpdateArrowIcon(RectTransform arrow, bool expanded, bool instant)
     {
         if (arrow == null)
@@ -510,9 +413,6 @@ public class EndLevelAccordionUI : MonoBehaviour
         StartCoroutine(RotateArrowRoutine(arrow, targetZ));
     }
 
-    /// <summary>
-    /// Anime la rotation d une fleche.
-    /// </summary>
     private IEnumerator RotateArrowRoutine(RectTransform arrow, float targetZ)
     {
         float startZ = arrow.localEulerAngles.z;
@@ -532,13 +432,6 @@ public class EndLevelAccordionUI : MonoBehaviour
         arrow.localRotation = Quaternion.Euler(0f, 0f, targetZ);
     }
 
-    // ----------------------------------------------------------
-    // ANIM HEIGHT
-    // ----------------------------------------------------------
-
-    /// <summary>
-    /// Renvoie la preferredHeight d un block avec rebuild force.
-    /// </summary>
     private float GetPreferredHeightSafe(RectTransform rt)
     {
         if (rt == null)
@@ -548,9 +441,6 @@ public class EndLevelAccordionUI : MonoBehaviour
         return Mathf.Max(0f, LayoutUtility.GetPreferredHeight(rt));
     }
 
-    /// <summary>
-    /// Anime la preferredHeight d une section.
-    /// </summary>
     private IEnumerator AnimateSectionHeight(
         LayoutElement layout,
         RectTransform block,
@@ -558,8 +448,7 @@ public class EndLevelAccordionUI : MonoBehaviour
         float to,
         float duration,
         bool disableAtEnd,
-        System.Action onDone
-    )
+        System.Action onDone)
     {
         float t = 0f;
 
@@ -585,13 +474,6 @@ public class EndLevelAccordionUI : MonoBehaviour
         onDone?.Invoke();
     }
 
-    // ----------------------------------------------------------
-    // INTERNAL HELPERS
-    // ----------------------------------------------------------
-
-    /// <summary>
-    /// Stoppe proprement toutes les routines de l accordéon.
-    /// </summary>
     private void StopAllAccordionRoutines()
     {
         if (accordionRoutine != null)
@@ -616,13 +498,6 @@ public class EndLevelAccordionUI : MonoBehaviour
         bonusIsAnimating = false;
     }
 
-    // ----------------------------------------------------------
-    // LAYOUT
-    // ----------------------------------------------------------
-
-    /// <summary>
-    /// Force le rebuild du layout parent.
-    /// </summary>
     private void ForceLayoutRebuild()
     {
         Canvas.ForceUpdateCanvases();

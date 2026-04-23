@@ -58,10 +58,11 @@ public class LevelManager : MonoBehaviour
     [Header("UI / Overlays")]
     [SerializeField] private MainUIController mainUIController;
     [SerializeField] private LevelBriefingOverlayController briefingOverlayController;
+    [SerializeField] private ResultsCeremonyOverlayController resultsCeremonyOverlayController;
+
     [SerializeField] private ProgressBarUI progressBarUI;
     [SerializeField] private ProgressCountUI progressCountUI;
-    [Header("UI / End Level")]
-    [SerializeField] private EndLevelUI endLevelUI;
+
 
     // ----------------------------------------------------------
     // RUN / STATE
@@ -646,8 +647,6 @@ public class LevelManager : MonoBehaviour
         if (snap == null)
             return false;
 
-        // Si déjà committé, on ne rejoue pas la cérémonie.
-        // (Normalement, SaveManager.Reconcile au Load aura déjà purgé ce snapshot.)
         if (snap.RewardsCommitted)
             return false;
 
@@ -655,51 +654,54 @@ public class LevelManager : MonoBehaviour
         if (run == null)
             return false;
 
-        // Garde-fou : on ne resume QUE si on est sur le même node attendu.
         if (run.currentNodeIndex != snap.Token.NodeIndex)
             return false;
 
-        // Stoppe toute tentative de démarrage de gameplay.
         ballSpawner?.StopSpawning();
         if (levelTimer != null)
             levelTimer.enabled = false;
 
         DisableGameplayControls();
 
-        // (Optionnel) on peut aussi désactiver la pause pendant la cérémonie
-        // si tu veux éviter une pause overlay sur l'end screen.
-        // pauseController?.EnablePause(false);
-
-        if (endLevelUI == null)
+        if (resultsCeremonyOverlayController == null)
             return false;
 
-        // Injecte le token scellé dans EndLevelUI, pour que OnCeremonyFinished le renvoie.
-        endLevelUI.SetEndLevelToken(snap.Token);
+        resultsCeremonyOverlayController.SetEndLevelToken(snap.Token);
 
-        // Reconstitue la liste des secondaires depuis l'array (JsonUtility-safe).
         List<SecondaryObjectiveResult> sec = null;
         if (snap.Secondary != null && snap.Secondary.Length > 0)
             sec = new List<SecondaryObjectiveResult>(snap.Secondary);
 
-        // NEW: remettre la scène dans l'état visuel "post gameplay"
-        // (board rangé + HUD gameplay caché) pour que la cérémonie soit crédible.
         if (boardOutro != null)
             boardOutro.ForceOutroStateInstant();
 
         if (gameplayHudRoot != null)
             gameplayHudRoot.SetActive(false);
 
+        if (mainUIController != null)
+        {
+            mainUIController.ShowResultsCeremonyView(this, () =>
+            {
+                resultsCeremonyOverlayController.Play(
+                    snap.Stats,
+                    levelMeta,
+                    data,
+                    snap.MainObjective,
+                    sec
+                );
+            });
+        }
+        else
+        {
+            resultsCeremonyOverlayController.Play(
+                snap.Stats,
+                levelMeta,
+                data,
+                snap.MainObjective,
+                sec
+            );
+        }
 
-        // Rejoue la cérémonie (revealRoutine) à partir du snapshot.
-        endLevelUI.Show(
-            snap.Stats,
-            levelMeta,
-            data,
-            snap.MainObjective,
-            sec
-        );
-
-        Debug.Log("[LevelManager] RESUME: replay cérémonie depuis EndLevelSnapshot (pending, non-committed).");
         return true;
     }
 
@@ -813,9 +815,8 @@ public class LevelManager : MonoBehaviour
             SaveManager.Instance.SetPendingEndSnapshot(snapshot);
         }
 
-        if (endLevelUI != null)
+        if (resultsCeremonyOverlayController != null)
         {
-            // Si le Hull est deja a 0, on annule la ceremonie normale.
             if (runSessionState != null && runSessionState.Hull <= 0)
             {
                 Debug.Log("[LevelManager] EvaluateLevelResult -> ceremonie annulee (Hull <= 0)");
@@ -825,17 +826,33 @@ public class LevelManager : MonoBehaviour
             CursorController.Unlock();
 
             if (endLevelToken.HasValue)
-                endLevelUI.SetEndLevelToken(endLevelToken.Value);
+                resultsCeremonyOverlayController.SetEndLevelToken(endLevelToken.Value);
 
             List<SecondaryObjectiveResult> secondary = GetSecondaryObjectiveResults();
 
-            endLevelUI.Show(
-                evalResult.Stats,
-                levelMeta,
-                data,
-                evalResult.MainObjective,
-                secondary
-            );
+            if (mainUIController != null)
+            {
+                mainUIController.ShowResultsCeremonyView(this, () =>
+                {
+                    resultsCeremonyOverlayController.Play(
+                        evalResult.Stats,
+                        levelMeta,
+                        data,
+                        evalResult.MainObjective,
+                        secondary
+                    );
+                });
+            }
+            else
+            {
+                resultsCeremonyOverlayController.Play(
+                    evalResult.Stats,
+                    levelMeta,
+                    data,
+                    evalResult.MainObjective,
+                    secondary
+                );
+            }
         }
     }
 

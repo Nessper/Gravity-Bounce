@@ -1,33 +1,29 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static EndLevelStats;
 
 /// <summary>
-/// Construit et gère les listes de lignes Goals et Bonus de fin de niveau :
+/// Construit et gere les listes de lignes Goals et Bonus de fin de niveau :
 /// - Clear des conteneurs
-/// - Ajout des lignes d'objectifs (principal + secondaires)
-/// - Reveal des lignes bonus de cérémonie
-/// - Calcul des totaux (goals, bonus)
+/// - Creation des lignes Goals / Bonus
+/// - Preparation des lignes et TotalLines cachees (alpha 0)
+/// - Reveal progressif des lignes deja presentes
+/// - Construction instantanee pour le skip
+/// - Calcul des totaux Goals / Bonus
 ///
 /// IMPORTANT :
-/// - Ne gère pas la cérémonie (timings globaux, victoire/défaite).
-/// - Ne gère pas le score final ni la progress bar.
-/// - La source de vérité affichée pour la section bonus est EndLevelStats.BonusLines.
+/// - Ne gere pas la ceremony globale.
+/// - Ne gere pas le score final ni la progress bar.
+/// - La source de verite affichee pour la section Bonus est EndLevelStats.BonusLines.
+/// - Les objets restent actifs et sont pilotes via CanvasGroup.alpha.
 /// </summary>
 public class EndLevelLinesBuilderUI : MonoBehaviour
 {
-    // ----------------------------------------------------------
-    // GOALS
-    // ----------------------------------------------------------
-
     [Header("Goals")]
     [SerializeField] private RectTransform goalsContent;
     [SerializeField] private GameObject goalLinePrefab;
     [SerializeField] private LineEntryFinalUI totalGoalsLine;
-
-    // ----------------------------------------------------------
-    // BONUS
-    // ----------------------------------------------------------
 
     [Header("Bonus")]
     [SerializeField] private RectTransform bonusContent;
@@ -37,16 +33,8 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
     [Header("Combos style")]
     [SerializeField] private FinalComboStyleProvider finalComboStyle;
 
-    // ----------------------------------------------------------
-    // STYLE
-    // ----------------------------------------------------------
-
     [Header("Style")]
     [SerializeField] private Color grayText = new Color(0.6f, 0.6f, 0.6f, 1f);
-
-    // ----------------------------------------------------------
-    // STATE
-    // ----------------------------------------------------------
 
     private int lastBonusPoints = 0;
 
@@ -63,6 +51,7 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
     {
         ClearGoals();
         ClearBonusLines();
+        HideTotals();
     }
 
     public void ClearGoals()
@@ -79,42 +68,28 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
         lastBonusPoints = 0;
     }
 
-    public void AddMainObjectiveLine(MainObjectiveResult mainObj)
+    public void HideTotals()
     {
-        if (goalsContent == null || goalLinePrefab == null)
-            return;
+        if (totalGoalsLine != null)
+        {
+            totalGoalsLine.gameObject.SetActive(true);
+            SetObjectAlpha(totalGoalsLine.gameObject, 0f);
 
-        GameObject go = Object.Instantiate(goalLinePrefab, goalsContent);
-        LineEntryUI ui = go.GetComponent<LineEntryUI>();
-        if (ui == null)
-            return;
+            if (totalGoalsLine.value != null)
+                totalGoalsLine.value.text = "0";
+        }
 
-        ui.label.text = mainObj.Text;
-        ui.value.text = mainObj.BonusApplied.ToString();
+        if (totalBonusLine != null)
+        {
+            totalBonusLine.gameObject.SetActive(true);
+            SetObjectAlpha(totalBonusLine.gameObject, 0f);
 
-        Color c = mainObj.Achieved ? Color.white : grayText;
-        ui.label.color = c;
-        ui.value.color = c;
-    }
+            if (totalBonusLine.label != null)
+                totalBonusLine.label.text = "Score";
 
-    public void AddSecondaryObjectiveLine(SecondaryObjectiveResult obj)
-    {
-        if (goalsContent == null || goalLinePrefab == null)
-            return;
-
-        GameObject go = Object.Instantiate(goalLinePrefab, goalsContent);
-        LineEntryUI ui = go.GetComponent<LineEntryUI>();
-        if (ui == null)
-            return;
-
-        ui.label.text = obj.Text;
-
-        int displayedScore = obj.Achieved ? obj.AwardedScore : 0;
-        ui.value.text = displayedScore.ToString();
-
-        Color c = obj.Achieved ? Color.white : grayText;
-        ui.label.color = c;
-        ui.value.color = c;
+            if (totalBonusLine.value != null)
+                totalBonusLine.value.text = "0";
+        }
     }
 
     public int ComputeTotalGoalsBonus(MainObjectiveResult mainObj, List<SecondaryObjectiveResult> secondary)
@@ -137,7 +112,79 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
         return total;
     }
 
-    public void ShowGoalsTotalLine()
+    // ----------------------------------------------------------
+    // GOALS LINES
+    // ----------------------------------------------------------
+
+    public List<GameObject> BuildGoalsHidden(MainObjectiveResult mainObj, List<SecondaryObjectiveResult> secondary)
+    {
+        List<GameObject> lines = new List<GameObject>();
+
+        if (goalsContent == null || goalLinePrefab == null)
+            return lines;
+
+        GameObject mainLine = CreateMainObjectiveLine(mainObj, hidden: true);
+        if (mainLine != null)
+            lines.Add(mainLine);
+
+        if (secondary != null)
+        {
+            for (int i = 0; i < secondary.Count; i++)
+            {
+                GameObject line = CreateSecondaryObjectiveLine(secondary[i], hidden: true);
+                if (line != null)
+                    lines.Add(line);
+            }
+        }
+
+        return lines;
+    }
+
+    private GameObject CreateMainObjectiveLine(MainObjectiveResult mainObj, bool hidden)
+    {
+        if (goalsContent == null || goalLinePrefab == null)
+            return null;
+
+        GameObject go = Object.Instantiate(goalLinePrefab, goalsContent);
+        LineEntryUI ui = go.GetComponent<LineEntryUI>();
+        if (ui != null)
+        {
+            ui.label.text = mainObj.Text;
+            ui.value.text = mainObj.BonusApplied.ToString();
+
+            Color c = mainObj.Achieved ? Color.white : grayText;
+            ui.label.color = c;
+            ui.value.color = c;
+        }
+
+        SetObjectAlpha(go, hidden ? 0f : 1f);
+        return go;
+    }
+
+    private GameObject CreateSecondaryObjectiveLine(SecondaryObjectiveResult obj, bool hidden)
+    {
+        if (goalsContent == null || goalLinePrefab == null)
+            return null;
+
+        GameObject go = Object.Instantiate(goalLinePrefab, goalsContent);
+        LineEntryUI ui = go.GetComponent<LineEntryUI>();
+        if (ui != null)
+        {
+            ui.label.text = obj.Text;
+
+            int displayedScore = obj.Achieved ? obj.AwardedScore : 0;
+            ui.value.text = displayedScore.ToString();
+
+            Color c = obj.Achieved ? Color.white : grayText;
+            ui.label.color = c;
+            ui.value.color = c;
+        }
+
+        SetObjectAlpha(go, hidden ? 0f : 1f);
+        return go;
+    }
+
+    public void PrepareGoalsTotalLineHidden()
     {
         if (totalGoalsLine == null)
             return;
@@ -146,9 +193,66 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
 
         if (totalGoalsLine.value != null)
             totalGoalsLine.value.text = "0";
+
+        SetObjectAlpha(totalGoalsLine.gameObject, 0f);
     }
 
-    public void ShowBonusTotalLine()
+    public IEnumerator RevealGoalsTotalLine(float fadeDuration)
+    {
+        if (totalGoalsLine == null)
+            yield break;
+
+        yield return RevealLine(totalGoalsLine.gameObject, fadeDuration);
+    }
+
+    // ----------------------------------------------------------
+    // BONUS LINES
+    // ----------------------------------------------------------
+
+    public List<GameObject> BuildBonusHidden(EndLevelStats stats)
+    {
+        List<GameObject> lines = new List<GameObject>();
+        lastBonusPoints = 0;
+
+        if (bonusContent == null || bonusLinePrefab == null)
+            return lines;
+
+        List<EndLevelBonusLine> bonusLines = stats != null ? stats.BonusLines : null;
+        if (bonusLines == null || bonusLines.Count == 0)
+            return lines;
+
+        for (int i = 0; i < bonusLines.Count; i++)
+        {
+            EndLevelBonusLine lineData = bonusLines[i];
+            GameObject line = CreateBonusLine(lineData, hidden: true);
+            if (line != null)
+                lines.Add(line);
+
+            lastBonusPoints += lineData.Total;
+        }
+
+        return lines;
+    }
+
+    private GameObject CreateBonusLine(EndLevelBonusLine lineData, bool hidden)
+    {
+        if (bonusContent == null || bonusLinePrefab == null)
+            return null;
+
+        GameObject go = Object.Instantiate(bonusLinePrefab, bonusContent);
+        LineEntryUI ui = go.GetComponent<LineEntryUI>();
+        if (ui != null)
+        {
+            string displayLabel = ResolveBonusDisplayLabel(lineData.Label);
+            ui.label.text = displayLabel;
+            ui.value.text = lineData.Total.ToString("N0");
+        }
+
+        SetObjectAlpha(go, hidden ? 0f : 1f);
+        return go;
+    }
+
+    public void PrepareBonusTotalLineHidden()
     {
         if (totalBonusLine == null)
             return;
@@ -160,69 +264,102 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
 
         if (totalBonusLine.value != null)
             totalBonusLine.value.text = "0";
+
+        SetObjectAlpha(totalBonusLine.gameObject, 0f);
     }
 
-    /// <summary>
-    /// Révèle les lignes bonus de fin de niveau, une par une,
-    /// en appliquant un délai constant.
-    ///
-    /// IMPORTANT :
-    /// - stats.BonusLines est la source de vérité de la section bonus.
-    /// - Certaines lignes correspondent à d'anciens final combos :
-    ///   dans ce cas, FinalComboStyleProvider peut convertir leur id
-    ///   technique en label UI plus propre.
-    /// - Les autres lignes (ex : modules) gardent simplement leur label brut.
-    /// </summary>
-    public IEnumerator RevealBonusLines(EndLevelStats stats, float lineDelaySec)
+    public IEnumerator RevealBonusTotalLine(float fadeDuration)
     {
-        lastBonusPoints = 0;
+        if (totalBonusLine == null)
+            yield break;
 
-        var bonusLines = (stats != null) ? stats.BonusLines : null;
-        if (bonusLines == null || bonusLines.Count == 0)
+        yield return RevealLine(totalBonusLine.gameObject, fadeDuration);
+    }
+
+    // ----------------------------------------------------------
+    // REVEAL HELPERS
+    // ----------------------------------------------------------
+
+    public IEnumerator RevealLine(GameObject lineObject, float fadeDuration)
+    {
+        if (lineObject == null)
+            yield break;
+
+        CanvasGroup cg = EnsureCanvasGroup(lineObject);
+        if (cg == null)
+            yield break;
+
+        float from = cg.alpha;
+
+        if (fadeDuration <= 0f)
         {
-            if (lineDelaySec > 0f)
-                yield return new WaitForSecondsRealtime(lineDelaySec);
-
+            cg.alpha = 1f;
             yield break;
         }
 
-        for (int i = 0; i < bonusLines.Count; i++)
+        float elapsed = 0f;
+        while (elapsed < fadeDuration)
         {
-            var lineData = bonusLines[i];
-
-            GameObject go = Object.Instantiate(bonusLinePrefab, bonusContent);
-            LineEntryUI ui = go.GetComponent<LineEntryUI>();
-            if (ui != null)
-            {
-                string displayLabel = ResolveBonusDisplayLabel(lineData.Label);
-
-                ui.label.text = displayLabel;
-                ui.value.text = lineData.Total.ToString("N0");
-            }
-
-            lastBonusPoints += lineData.Total;
-
-            if (lineDelaySec > 0f)
-                yield return new WaitForSecondsRealtime(lineDelaySec);
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / fadeDuration);
+            cg.alpha = Mathf.Lerp(from, 1f, t);
+            yield return null;
         }
+
+        cg.alpha = 1f;
+    }
+
+    // ----------------------------------------------------------
+    // INSTANT BUILD FOR SKIP
+    // ----------------------------------------------------------
+
+    /// <summary>
+    /// Construit instantanement toute la section Goals :
+    /// - objectif principal
+    /// - objectifs secondaires
+    /// - total line visible
+    /// </summary>
+    public void BuildGoalsInstant(MainObjectiveResult mainObj, List<SecondaryObjectiveResult> secondary)
+    {
+        ClearGoals();
+
+        List<GameObject> lines = BuildGoalsHidden(mainObj, secondary);
+        for (int i = 0; i < lines.Count; i++)
+            SetObjectAlpha(lines[i], 1f);
+
+        int total = ComputeTotalGoalsBonus(mainObj, secondary);
+
+        PrepareGoalsTotalLineHidden();
+        SetObjectAlpha(totalGoalsLine != null ? totalGoalsLine.gameObject : null, 1f);
+
+        if (totalGoalsLine != null && totalGoalsLine.value != null)
+            totalGoalsLine.value.text = total.ToString();
+    }
+
+    /// <summary>
+    /// Construit instantanement toute la section Bonus :
+    /// - toutes les lignes BonusLines
+    /// - total line visible
+    /// </summary>
+    public void BuildBonusInstant(EndLevelStats stats)
+    {
+        ClearBonusLines();
+
+        List<GameObject> lines = BuildBonusHidden(stats);
+        for (int i = 0; i < lines.Count; i++)
+            SetObjectAlpha(lines[i], 1f);
+
+        PrepareBonusTotalLineHidden();
+        SetObjectAlpha(totalBonusLine != null ? totalBonusLine.gameObject : null, 1f);
+
+        if (totalBonusLine != null && totalBonusLine.value != null)
+            totalBonusLine.value.text = lastBonusPoints.ToString("N0");
     }
 
     // ----------------------------------------------------------
     // INTERNALS
     // ----------------------------------------------------------
 
-    /// <summary>
-    /// Résout le label affiché pour une ligne bonus.
-    ///
-    /// Règle :
-    /// - si FinalComboStyleProvider connaît ce label, on utilise
-    ///   la version stylée ;
-    /// - sinon, on conserve le label brut.
-    ///
-    /// Cela permet de garder les anciens ids techniques de final combos
-    /// tout en affichant correctement les lignes déjà prêtes, comme
-    /// les bonus modules.
-    /// </summary>
     private string ResolveBonusDisplayLabel(string rawLabel)
     {
         if (string.IsNullOrEmpty(rawLabel))
@@ -232,16 +369,34 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
             return rawLabel;
 
         string styled = finalComboStyle.GetLabel(rawLabel);
-
-        if (string.IsNullOrEmpty(styled))
-            return rawLabel;
-
-        return styled;
+        return string.IsNullOrEmpty(styled) ? rawLabel : styled;
     }
 
-    // ----------------------------------------------------------
-    // UTILS
-    // ----------------------------------------------------------
+    private static CanvasGroup EnsureCanvasGroup(GameObject go)
+    {
+        if (go == null)
+            return null;
+
+        CanvasGroup cg = go.GetComponent<CanvasGroup>();
+        if (cg == null)
+            cg = go.AddComponent<CanvasGroup>();
+
+        return cg;
+    }
+
+    private static void SetObjectAlpha(GameObject go, float alpha)
+    {
+        if (go == null)
+            return;
+
+        CanvasGroup cg = EnsureCanvasGroup(go);
+        if (cg == null)
+            return;
+
+        cg.alpha = alpha;
+        cg.interactable = false;
+        cg.blocksRaycasts = false;
+    }
 
     private static void ClearChildren(RectTransform parent)
     {
@@ -250,69 +405,5 @@ public class EndLevelLinesBuilderUI : MonoBehaviour
 
         for (int i = parent.childCount - 1; i >= 0; i--)
             Object.Destroy(parent.GetChild(i).gameObject);
-    }
-
-    /// <summary>
-    /// Construit instantanement toute la section Goals :
-    /// - objectif principal
-    /// - objectifs secondaires
-    /// - ligne Total
-    /// </summary>
-    public void BuildGoalsInstant(MainObjectiveResult mainObj, List<SecondaryObjectiveResult> secondary)
-    {
-        ClearGoals();
-
-        AddMainObjectiveLine(mainObj);
-
-        if (secondary != null)
-        {
-            for (int i = 0; i < secondary.Count; i++)
-                AddSecondaryObjectiveLine(secondary[i]);
-        }
-
-        ShowGoalsTotalLine();
-
-        if (totalGoalsLine != null && totalGoalsLine.value != null)
-        {
-            int total = ComputeTotalGoalsBonus(mainObj, secondary);
-            totalGoalsLine.value.text = total.ToString();
-        }
-    }
-
-    /// <summary>
-    /// Construit instantanement toute la section Bonus :
-    /// - toutes les lignes BonusLines
-    /// - ligne Total
-    /// </summary>
-    public void BuildBonusInstant(EndLevelStats stats)
-    {
-        ClearBonusLines();
-
-        var bonusLines = (stats != null) ? stats.BonusLines : null;
-        lastBonusPoints = 0;
-
-        if (bonusLines != null && bonusLines.Count > 0)
-        {
-            for (int i = 0; i < bonusLines.Count; i++)
-            {
-                var lineData = bonusLines[i];
-
-                GameObject go = Object.Instantiate(bonusLinePrefab, bonusContent);
-                LineEntryUI ui = go.GetComponent<LineEntryUI>();
-                if (ui != null)
-                {
-                    string displayLabel = ResolveBonusDisplayLabel(lineData.Label);
-                    ui.label.text = displayLabel;
-                    ui.value.text = lineData.Total.ToString("N0");
-                }
-
-                lastBonusPoints += lineData.Total;
-            }
-        }
-
-        ShowBonusTotalLine();
-
-        if (totalBonusLine != null && totalBonusLine.value != null)
-            totalBonusLine.value.text = lastBonusPoints.ToString("N0");
     }
 }

@@ -1,66 +1,37 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Gere tout le flow de fin de niveau :
-/// - recupere l outcome final depuis EndLevelUI
-/// - prepare et commit les consequences de run
-/// - affiche le panneau final
-/// - joue les dialogues de fin
-/// - revele score / campaign score / medal / money
-/// - affiche les boutons finaux
+/// Gere tout le flow metier de fin de niveau.
 ///
-/// Cette version integre un hold-to-skip partage pour la reveal routine finale.
-/// Le skip :
-/// - coupe le dialogue si necessaire
-/// - coupe les delais
-/// - coupe les animations en cours
-/// - force le panneau final dans son etat final
-/// - affiche les boutons
+/// Responsabilites :
+/// - recevoir la fin de la Results Ceremony
+/// - preparer et commit les consequences de run
+/// - resoudre le type final : Victory / Defeat / GameOver
+/// - envoyer analytics
+/// - attendre le bouton Next de la Results Ceremony
+/// - demander a MainUIController la transition globale vers EndResult
+/// - demander a EndResultOverlayController d afficher l overlay finale
+/// - gerer les callbacks Menu / Retry / Next
+///
+/// IMPORTANT :
+/// - la transition vers EndResult n est PAS automatique apres la ceremony
+/// - c est le bouton Next de la Results Ceremony qui doit appeler OnResultsCeremonyNextPressed
 /// </summary>
 public class LevelEndFlowController : MonoBehaviour
 {
-    [Header("Refs")]
-    [SerializeField] private EndLevelUI endLevelUI;
+    [Header("Results Ceremony")]
+    [SerializeField] private ResultsCeremonyOverlayController resultsCeremonyOverlayController;
+
+    [Header("Main UI")]
+    [SerializeField] private MainUIController mainUIController;
+
+    [Header("End Result Overlay")]
+    [SerializeField] private EndResultOverlayController endResultOverlayController;
+
+    [Header("Run State")]
     [SerializeField] private RunSessionState runSessionState;
-
-    [Header("Dialogs")]
-    [SerializeField] private DialogSequenceRunner dialogSequenceRunner;
-
-    [Header("Hold To Skip")]
-    [SerializeField] private HoldToSkipOverlayUI holdToSkipOverlay;
-
-    [Header("Root (parent de finalPanelUI)")]
-    [SerializeField] private GameObject endLevelRoot;
-
-    [Header("HUD Gameplay (a masquer avant endLevelRoot)")]
-    [SerializeField] private GameObject hudGameplay;
-
-    [Header("Final Panel UI")]
-    [SerializeField] private FinalPanelUI finalPanelUI;
-
-    [Header("Final Score Bar UI")]
-    [SerializeField] private FinalScoreBarUI finalScoreBarUI;
-
-    [Header("Panels UI (switch HUD_Bottom -> Final_Panel)")]
-    [SerializeField] private GameObject principalPanel;
-    [SerializeField] private GameObject hudBottom;
-    [SerializeField] private GameObject finalPanel;
-
-    [Header("Dialog sequences (ids du JSON)")]
-    [SerializeField] private string victorySequenceId = "contract_victory";
-    [SerializeField] private string defeatTwoLivesSequenceId = "contract_defeat_2";
-    [SerializeField] private string defeatOneLifeSequenceId = "contract_defeat_1";
-    [SerializeField] private string gameOverSequenceId = "contract_gameover";
-    [SerializeField] private string hullDestroyedSequenceId = "hull_destroyed";
-
-    [Header("Reveal Timing (unscaled)")]
-    [SerializeField] private float revealStepDelay = 0.25f;
-
-    [Header("HUD EndLevel Buttons")]
-    [SerializeField] private EndLevelButtonsUI endLevelButtonsUI;
 
     [Header("Economy")]
     [SerializeField] private EconomyConfig economyConfig;
@@ -77,7 +48,6 @@ public class LevelEndFlowController : MonoBehaviour
     private EndLevelToken lastToken;
     private bool hasToken;
 
-    private bool isRunning;
     private bool navigationLocked;
     private bool forcedGameOver;
 
@@ -87,11 +57,6 @@ public class LevelEndFlowController : MonoBehaviour
     private bool commitPrepared;
     private FinalCommitSnapshot commitSnapshot;
 
-    // Etat runtime du hold-to-skip pour la reveal finale.
-    private bool revealSkipRequested;
-
-    private LocalizationManager Loc => LocalizationManager.Instance;
-
     private enum EndType
     {
         Victory,
@@ -99,10 +64,6 @@ public class LevelEndFlowController : MonoBehaviour
         GameOver
     }
 
-    /// <summary>
-    /// Represente une ligne de recompense d argent revelee
-    /// une par une dans le panneau final.
-    /// </summary>
     private struct MoneyRewardLine
     {
         public string Label;
@@ -125,45 +86,37 @@ public class LevelEndFlowController : MonoBehaviour
         public string SequenceId;
 
         public bool RunCompletedAfterCommit;
-
-        // Debug / safety
         public bool CommitWasAccepted;
     }
 
+    private const string ModulesPackName = "modules";
+
     private void OnEnable()
     {
-        if (endLevelUI == null)
-        {
-            Debug.LogError("[LevelEndFlowController] EndLevelUI manquant.");
-            return;
-        }
-
         hasOutcome = false;
         hasToken = false;
 
-        isRunning = false;
         navigationLocked = false;
         forcedGameOver = false;
 
         commitPrepared = false;
         commitSnapshot = default;
 
-        revealSkipRequested = false;
-
-        endLevelUI.OnCeremonyFinished += HandleCeremonyFinished;
+        if (resultsCeremonyOverlayController != null)
+            resultsCeremonyOverlayController.OnCeremonyFinished += HandleCeremonyFinished;
     }
 
     private void OnDisable()
     {
-        if (endLevelUI != null)
-            endLevelUI.OnCeremonyFinished -= HandleCeremonyFinished;
-
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        if (resultsCeremonyOverlayController != null)
+            resultsCeremonyOverlayController.OnCeremonyFinished -= HandleCeremonyFinished;
     }
 
     /// <summary>
-    /// Callback appele a la fin de la ceremonie normale.
+    /// Callback appele a la fin de la Results Ceremony.
+    /// IMPORTANT :
+    /// - ne passe PAS automatiquement a EndResult
+    /// - le bouton Next de la ceremony doit appeler OnResultsCeremonyNextPressed
     /// </summary>
     private void HandleCeremonyFinished(EndLevelOutcome outcome, EndLevelToken token)
     {
@@ -174,125 +127,28 @@ public class LevelEndFlowController : MonoBehaviour
         hasToken = true;
 
         navigationLocked = false;
-        isRunning = false;
 
         PrepareAndCommitOnce(outcome, token);
-
-        if (AlphaAnalytics.Instance != null)
-        {
-            AlphaAnalytics.Instance.SendLevelEnd(
-                token.LevelId,
-                outcome.IsVictory ? "victory" : "defeat",
-                outcome.FinalMedal.ToString().ToLower()
-            );
-
-            if (commitSnapshot.RunCompletedAfterCommit)
-            {
-                AlphaAnalytics.Instance.SendRunEnd(
-                    token.LevelId,
-                    true,
-                    true
-                );
-            }
-            else if (lastEndType == EndType.GameOver)
-            {
-                AlphaAnalytics.Instance.SendRunEnd(
-                    token.LevelId,
-                    false,
-                    false
-                );
-            }
-        }
+        SendAnalytics(outcome, token);
     }
 
     /// <summary>
-    /// Annule explicitement toute ceremonie / flow de fin en cours.
-    /// Cette methode est utilisee par le GameOver Hull pour prendre la main.
+    /// Point d entree appele par le bouton Next de la Results Ceremony.
     /// </summary>
+    public void OnResultsCeremonyNextPressed()
+    {
+        ShowEndResultOverlay();
+    }
+
     public void AbortPendingCeremony()
     {
-        if (endLevelUI != null)
-            endLevelUI.AbortCeremony();
+        if (resultsCeremonyOverlayController != null)
+            resultsCeremonyOverlayController.AbortCeremony();
 
-        StopAllCoroutines();
-
-        if (dialogSequenceRunner != null)
-            dialogSequenceRunner.StopAndHide();
-
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
-
-        revealSkipRequested = false;
-        isRunning = false;
-        navigationLocked = false;
+        if (mainUIController != null)
+            mainUIController.HideResultsCeremonyView();
     }
 
-    /// <summary>
-    /// Affiche le panneau final (Victory / Defeat / GameOver).
-    /// </summary>
-    public void OnClickShowFinalPanel()
-    {
-        if (isRunning)
-            return;
-
-        if (!hasOutcome || !commitPrepared)
-        {
-            Debug.LogWarning("[LevelEndFlowController] OnClickShowFinalPanel: outcome/commit non pret.");
-            return;
-        }
-
-        if (hudGameplay != null)
-            hudGameplay.SetActive(false);
-
-        if (endLevelRoot != null && !endLevelRoot.activeSelf)
-            endLevelRoot.SetActive(true);
-
-        if (principalPanel != null)
-            principalPanel.SetActive(false);
-
-        if (hudBottom != null)
-            hudBottom.SetActive(false);
-
-        if (finalPanel != null)
-            finalPanel.SetActive(true);
-
-        endLevelButtonsUI?.HideAll();
-        CleanupBallsOnce();
-
-        StopAllCoroutines();
-
-        if (dialogSequenceRunner != null)
-            dialogSequenceRunner.StopAndHide();
-
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
-
-        revealSkipRequested = false;
-
-        StartCoroutine(FinalRoutine(lastOutcome, commitSnapshot));
-    }
-
-    /// <summary>
-    /// Callback du hold-to-skip pendant la reveal finale.
-    /// </summary>
-    public void OnFinalRevealSkipRequested()
-    {
-        if (!isRunning || revealSkipRequested)
-            return;
-
-        revealSkipRequested = true;
-
-        if (dialogSequenceRunner != null)
-            dialogSequenceRunner.StopAndHide();
-
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
-    }
-
-    /// <summary>
-    /// Prepare les consequences de fin de niveau et les commits de progression.
-    /// Cette methode ne doit s executer qu une seule fois par fin de niveau.
-    /// </summary>
     private void PrepareAndCommitOnce(EndLevelOutcome outcome, EndLevelToken token)
     {
         if (commitPrepared)
@@ -348,7 +204,6 @@ public class LevelEndFlowController : MonoBehaviour
                 if (sustain.moneyGain > 0)
                 {
                     ModuleDefinition sustainMod = ModuleRuntimeStats.Instance.GetEndLevelSustainModule();
-
                     string label = BuildModuleMoneyLabel(sustainMod);
 
                     moneyRewardLines.Add(new MoneyRewardLine
@@ -368,7 +223,6 @@ public class LevelEndFlowController : MonoBehaviour
             if (totalMoneyReward > 0 && runSessionState != null)
             {
                 runSessionState.AddMoney(totalMoneyReward);
-
                 moneyAfter = moneyBefore + totalMoneyReward;
                 revealMoney = true;
             }
@@ -418,305 +272,157 @@ public class LevelEndFlowController : MonoBehaviour
         commitPrepared = true;
     }
 
-    private bool TryValidateTokenAgainstSave(EndLevelToken token)
+    private void ShowEndResultOverlay()
     {
-        if (SaveManager.Instance == null || SaveManager.Instance.Current == null)
-            return false;
-
-        RunStateData run = SaveManager.Instance.GetRunState();
-        if (run == null)
-            return false;
-
-        if (string.IsNullOrEmpty(run.runId) || string.IsNullOrEmpty(token.RunId))
-            return false;
-
-        if (!string.Equals(run.runId, token.RunId, StringComparison.Ordinal))
-            return false;
-
-        if (!string.Equals(run.worldId, token.WorldId, StringComparison.Ordinal))
-            return false;
-
-        if (run.currentNodeIndex != token.NodeIndex)
-            return false;
-
-        return true;
-    }
-
-    /// <summary>
-    /// Routine de reveal du panneau final.
-    /// Le hold-to-skip est arme pendant toute cette routine.
-    /// Si le joueur skip, on force l etat final du panneau.
-    /// </summary>
-    private IEnumerator FinalRoutine(EndLevelOutcome outcome, FinalCommitSnapshot snap)
-    {
-        isRunning = true;
-        revealSkipRequested = false;
-
-        if (finalPanelUI == null)
+        if (!hasOutcome || !commitPrepared)
         {
-            Debug.LogError("[LevelEndFlowController] FinalPanelUI manquant.");
-            isRunning = false;
-            yield break;
-        }
-
-        finalPanelUI.ResetAll();
-        finalPanelUI.SetMedalInstant(EndMedal.None);
-
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Show(this, OnFinalRevealSkipRequested);
-
-        yield return StartCoroutine(PlayDialogByIdSkippable(snap.SequenceId));
-
-        if (revealSkipRequested)
-        {
-            ApplyFinalRevealState(outcome, snap);
-            EndFinalRoutine();
-            yield break;
-        }
-
-        yield return StartCoroutine(StepDelaySkippable());
-        if (revealSkipRequested)
-        {
-            ApplyFinalRevealState(outcome, snap);
-            EndFinalRoutine();
-            yield break;
-        }
-
-        yield return StartCoroutine(RunSkippable(finalPanelUI.ShowStamp(Convert(snap.EndType))));
-        if (revealSkipRequested)
-        {
-            ApplyFinalRevealState(outcome, snap);
-            EndFinalRoutine();
-            yield break;
-        }
-
-        yield return StartCoroutine(StepDelaySkippable());
-        if (revealSkipRequested)
-        {
-            ApplyFinalRevealState(outcome, snap);
-            EndFinalRoutine();
-            yield break;
-        }
-
-        finalPanelUI.ShowLevelScorePanel(outcome.FinalScore);
-
-        yield return StartCoroutine(StepDelaySkippable());
-        if (revealSkipRequested)
-        {
-            ApplyFinalRevealState(outcome, snap);
-            EndFinalRoutine();
-            yield break;
-        }
-
-        finalPanelUI.ShowCampaignScorePanelInstant(snap.CampaignBefore);
-
-        if (snap.CampaignAfter != snap.CampaignBefore)
-        {
-            yield return StartCoroutine(
-                RunSkippable(finalPanelUI.AnimateCampaignScore(snap.CampaignBefore, snap.CampaignAfter))
-            );
-
-            if (revealSkipRequested)
-            {
-                ApplyFinalRevealState(outcome, snap);
-                EndFinalRoutine();
-                yield break;
-            }
-        }
-
-        yield return StartCoroutine(StepDelaySkippable());
-        if (revealSkipRequested)
-        {
-            ApplyFinalRevealState(outcome, snap);
-            EndFinalRoutine();
-            yield break;
-        }
-
-        yield return StartCoroutine(RunSkippable(finalPanelUI.ShowMedal(outcome.FinalMedal)));
-        if (revealSkipRequested)
-        {
-            ApplyFinalRevealState(outcome, snap);
-            EndFinalRoutine();
-            yield break;
-        }
-
-        if (outcome.IsVictory && snap.RevealMoney)
-        {
-            int currentMoney = snap.MoneyBefore;
-
-            yield return StartCoroutine(StepDelaySkippable());
-            if (revealSkipRequested)
-            {
-                ApplyFinalRevealState(outcome, snap);
-                EndFinalRoutine();
-                yield break;
-            }
-
-            finalPanelUI.ShowMoneyPanelInstant(currentMoney);
-
-            if (snap.MoneyRewardLines != null && snap.MoneyRewardLines.Count > 0)
-            {
-                for (int i = 0; i < snap.MoneyRewardLines.Count; i++)
-                {
-                    MoneyRewardLine line = snap.MoneyRewardLines[i];
-                    if (line.Amount <= 0)
-                        continue;
-
-                    yield return StartCoroutine(StepDelaySkippable());
-                    if (revealSkipRequested)
-                    {
-                        ApplyFinalRevealState(outcome, snap);
-                        EndFinalRoutine();
-                        yield break;
-                    }
-
-                    yield return StartCoroutine(
-                        RunSkippable(finalPanelUI.ShowMoneyRewardToast(line.Label, line.Amount))
-                    );
-
-                    if (revealSkipRequested)
-                    {
-                        ApplyFinalRevealState(outcome, snap);
-                        EndFinalRoutine();
-                        yield break;
-                    }
-
-                    int nextMoney = currentMoney + line.Amount;
-
-                    yield return StartCoroutine(
-                        RunSkippable(finalPanelUI.AnimateMoney(currentMoney, nextMoney))
-                    );
-
-                    if (revealSkipRequested)
-                    {
-                        ApplyFinalRevealState(outcome, snap);
-                        EndFinalRoutine();
-                        yield break;
-                    }
-
-                    currentMoney = nextMoney;
-                }
-            }
-        }
-
-        yield return StartCoroutine(StepDelaySkippable());
-        if (revealSkipRequested)
-        {
-            ApplyFinalRevealState(outcome, snap);
-            EndFinalRoutine();
-            yield break;
-        }
-
-        ShowEndButtons(snap.EndType);
-        EndFinalRoutine();
-    }
-
-    /// <summary>
-    /// Termine proprement la reveal routine.
-    /// </summary>
-    private void EndFinalRoutine()
-    {
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
-
-        isRunning = false;
-        revealSkipRequested = false;
-    }
-
-    /// <summary>
-    /// Force le panneau final dans son etat final.
-    /// Utilise les methodes instantanees disponibles.
-    /// </summary>
-    private void ApplyFinalRevealState(EndLevelOutcome outcome, FinalCommitSnapshot snap)
-    {
-        if (finalPanelUI == null)
+            Debug.LogWarning("[LevelEndFlowController] ShowEndResultOverlay : outcome/commit non pret.");
             return;
-
-        if (dialogSequenceRunner != null)
-            dialogSequenceRunner.StopAndHide();
-
-        finalPanelUI.ResetAll();
-        finalPanelUI.SetStampInstant(Convert(snap.EndType));
-        finalPanelUI.ShowLevelScorePanel(outcome.FinalScore);
-        finalPanelUI.ShowCampaignScorePanelInstant(snap.CampaignAfter);
-        finalPanelUI.SetMedalInstant(outcome.FinalMedal);
-
-        if (outcome.IsVictory && snap.RevealMoney)
-            finalPanelUI.ShowMoneyPanelInstant(snap.MoneyAfter);
-
-        ShowEndButtons(snap.EndType);
-    }
-
-    /// <summary>
-    /// Attend un delai unscaled, mais peut etre interrompu par le skip.
-    /// </summary>
-    private IEnumerator StepDelaySkippable()
-    {
-        if (revealStepDelay <= 0f)
-            yield break;
-
-        float elapsed = 0f;
-        while (elapsed < revealStepDelay)
-        {
-            if (revealSkipRequested)
-                yield break;
-
-            elapsed += Time.unscaledDeltaTime;
-            yield return null;
         }
-    }
 
-    /// <summary>
-    /// Execute une coroutine skippable.
-    /// Si le skip arrive, on stoppe la coroutine enfant immediatement.
-    /// </summary>
-    private IEnumerator RunSkippable(IEnumerator routine)
-    {
-        if (routine == null)
-            yield break;
+        CleanupBallsOnce();
 
-        bool done = false;
-        Coroutine child = StartCoroutine(WrapRoutine(routine, () => done = true));
-
-        while (!done)
+        if (mainUIController != null)
         {
-            if (revealSkipRequested)
-            {
-                if (child != null)
-                    StopCoroutine(child);
-
-                yield break;
-            }
-
-            yield return null;
+            mainUIController.ShowEndResultView(this, PlayEndResultOverlay);
         }
-    }
-
-    /// <summary>
-    /// Wrapper utilitaire pour savoir quand une coroutine est terminee.
-    /// </summary>
-    private IEnumerator WrapRoutine(IEnumerator routine, Action onDone)
-    {
-        yield return StartCoroutine(routine);
-        onDone?.Invoke();
-    }
-
-    private void ShowEndButtons(EndType endType)
-    {
-        if (endLevelButtonsUI == null)
-            return;
-
-        if (endType == EndType.Victory)
-            endLevelButtonsUI.ShowVictory();
-        else if (endType == EndType.Defeat)
-            endLevelButtonsUI.ShowDefeat();
         else
-            endLevelButtonsUI.ShowGameOver();
+        {
+            PlayEndResultOverlay();
+        }
     }
 
-    /// <summary>
-    /// Nettoie les billes restantes de maniere idempotente.
-    /// </summary>
+    private void PlayEndResultOverlay()
+    {
+        if (endResultOverlayController == null)
+        {
+            Debug.LogWarning("[LevelEndFlowController] EndResultOverlayController manquant.");
+            return;
+        }
+
+        EndResultOverlayController.EndResultType uiType = ConvertToEndResultType(lastEndType);
+
+        bool showMenu = true;
+        bool showRetry = lastEndType == EndType.Defeat && lastRemainingContractLives > 0;
+        bool showNext = lastEndType == EndType.Victory;
+
+        string levelName = ResolveLevelTitleForUI();
+
+        bool showMoney = lastOutcome.IsVictory && commitSnapshot.RevealMoney;
+        int displayedMoney = showMoney ? commitSnapshot.MoneyAfter : 0;
+
+        List<EndResultOverlayController.MoneyRewardLineData> rewardLines =
+            BuildMoneyRewardLineData(commitSnapshot.MoneyRewardLines);
+
+        endResultOverlayController.Play(
+            levelName: levelName,
+            resultType: uiType,
+            levelScore: lastOutcome.FinalScore,
+            campaignScoreBefore: commitSnapshot.CampaignBefore,
+            campaignScoreAfter: commitSnapshot.CampaignAfter,
+            medal: lastOutcome.FinalMedal,
+            showMoney: showMoney,
+            moneyBefore: commitSnapshot.MoneyBefore,
+            moneyAfter: commitSnapshot.MoneyAfter,
+            moneyRewardLines: rewardLines,
+            dialogSequenceId: commitSnapshot.SequenceId,
+            showMenu: showMenu,
+            showRetry: showRetry,
+            showNext: showNext,
+            onMenuClicked: OnClickMenu,
+            onRetryClicked: showRetry ? OnClickRetry : null,
+            onNextClicked: showNext ? OnClickNext : null
+        );
+    }
+
+    private List<EndResultOverlayController.MoneyRewardLineData> BuildMoneyRewardLineData(List<MoneyRewardLine> src)
+    {
+        if (src == null || src.Count == 0)
+            return null;
+
+        List<EndResultOverlayController.MoneyRewardLineData> result =
+            new List<EndResultOverlayController.MoneyRewardLineData>(src.Count);
+
+        for (int i = 0; i < src.Count; i++)
+        {
+            result.Add(new EndResultOverlayController.MoneyRewardLineData
+            {
+                Label = src[i].Label,
+                Amount = src[i].Amount
+            });
+        }
+
+        return result;
+    }
+
+    private string ResolveLevelTitleForUI()
+    {
+        if (hasToken &&
+            !string.IsNullOrEmpty(lastToken.LevelId) &&
+            LevelCatalogService.TryGet(lastToken.LevelId, out var meta) &&
+            meta != null &&
+            !string.IsNullOrEmpty(meta.title))
+        {
+            return meta.title;
+        }
+
+        if (runSessionState != null)
+        {
+            runSessionState.EnsurePlanLoaded();
+
+            RunNode node = runSessionState.CurrentPlayableNode;
+            if (node != null &&
+                !string.IsNullOrEmpty(node.levelId) &&
+                LevelCatalogService.TryGet(node.levelId, out var nodeMeta) &&
+                nodeMeta != null &&
+                !string.IsNullOrEmpty(nodeMeta.title))
+            {
+                return nodeMeta.title;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private void SendAnalytics(EndLevelOutcome outcome, EndLevelToken token)
+    {
+        if (AlphaAnalytics.Instance == null)
+            return;
+
+        string levelId = token.LevelId;
+
+        if (string.IsNullOrEmpty(levelId) && runSessionState != null)
+        {
+            runSessionState.EnsurePlanLoaded();
+            RunNode node = runSessionState.CurrentPlayableNode;
+            if (node != null)
+                levelId = node.levelId;
+        }
+
+        AlphaAnalytics.Instance.SendLevelEnd(
+            levelId,
+            outcome.IsVictory ? "victory" : "defeat",
+            outcome.FinalMedal.ToString().ToLower()
+        );
+
+        if (commitSnapshot.RunCompletedAfterCommit)
+        {
+            AlphaAnalytics.Instance.SendRunEnd(
+                levelId,
+                true,
+                true
+            );
+        }
+        else if (lastEndType == EndType.GameOver)
+        {
+            AlphaAnalytics.Instance.SendRunEnd(
+                levelId,
+                false,
+                false
+            );
+        }
+    }
+
     private void CleanupBallsOnce()
     {
         if (ballsCleanupService == null)
@@ -802,12 +508,6 @@ public class LevelEndFlowController : MonoBehaviour
             go();
     }
 
-    /// <summary>
-    /// Resout le type de fin.
-    /// - Victory : aucune perte de vie de contrat.
-    /// - Defeat : on retire 1 vie de contrat.
-    /// - GameOver force : priorite absolue.
-    /// </summary>
     private EndType ResolveAndApplyEndTypeOnce(out int remainingContractLives, EndLevelOutcome outcome)
     {
         remainingContractLives = runSessionState != null ? runSessionState.ContractLives : 0;
@@ -828,96 +528,39 @@ public class LevelEndFlowController : MonoBehaviour
         return remainingContractLives > 0 ? EndType.Defeat : EndType.GameOver;
     }
 
-    /// <summary>
-    /// Joue une sequence de dialogue de fin si elle existe.
-    /// Cette version est skippable via le hold-to-skip.
-    /// </summary>
-    private IEnumerator PlayDialogByIdSkippable(string sequenceId)
-    {
-        if (dialogSequenceRunner == null)
-            yield break;
-
-        if (string.IsNullOrWhiteSpace(sequenceId))
-            yield break;
-
-        if (Loc == null)
-        {
-            Debug.LogError("[LevelEndFlowController] LocalizationManager.Instance est null.");
-            yield break;
-        }
-
-        while (!Loc.IsReady)
-        {
-            if (revealSkipRequested)
-                yield break;
-
-            yield return null;
-        }
-
-        DialogSequence sequence = Loc.GetSequenceById(sequenceId);
-        if (sequence == null)
-            yield break;
-
-        DialogLine[] lines = Loc.GetRandomVariantLines(sequence);
-        if (lines == null || lines.Length == 0)
-            yield break;
-
-        bool done = false;
-
-        dialogSequenceRunner.Play(
-            lines,
-            DialogSequenceRunner.PlaybackMode.Interactive,
-            () => done = true
-        );
-
-        while (!done)
-        {
-            if (revealSkipRequested)
-            {
-                dialogSequenceRunner.StopAndHide();
-                yield break;
-            }
-
-            yield return null;
-        }
-    }
-
     private string ResolveSequenceId(EndType type, int remainingContractLives)
     {
         if (type == EndType.Victory)
-            return victorySequenceId;
+            return "contract_victory";
 
         if (type == EndType.GameOver)
         {
             if (forcedGameOver)
-                return hullDestroyedSequenceId;
+                return "hull_destroyed";
 
-            return gameOverSequenceId;
+            return "contract_gameover";
         }
 
         if (remainingContractLives >= 2)
-            return defeatTwoLivesSequenceId;
+            return "contract_defeat_2";
 
         if (remainingContractLives == 1)
-            return defeatOneLifeSequenceId;
+            return "contract_defeat_1";
 
-        return gameOverSequenceId;
+        return "contract_gameover";
     }
 
-    private FinalPanelUI.FinalEndType Convert(EndType t)
+    private EndResultOverlayController.EndResultType ConvertToEndResultType(EndType t)
     {
         if (t == EndType.Victory)
-            return FinalPanelUI.FinalEndType.Victory;
+            return EndResultOverlayController.EndResultType.Victory;
 
         if (t == EndType.GameOver)
-            return FinalPanelUI.FinalEndType.GameOver;
+            return EndResultOverlayController.EndResultType.GameOver;
 
-        return FinalPanelUI.FinalEndType.Defeat;
+        return EndResultOverlayController.EndResultType.Defeat;
     }
 
-    /// <summary>
-    /// Persiste proprement les vies de contrat restantes.
-    /// </summary>
     private void UpdateContractLivesInSave(int contractLives)
     {
         if (SaveManager.Instance == null ||
@@ -927,7 +570,7 @@ public class LevelEndFlowController : MonoBehaviour
             return;
         }
 
-        var run = SaveManager.Instance.Current.runState;
+        RunStateData run = SaveManager.Instance.Current.runState;
 
         int clamped = Mathf.Max(0, contractLives);
         run.remainingContractLives = clamped;
@@ -974,11 +617,6 @@ public class LevelEndFlowController : MonoBehaviour
         return SaveManager.Instance.GetMoney();
     }
 
-    /// <summary>
-    /// Construit le label lisible pour une ligne de recompense money issue d un module.
-    /// </summary>
-    private const string ModulesPackName = "modules";
-
     private string BuildModuleMoneyLabel(ModuleDefinition mod)
     {
         if (mod == null)
@@ -1009,10 +647,7 @@ public class LevelEndFlowController : MonoBehaviour
 
     /// <summary>
     /// Branche speciale GameOver Hull.
-    /// - force le type de fin a GameOver
-    /// - prepare un outcome minimal
-    /// - rafraichit le header de l overlay
-    /// - affiche ensuite le panneau final
+    /// Cette branche continue d afficher directement EndResult.
     /// </summary>
     public void TriggerGameOverFinalRoutine(int finalScore)
     {
@@ -1047,14 +682,6 @@ public class LevelEndFlowController : MonoBehaviour
                 finalLevelId = node.levelId;
         }
 
-        if (endLevelUI != null && !string.IsNullOrEmpty(finalLevelId))
-        {
-            if (LevelCatalogService.TryGet(finalLevelId, out var meta))
-                endLevelUI.ShowHeaderOnly(finalLevelId, meta);
-            else
-                endLevelUI.ShowHeaderOnly(finalLevelId, null);
-        }
-
         PrepareAndCommitOnce(lastOutcome, default);
 
         if (AlphaAnalytics.Instance != null)
@@ -1072,6 +699,6 @@ public class LevelEndFlowController : MonoBehaviour
             );
         }
 
-        OnClickShowFinalPanel();
+        ShowEndResultOverlay();
     }
 }
