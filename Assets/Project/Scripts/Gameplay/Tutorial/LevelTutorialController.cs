@@ -48,7 +48,6 @@ public class LevelTutorialController : MonoBehaviour
     [SerializeField] private ComboEngine comboEngine;
 
     [Header("References UI")]
-    [SerializeField] private DialogSequenceRunner dialogRunner;
     [SerializeField] private MainUIController mainUIController;
     [SerializeField] private HullUI hullUI;
 
@@ -169,8 +168,7 @@ public class LevelTutorialController : MonoBehaviour
         if (binCollector != null)
             binCollector.SetAutoFlushEnabled(true);
 
-        if (dialogRunner != null)
-            dialogRunner.StopAndHide();
+        mainUIController?.StopAndHideDialog();
 
         if (hullUI != null)
             hullUI.StopAttentionFlash();
@@ -575,17 +573,14 @@ public class LevelTutorialController : MonoBehaviour
 
         bool dialogDone = false;
 
-        if (dialogRunner != null)
-        {
-            dialogRunner.Play(
-                lines,
-                DialogSequenceRunner.PlaybackMode.Interactive,
-                () => dialogDone = true
-            );
+        mainUIController?.PlayDialogSequence(
+            lines,
+            DialogSequenceRunner.PlaybackMode.Interactive,
+            () => dialogDone = true
+        );
 
-            while (!dialogDone)
-                yield return null;
-        }
+        while (!dialogDone)
+            yield return null;
 
         if (pauseAfterDialogSec > 0f)
             yield return new WaitForSeconds(pauseAfterDialogSec);

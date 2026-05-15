@@ -33,11 +33,8 @@ public class EndResultOverlayController : MonoBehaviour
         public int Amount;
     }
 
-    [Header("Hold To Skip")]
-    [SerializeField] private HoldToSkipOverlayUI holdToSkipOverlay;
-
-    [Header("Dialogs")]
-    [SerializeField] private DialogSequenceRunner dialogSequenceRunner;
+    [Header("Main UI")]
+    [SerializeField] private MainUIController mainUIController;
 
     [Header("Header")]
     [SerializeField] private TMP_Text levelNameText;
@@ -63,11 +60,11 @@ public class EndResultOverlayController : MonoBehaviour
     [SerializeField] private float moneyRewardHoldSec = 0.7f;
     [SerializeField] private float moneyRewardFadeDuration = 0.15f;
 
-    [Header("Stamp Root")]
-    [SerializeField] private GameObject stampRoot;
-    [SerializeField] private GameObject stampVictory;
-    [SerializeField] private GameObject stampDefeat;
-    [SerializeField] private GameObject stampGameOver;
+    [Header("Stamps")]
+    [SerializeField] private CanvasGroup stampRoot;
+    [SerializeField] private CanvasGroup stampVictory;
+    [SerializeField] private CanvasGroup stampDefeat;
+    [SerializeField] private CanvasGroup stampGameOver;
 
     [Header("Medals")]
     [SerializeField] private CanvasGroup medalBronze;
@@ -134,8 +131,7 @@ public class EndResultOverlayController : MonoBehaviour
         if (moneyAnimated != null)
             moneyAnimated.OnValueStep -= HandleMoneyValueStep;
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
     }
 
     private void OnDestroy()
@@ -147,11 +143,9 @@ public class EndResultOverlayController : MonoBehaviour
     {
         skipRequested = true;
 
-        if (dialogSequenceRunner != null)
-            dialogSequenceRunner.StopAndHide();
+        mainUIController?.StopAndHideDialog();
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
     }
 
     public void Play(
@@ -236,12 +230,6 @@ public class EndResultOverlayController : MonoBehaviour
         if (showMoney)
             ShowMoneyPanelInstant(moneyCount);
 
-        if (moneyRewardLines != null && moneyRewardLines.Count > 0)
-        {
-            MoneyRewardLineData last = moneyRewardLines[moneyRewardLines.Count - 1];
-            SetMoneyRewardToastInstant(last.Label, last.Amount);
-        }
-
         ApplyButtons(showMenu, showRetry, showNext);
     }
 
@@ -266,8 +254,7 @@ public class EndResultOverlayController : MonoBehaviour
         if (levelNameText != null)
             levelNameText.text = levelName ?? string.Empty;
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Show(this, RequestSkipReveal);
+        mainUIController?.ShowHoldToSkip(this, RequestSkipReveal);
 
         yield return StartCoroutine(PlayDialogByIdSkippable(dialogSequenceId));
         if (HandleSkip(levelName, resultType, levelScore, campaignScoreAfter, medal, showMoney, moneyAfter, moneyRewardLines, showMenu, showRetry, showNext))
@@ -392,8 +379,7 @@ public class EndResultOverlayController : MonoBehaviour
 
     private void EndRoutine()
     {
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this); ;
 
         skipRequested = false;
         playRoutine = null;
@@ -501,25 +487,19 @@ public class EndResultOverlayController : MonoBehaviour
 
         RestoreAllKnownScales();
 
-        if (dialogSequenceRunner != null)
-            dialogSequenceRunner.StopAndHide();
+        mainUIController?.StopAndHideDialog();
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
     }
 
     public void SetStampInstant(EndResultType type)
     {
-        HideAllStamps();
+        SetAlpha(stampRoot, 1f);
 
-        if (stampRoot != null)
-            stampRoot.SetActive(true);
+        SetStampVisible(stampVictory, type == EndResultType.Victory);
+        SetStampVisible(stampDefeat, type == EndResultType.Defeat);
+        SetStampVisible(stampGameOver, type == EndResultType.GameOver);
 
-        GameObject target = GetStampTarget(type);
-        if (target == null)
-            return;
-
-        target.SetActive(true);
         RestoreStampScale(type);
     }
 
@@ -527,7 +507,7 @@ public class EndResultOverlayController : MonoBehaviour
     {
         SetStampInstant(type);
 
-        GameObject target = GetStampTarget(type);
+        CanvasGroup target = GetStampTarget(type);
         if (target == null)
             yield break;
 
@@ -827,21 +807,25 @@ public class EndResultOverlayController : MonoBehaviour
 
     private void HideAllStamps()
     {
-        if (stampRoot != null)
-            stampRoot.SetActive(false);
+        SetAlpha(stampRoot, 0f);
 
-        if (stampVictory != null)
-            stampVictory.SetActive(false);
-
-        if (stampDefeat != null)
-            stampDefeat.SetActive(false);
-
-        if (stampGameOver != null)
-            stampGameOver.SetActive(false);
+        SetStampVisible(stampVictory, false);
+        SetStampVisible(stampDefeat, false);
+        SetStampVisible(stampGameOver, false);
 
         RestoreStampScale(EndResultType.Victory);
         RestoreStampScale(EndResultType.Defeat);
         RestoreStampScale(EndResultType.GameOver);
+    }
+
+    private void SetStampVisible(CanvasGroup cg, bool visible)
+    {
+        if (cg == null)
+            return;
+
+        cg.alpha = visible ? 1f : 0f;
+        cg.interactable = false;
+        cg.blocksRaycasts = false;
     }
 
     private void HideAllMedals()
@@ -865,7 +849,7 @@ public class EndResultOverlayController : MonoBehaviour
         cg.blocksRaycasts = false;
     }
 
-    private GameObject GetStampTarget(EndResultType type)
+    private CanvasGroup GetStampTarget(EndResultType type)
     {
         if (type == EndResultType.Victory)
             return stampVictory;
@@ -889,7 +873,7 @@ public class EndResultOverlayController : MonoBehaviour
 
     private void RestoreStampScale(EndResultType type)
     {
-        GameObject target = GetStampTarget(type);
+        CanvasGroup target = GetStampTarget(type);
         if (target == null)
             return;
 
@@ -1036,16 +1020,14 @@ public class EndResultOverlayController : MonoBehaviour
             playRoutine = null;
         }
 
-        if (dialogSequenceRunner != null)
-            dialogSequenceRunner.StopAndHide();
+        mainUIController?.StopAndHideDialog();
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
     }
 
     private IEnumerator PlayDialogByIdSkippable(string sequenceId)
     {
-        if (dialogSequenceRunner == null)
+        if (mainUIController == null)
             yield break;
 
         if (string.IsNullOrWhiteSpace(sequenceId))
@@ -1076,7 +1058,7 @@ public class EndResultOverlayController : MonoBehaviour
 
         bool done = false;
 
-        dialogSequenceRunner.Play(
+        mainUIController.PlayDialogSequence(
             lines,
             DialogSequenceRunner.PlaybackMode.Interactive,
             () => done = true
@@ -1086,7 +1068,7 @@ public class EndResultOverlayController : MonoBehaviour
         {
             if (skipRequested)
             {
-                dialogSequenceRunner.StopAndHide();
+                mainUIController.StopAndHideDialog();
                 yield break;
             }
 

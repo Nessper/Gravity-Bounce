@@ -7,13 +7,10 @@ using UnityEngine;
 ///
 /// Responsabilites actuelles :
 /// - poser l etat visuel initial
-/// - afficher le briefing
-/// - fermer le briefing et remonter le dimmer a 1
-/// - exposer des setters simples pour background / dimmer
-/// - servir de point d entree pour la pause
-/// - gerer la visibilite de la pause a partir des evenements du PauseOverlayController
+/// - afficher / fermer le briefing
+/// - afficher / cacher la pause via PauseOverlayController
+/// - gerer les couches globales de fin de niveau
 /// - exposer des helpers dedies au dimmer du tuto
-/// - centraliser progressivement les couches globales de fin de niveau
 ///
 /// IMPORTANT :
 /// - ce script ne connait pas la logique metier Retry / Menu / Score
@@ -27,6 +24,12 @@ public class MainUIController : MonoBehaviour
     [SerializeField] private CanvasGroup dimmerGroup;
     [SerializeField] private CanvasGroup levelBriefingGroup;
     [SerializeField] private CanvasGroup pauseOverlayGroup;
+
+    [Header("Shared Overlays")]
+    [SerializeField] private HoldToSkipOverlayUI holdToSkipOverlay;
+
+    [Header("Shared Dialogs")]
+    [SerializeField] private DialogSequenceRunner dialogSequenceRunner;
 
     [Header("End Level")]
     [SerializeField] private CanvasGroup gameplayHudGroup;
@@ -74,9 +77,6 @@ public class MainUIController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Pose l etat visuel initial global de la scene.
-    /// </summary>
     public void SetInitialState()
     {
         StopRunningRoutine();
@@ -139,10 +139,6 @@ public class MainUIController : MonoBehaviour
         SetCanvasGroup(gameplayHudGroup, 0f, false, false);
     }
 
-    /// <summary>
-    /// Affiche la vue globale de la Results Ceremony.
-    /// Cette methode ne joue pas la ceremony.
-    /// </summary>
     public Coroutine ShowResultsCeremonyView(MonoBehaviour owner, Action onComplete = null)
     {
         if (owner == null)
@@ -151,61 +147,11 @@ public class MainUIController : MonoBehaviour
         return owner.StartCoroutine(ShowResultsCeremonyViewRoutine(onComplete));
     }
 
-    private IEnumerator ShowResultsCeremonyViewRoutine(Action onComplete)
-    {
-        HideGameplayHud();
-
-        SetCanvasGroup(backgroundGroup, 1f, false, false);
-        SetCanvasGroup(dimmerGroup, 1f, false, false);
-        SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, true, true);
-        SetCanvasGroup(endResultOverlayGroup, 0f, false, false);
-
-        Coroutine dimmerFade = StartCoroutine(
-            FadeCanvasGroup(
-                dimmerGroup,
-                1f,
-                0f,
-                resultsCeremonyFadeDuration,
-                false,
-                false
-            )
-        );
-
-        Coroutine overlayFade = StartCoroutine(
-            FadeCanvasGroup(
-                resultsCeremonyOverlayGroup,
-                0f,
-                1f,
-                resultsCeremonyFadeDuration,
-                true,
-                true
-            )
-        );
-
-        yield return dimmerFade;
-        yield return overlayFade;
-
-        onComplete?.Invoke();
-    }
-
     public void HideResultsCeremonyView()
     {
         SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, false, false);
     }
 
-    /// <summary>
-    /// Transition globale Results Ceremony -> End Result.
-    /// Flow vise :
-    /// - dimmer remis instant a 1
-    /// - Results Ceremony cachee instant
-    /// - End Result visible a 0
-    /// - fade dimmer vers 0
-    /// - fade End Result vers 1
-    ///
-    /// IMPORTANT :
-    /// - cette methode ne joue pas le contenu interne de l overlay finale
-    /// - elle prepare seulement la transition globale entre les deux vues
-    /// </summary>
     public Coroutine ShowEndResultView(MonoBehaviour owner, Action onComplete = null)
     {
         if (owner == null)
@@ -214,43 +160,17 @@ public class MainUIController : MonoBehaviour
         return owner.StartCoroutine(ShowEndResultViewRoutine(onComplete));
     }
 
-    private IEnumerator ShowEndResultViewRoutine(Action onComplete)
-    {
-        SetCanvasGroup(dimmerGroup, 1f, false, false);
-        SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, false, false);
-        SetCanvasGroup(endResultOverlayGroup, 0f, true, true);
-
-        Coroutine dimmerFade = StartCoroutine(
-            FadeCanvasGroup(
-                dimmerGroup,
-                1f,
-                0f,
-                endResultFadeDuration,
-                false,
-                false
-            )
-        );
-
-        Coroutine endResultFade = StartCoroutine(
-            FadeCanvasGroup(
-                endResultOverlayGroup,
-                0f,
-                1f,
-                endResultFadeDuration,
-                true,
-                true
-            )
-        );
-
-        yield return dimmerFade;
-        yield return endResultFade;
-
-        onComplete?.Invoke();
-    }
-
     public void HideEndResultView()
     {
         SetCanvasGroup(endResultOverlayGroup, 0f, false, false);
+    }
+
+    public Coroutine HideEndResultViewAnimated(MonoBehaviour owner, Action onComplete = null)
+    {
+        if (owner == null)
+            return null;
+
+        return owner.StartCoroutine(HideEndResultViewAnimatedRoutine(onComplete));
     }
 
     public void SetBackgroundImmediate(
@@ -301,9 +221,9 @@ public class MainUIController : MonoBehaviour
             owner,
             tutorialDimmerDialogueAlpha,
             tutorialDimmerFadeDuration,
-            interactableAtEnd: false,
-            blocksRaycastsAtEnd: true,
-            onComplete: onComplete
+            false,
+            true,
+            onComplete
         );
     }
 
@@ -313,9 +233,9 @@ public class MainUIController : MonoBehaviour
             owner,
             tutorialDimmerRestAlpha,
             tutorialDimmerFadeDuration,
-            interactableAtEnd: false,
-            blocksRaycastsAtEnd: false,
-            onComplete: onComplete
+            false,
+            false,
+            onComplete
         );
     }
 
@@ -351,6 +271,77 @@ public class MainUIController : MonoBehaviour
         SetBackgroundImmediate(0f, false, false);
     }
 
+    private IEnumerator ShowResultsCeremonyViewRoutine(Action onComplete)
+    {
+        HideGameplayHud();
+
+        SetCanvasGroup(backgroundGroup, 1f, false, false);
+        SetCanvasGroup(dimmerGroup, 1f, false, false);
+        SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, true, true);
+        SetCanvasGroup(endResultOverlayGroup, 0f, false, false);
+
+        Coroutine dimmerFade = StartCoroutine(
+            FadeCanvasGroup(dimmerGroup, 1f, 0f, resultsCeremonyFadeDuration, false, false)
+        );
+
+        Coroutine overlayFade = StartCoroutine(
+            FadeCanvasGroup(resultsCeremonyOverlayGroup, 0f, 1f, resultsCeremonyFadeDuration, true, true)
+        );
+
+        yield return dimmerFade;
+        yield return overlayFade;
+
+        onComplete?.Invoke();
+    }
+
+    private IEnumerator ShowEndResultViewRoutine(Action onComplete)
+    {
+        SetCanvasGroup(dimmerGroup, 1f, false, false);
+        SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, false, false);
+        SetCanvasGroup(endResultOverlayGroup, 0f, true, true);
+
+        Coroutine dimmerFade = StartCoroutine(
+            FadeCanvasGroup(dimmerGroup, 1f, 0f, endResultFadeDuration, false, false)
+        );
+
+        Coroutine endResultFade = StartCoroutine(
+            FadeCanvasGroup(endResultOverlayGroup, 0f, 1f, endResultFadeDuration, true, true)
+        );
+
+        yield return dimmerFade;
+        yield return endResultFade;
+
+        onComplete?.Invoke();
+    }
+
+    private IEnumerator HideEndResultViewAnimatedRoutine(Action onComplete)
+    {
+        float endResultFrom = endResultOverlayGroup != null ? endResultOverlayGroup.alpha : 1f;
+        float dimmerFrom = dimmerGroup != null ? dimmerGroup.alpha : 0f;
+
+        Coroutine endResultFade = StartCoroutine(
+            FadeCanvasGroup(endResultOverlayGroup, endResultFrom, 0f, endResultFadeDuration, false, false)
+        );
+
+        Coroutine dimmerFadeIn = StartCoroutine(
+            FadeCanvasGroup(dimmerGroup, dimmerFrom, 1f, endResultFadeDuration, false, false)
+        );
+
+        yield return endResultFade;
+        yield return dimmerFadeIn;
+
+        SetCanvasGroup(endResultOverlayGroup, 0f, false, false);
+        SetCanvasGroup(backgroundGroup, 0f, false, false);
+
+        yield return StartCoroutine(
+            FadeCanvasGroup(dimmerGroup, 1f, 0f, endResultFadeDuration, false, false)
+        );
+
+        SetCanvasGroup(dimmerGroup, 0f, false, false);
+
+        onComplete?.Invoke();
+    }
+
     private IEnumerator ShowLevelBriefingRoutine(Action onComplete)
     {
         Coroutine dimmerFade = StartCoroutine(
@@ -358,7 +349,9 @@ public class MainUIController : MonoBehaviour
                 dimmerGroup,
                 dimmerGroup != null ? dimmerGroup.alpha : 1f,
                 0f,
-                briefingFadeDuration
+                briefingFadeDuration,
+                false,
+                false
             )
         );
 
@@ -444,8 +437,10 @@ public class MainUIController : MonoBehaviour
         while (elapsed < duration)
         {
             elapsed += Time.unscaledDeltaTime;
+
             float t = Mathf.Clamp01(elapsed / duration);
             group.alpha = Mathf.Lerp(from, to, t);
+
             yield return null;
         }
 
@@ -477,5 +472,40 @@ public class MainUIController : MonoBehaviour
 
         StopCoroutine(currentRoutine);
         currentRoutine = null;
+    }
+
+    public void ShowHoldToSkip(MonoBehaviour owner, Action onComplete)
+    {
+        if (holdToSkipOverlay == null || owner == null)
+            return;
+
+        holdToSkipOverlay.Show(owner, onComplete);
+    }
+
+    public void HideHoldToSkip(MonoBehaviour owner)
+    {
+        if (holdToSkipOverlay == null || owner == null)
+            return;
+
+        holdToSkipOverlay.Hide(owner);
+    }
+
+    public void PlayDialogSequence(
+        DialogLine[] lines,
+        DialogSequenceRunner.PlaybackMode mode,
+        Action onComplete)
+    {
+        if (dialogSequenceRunner == null)
+        {
+            onComplete?.Invoke();
+            return;
+        }
+
+        dialogSequenceRunner.Play(lines, mode, onComplete);
+    }
+
+    public void StopAndHideDialog()
+    {
+        dialogSequenceRunner?.StopAndHide();
     }
 }

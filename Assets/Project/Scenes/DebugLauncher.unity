@@ -280,13 +280,13 @@ MonoBehaviour:
   debugNodeIndex: 0
   debugShipId: DEBUG_SHIP
   debugCurrentHull: 9
-  debugContractLives: 3
+  debugContractLives: 2
   debugMoney: 200
   debugRunScore: 10000
   debugEquippedModuleIds:
-  - SCAN_ARRAY_T1
+  - CORE_GROWTH_T1
   - GREED_COIL_T3
-  - HULL_PATCH_1
+  - HULL_PATCH_3
 --- !u!4 &292011952
 Transform:
   m_ObjectHideFlags: 0

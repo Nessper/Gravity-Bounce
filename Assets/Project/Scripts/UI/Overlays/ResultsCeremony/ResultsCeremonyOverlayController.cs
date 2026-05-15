@@ -23,8 +23,8 @@ using UnityEngine.UI;
 /// </summary>
 public class ResultsCeremonyOverlayController : MonoBehaviour
 {
-    [Header("Hold To Skip")]
-    [SerializeField] private HoldToSkipOverlayUI holdToSkipOverlay;
+    [Header("Main UI")]
+    [SerializeField] private MainUIController mainUIController;
 
     [Header("Modules UI")]
     [SerializeField] private EndLevelAccordionUI accordionUI;
@@ -65,7 +65,8 @@ public class ResultsCeremonyOverlayController : MonoBehaviour
     [SerializeField] private float ceremonyFadeOutSec = 2.0f;
     [SerializeField] private float ceremonyFadeInSec = 1.5f;
 
-    public Action<EndLevelOutcome, EndLevelToken> OnCeremonyFinished;
+    public Action<EndLevelSnapshot> OnCeremonyFinished;
+    private EndLevelSnapshot currentSnapshot;
 
     private List<SecondaryObjectiveResult> secondaryResults;
     private LevelCatalogService.LevelCatalogEntry currentLevelMeta;
@@ -114,8 +115,7 @@ public class ResultsCeremonyOverlayController : MonoBehaviour
 
         StopAllCoroutines();
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
 
         PrepareCeremonyVisualState();
 
@@ -126,8 +126,7 @@ public class ResultsCeremonyOverlayController : MonoBehaviour
     {
         StopAllCoroutines();
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
 
         ceremonyMusicStarted = false;
         hasToken = false;
@@ -135,6 +134,7 @@ public class ResultsCeremonyOverlayController : MonoBehaviour
         ceremonyAborted = false;
         skipRequested = false;
         currentStats = null;
+        currentSnapshot = null;
 
         PrepareCeremonyVisualState();
     }
@@ -146,8 +146,7 @@ public class ResultsCeremonyOverlayController : MonoBehaviour
 
         StopAllCoroutines();
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
     }
 
     public void ShowHeaderOnly(string levelId, LevelCatalogService.LevelCatalogEntry levelMeta)
@@ -167,8 +166,7 @@ public class ResultsCeremonyOverlayController : MonoBehaviour
 
         skipRequested = true;
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this); ;
     }
 
     private bool ShouldAbortCeremony()
@@ -283,8 +281,7 @@ public class ResultsCeremonyOverlayController : MonoBehaviour
             accordionUI.ForceCeremonyStartStateInstant();
         }
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Show(this, OnSkipCeremonyRequested);
+        mainUIController?.ShowHoldToSkip(this, OnSkipCeremonyRequested);
 
         if (ShouldAbortCeremony())
             yield break;
@@ -575,19 +572,23 @@ public class ResultsCeremonyOverlayController : MonoBehaviour
 
         EndLevelOutcome outcome = EndLevelOutcomeBuilder.Build(levelData, mainObj.Achieved, breakdown.FinalScore);
 
-        if (!hasToken)
-            Debug.LogWarning("[ResultsCeremonyOverlayController] Aucun EndLevelToken injecte. OnCeremonyFinished enverra default.");
+        if (currentSnapshot == null)
+        {
+            Debug.LogWarning("[ResultsCeremonyOverlayController] currentSnapshot null.");
+            return;
+        }
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        currentSnapshot.FinalScore = outcome.FinalScore;
+        currentSnapshot.FinalMedal = outcome.FinalMedal;
 
-        OnCeremonyFinished?.Invoke(outcome, hasToken ? token : default);
+        mainUIController?.HideHoldToSkip(this);
+
+        OnCeremonyFinished?.Invoke(currentSnapshot);
     }
 
     private IEnumerator FinishCeremonyFromSkipRoutine(LevelData levelData, MainObjectiveResult mainObj)
     {
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
 
         SetCanvasGroupInstant(scorePanelGroup, 1f, false, false);
         SetCanvasGroupInstant(goalsPanelGroup, 1f, true, true);
@@ -644,23 +645,16 @@ public class ResultsCeremonyOverlayController : MonoBehaviour
 
         EndLevelOutcome outcome = EndLevelOutcomeBuilder.Build(levelData, mainObj.Achieved, finalScore);
 
-        if (!hasToken)
-            Debug.LogWarning("[ResultsCeremonyOverlayController] Aucun EndLevelToken injecte. OnCeremonyFinished enverra default.");
-
-        OnCeremonyFinished?.Invoke(outcome, hasToken ? token : default);
-    }
-
-    private void ReadThresholdsFromLevelData(LevelData levelData)
-    {
-        if (levelData == null || levelData.ScoreGoals == null)
-            return;
-
-        for (int i = 0; i < levelData.ScoreGoals.Length; i++)
+        if (currentSnapshot == null)
         {
-            ScoreGoalsData g = levelData.ScoreGoals[i];
-            if (g == null)
-                continue;
+            Debug.LogWarning("[ResultsCeremonyOverlayController] currentSnapshot null.");
+            yield break;
         }
+
+        currentSnapshot.FinalScore = outcome.FinalScore;
+        currentSnapshot.FinalMedal = outcome.FinalMedal;
+
+        OnCeremonyFinished?.Invoke(currentSnapshot);
     }
 
     private IEnumerator WaitBlockIntroSkippable()
@@ -719,7 +713,35 @@ public class ResultsCeremonyOverlayController : MonoBehaviour
 
     private void OnDisable()
     {
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
+    }
+
+
+    public void PlayFromSnapshot(
+    EndLevelSnapshot snapshot,
+    LevelCatalogService.LevelCatalogEntry levelMeta,
+    LevelData levelData)
+    {
+        currentSnapshot = snapshot;
+
+        if (snapshot == null)
+        {
+            Debug.LogWarning("[ResultsCeremonyOverlayController] PlayFromSnapshot: snapshot null.");
+            return;
+        }
+
+        List<SecondaryObjectiveResult> secondary = null;
+        if (snapshot.Secondary != null && snapshot.Secondary.Length > 0)
+            secondary = new List<SecondaryObjectiveResult>(snapshot.Secondary);
+
+        SetEndLevelToken(snapshot.Token);
+
+        Play(
+            snapshot.Stats,
+            levelMeta,
+            levelData,
+            snapshot.MainObjective,
+            secondary
+        );
     }
 }

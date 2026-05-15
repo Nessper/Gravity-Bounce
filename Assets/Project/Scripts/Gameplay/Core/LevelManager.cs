@@ -644,10 +644,7 @@ public class LevelManager : MonoBehaviour
         if (!SaveManager.Instance.TryGetPendingEndSnapshot(out EndLevelSnapshot snap))
             return false;
 
-        if (snap == null)
-            return false;
-
-        if (snap.RewardsCommitted)
+        if (snap == null || snap.RewardsCommitted)
             return false;
 
         RunStateData run = SaveManager.Instance.GetRunState();
@@ -658,48 +655,32 @@ public class LevelManager : MonoBehaviour
             return false;
 
         ballSpawner?.StopSpawning();
+
         if (levelTimer != null)
             levelTimer.enabled = false;
 
         DisableGameplayControls();
 
-        if (resultsCeremonyOverlayController == null)
-            return false;
-
-        resultsCeremonyOverlayController.SetEndLevelToken(snap.Token);
-
-        List<SecondaryObjectiveResult> sec = null;
-        if (snap.Secondary != null && snap.Secondary.Length > 0)
-            sec = new List<SecondaryObjectiveResult>(snap.Secondary);
-
         if (boardOutro != null)
             boardOutro.ForceOutroStateInstant();
 
-        if (gameplayHudRoot != null)
-            gameplayHudRoot.SetActive(false);
+        mainUIController?.HideGameplayHud();
+
+        if (resultsCeremonyOverlayController == null)
+            return false;
+
+        CursorController.Unlock();
 
         if (mainUIController != null)
         {
             mainUIController.ShowResultsCeremonyView(this, () =>
             {
-                resultsCeremonyOverlayController.Play(
-                    snap.Stats,
-                    levelMeta,
-                    data,
-                    snap.MainObjective,
-                    sec
-                );
+                resultsCeremonyOverlayController.PlayFromSnapshot(snap, levelMeta, data);
             });
         }
         else
         {
-            resultsCeremonyOverlayController.Play(
-                snap.Stats,
-                levelMeta,
-                data,
-                snap.MainObjective,
-                sec
-            );
+            resultsCeremonyOverlayController.PlayFromSnapshot(snap, levelMeta, data);
         }
 
         return true;
@@ -740,9 +721,8 @@ public class LevelManager : MonoBehaviour
             yield break;
         }
 
-
         // ===================================================
-        // TOKEN (source de vérité = SaveManager.runState)
+        // TOKEN
         // ===================================================
 
         string runId = "debug";
@@ -770,50 +750,74 @@ public class LevelManager : MonoBehaviour
             WorldId = worldId,
             LevelId = (data != null) ? data.LevelID : "",
             NodeIndex = nodeIndex,
-
-            IsVictory = evalResult.MainObjective.Achieved,
-            FinalScore = evalResult.Stats.FinalScore,
-
             TimestampUtc = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
         };
 
-        // Push results secondaires au controller (pour affichage end UI)
+        if (!endLevelToken.HasValue)
+        {
+            Debug.LogWarning("[LevelManager] EndLevelToken invalide.");
+            yield break;
+        }
+
+        // Push results secondaires au controller.
         if (secondaryObjectivesController != null)
             secondaryObjectivesController.SetResults(evalResult.SecondaryObjectives);
 
-        // -----------------------------------------------
-        // SNAPSHOT + TOKEN PERSISTANT (crash-safe)
-        // -----------------------------------------------
-        if (SaveManager.Instance != null && endLevelToken.HasValue)
+        List<SecondaryObjectiveResult> secondary = GetSecondaryObjectiveResults();
+
+        SecondaryObjectiveResult[] secondaryArr = null;
+        if (secondary != null && secondary.Count > 0)
+        {
+            secondaryArr = new SecondaryObjectiveResult[secondary.Count];
+
+            for (int i = 0; i < secondary.Count; i++)
+                secondaryArr[i] = secondary[i];
+        }
+
+        // ===================================================
+        // RESULTAT RESOLU POUR SNAPSHOT
+        // ===================================================
+
+        EndLevelOutcome resolvedOutcome = EndLevelOutcomeBuilder.Build(
+            data,
+            evalResult.MainObjective.Achieved,
+            evalResult.Stats.FinalScore
+        );
+
+        EndResultState resolvedEndState = ResolveEndStateForSnapshot(
+            evalResult.MainObjective.Achieved
+        );
+
+        EndLevelSnapshot snapshot = new EndLevelSnapshot
+        {
+            Token = endLevelToken.Value,
+            LevelId = endLevelToken.Value.LevelId,
+
+            Stats = evalResult.Stats,
+            MainObjective = evalResult.MainObjective,
+            Secondary = secondaryArr,
+
+            EndState = resolvedEndState,
+            FinalScore = resolvedOutcome.FinalScore,
+            FinalMedal = resolvedOutcome.FinalMedal,
+
+            RewardsCommitted = false,
+            EvaluatedTimestampUtc = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+        };
+
+        // ===================================================
+        // SNAPSHOT + TOKEN PERSISTANT
+        // ===================================================
+
+        if (SaveManager.Instance != null)
         {
             SaveManager.Instance.SetPendingEndToken(endLevelToken.Value);
-
-            List<SecondaryObjectiveResult> secondary = GetSecondaryObjectiveResults();
-
-            SecondaryObjectiveResult[] secondaryArr = null;
-            if (secondary != null && secondary.Count > 0)
-            {
-                secondaryArr = new SecondaryObjectiveResult[secondary.Count];
-                for (int i = 0; i < secondary.Count; i++)
-                    secondaryArr[i] = secondary[i];
-            }
-
-            EndLevelSnapshot snapshot = new EndLevelSnapshot
-            {
-                Token = endLevelToken.Value,
-                LevelId = endLevelToken.Value.LevelId,
-                Stats = evalResult.Stats,
-                MainObjective = evalResult.MainObjective,
-                Secondary = secondaryArr,
-
-                // IMPORTANT : false => COMMIT pas fait, on peut replay cérémonie après crash.
-                RewardsCommitted = false,
-
-                EvaluatedTimestampUtc = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-            };
-
             SaveManager.Instance.SetPendingEndSnapshot(snapshot);
         }
+
+        // ===================================================
+        // LANCEMENT RESULTS CEREMONY
+        // ===================================================
 
         if (resultsCeremonyOverlayController != null)
         {
@@ -825,32 +829,23 @@ public class LevelManager : MonoBehaviour
 
             CursorController.Unlock();
 
-            if (endLevelToken.HasValue)
-                resultsCeremonyOverlayController.SetEndLevelToken(endLevelToken.Value);
-
-            List<SecondaryObjectiveResult> secondary = GetSecondaryObjectiveResults();
-
             if (mainUIController != null)
             {
                 mainUIController.ShowResultsCeremonyView(this, () =>
                 {
-                    resultsCeremonyOverlayController.Play(
-                        evalResult.Stats,
+                    resultsCeremonyOverlayController.PlayFromSnapshot(
+                        snapshot,
                         levelMeta,
-                        data,
-                        evalResult.MainObjective,
-                        secondary
+                        data
                     );
                 });
             }
             else
             {
-                resultsCeremonyOverlayController.Play(
-                    evalResult.Stats,
+                resultsCeremonyOverlayController.PlayFromSnapshot(
+                    snapshot,
                     levelMeta,
-                    data,
-                    evalResult.MainObjective,
-                    secondary
+                    data
                 );
             }
         }
@@ -957,5 +952,22 @@ public class LevelManager : MonoBehaviour
         }
 
         StartLevel();
+    }
+
+    private EndResultState ResolveEndStateForSnapshot(bool mainObjectiveAchieved)
+    {
+        if (runSessionState != null && runSessionState.Hull <= 0)
+            return EndResultState.GameOver;
+
+        if (mainObjectiveAchieved)
+            return EndResultState.Victory;
+
+        int currentContractLives = runSessionState != null ? runSessionState.ContractLives : 0;
+
+        // Si on perd ce niveau, une vie de contrat sera retiree plus tard.
+        // Donc :
+        // - 2+ vies avant perte => Retry
+        // - 1 vie avant perte => GameOver
+        return currentContractLives > 1 ? EndResultState.Retry : EndResultState.GameOver;
     }
 }

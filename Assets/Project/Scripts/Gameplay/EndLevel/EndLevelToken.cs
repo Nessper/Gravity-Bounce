@@ -9,8 +9,5 @@ public struct EndLevelToken
     public string LevelId;
     public int NodeIndex;
 
-    public bool IsVictory;
-    public int FinalScore;
-
     public long TimestampUtc;
 }

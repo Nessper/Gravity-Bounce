@@ -33,17 +33,9 @@ public class LevelIntroSequenceController : MonoBehaviour
     [Header("Main Overlays")]
     [SerializeField] private MainUIController mainUIController;
 
-    [Header("Intro HUD")]
-    [SerializeField] private GameObject introHUDRoot;
-
-    [Header("Dialogs")]
-    [SerializeField] private DialogSequenceRunner dialogSequenceRunner;
-
     [Tooltip("Identifiant de niveau injecte par LevelManager.")]
     [SerializeField] private string levelId = "W1-L1";
 
-    [Header("Hold To Skip")]
-    [SerializeField] private HoldToSkipOverlayUI holdToSkipOverlay;
 
     [Header("Visual Intro")]
     [SerializeField] private GameObject boardRoot;
@@ -147,14 +139,12 @@ public class LevelIntroSequenceController : MonoBehaviour
             playRoutine = null;
         }
 
-        if (dialogSequenceRunner != null)
-            dialogSequenceRunner.StopAndHide();
+        mainUIController?.StopAndHideDialog();
 
         if (countdownUI != null)
             countdownUI.Hide();
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
     }
 
     /// <summary>
@@ -170,8 +160,7 @@ public class LevelIntroSequenceController : MonoBehaviour
     /// </summary>
     private void OnDisable()
     {
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
     }
 
     /// <summary>
@@ -191,9 +180,6 @@ public class LevelIntroSequenceController : MonoBehaviour
             mainUIController.SetBackgroundImmediate(0f, false, false);
             mainUIController.SetDimmerImmediate(0.9f, true, true);
         }
-
-        if (introHUDRoot != null)
-            introHUDRoot.SetActive(true);
 
         if (boardRoot != null)
             boardRoot.SetActive(true);
@@ -270,12 +256,11 @@ public class LevelIntroSequenceController : MonoBehaviour
         if (!skipRequested)
             introLines = TryResolveIntroLines();
 
-        if (dialogSequenceRunner != null && introLines != null && introLines.Length > 0)
+        if (mainUIController != null && introLines != null && introLines.Length > 0)
         {
-            if (holdToSkipOverlay != null)
-                holdToSkipOverlay.Show(this, OnSkipButtonPressed);
+            mainUIController.ShowHoldToSkip(this, OnSkipButtonPressed);
 
-            dialogSequenceRunner.Play(
+            mainUIController.PlayDialogSequence(
                 introLines,
                 DialogSequenceRunner.PlaybackMode.Interactive,
                 () => dialogsDone = true
@@ -298,8 +283,7 @@ public class LevelIntroSequenceController : MonoBehaviour
         while (!dialogsDone && !skipRequested)
             yield return null;
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
 
         if (!skipRequested)
             yield return StartCoroutine(FadeGlobalDimmerOnly());
@@ -312,9 +296,6 @@ public class LevelIntroSequenceController : MonoBehaviour
 
         if (topHUDRoot != null)
             topHUDRoot.SetActive(true);
-
-        if (introHUDRoot != null)
-            introHUDRoot.SetActive(false);
 
         ActivateAllBoardRootChildren();
 
@@ -438,14 +419,10 @@ public class LevelIntroSequenceController : MonoBehaviour
         if (topHUDRoot != null)
             topHUDRoot.SetActive(true);
 
-        if (introHUDRoot != null)
-            introHUDRoot.SetActive(false);
-
         if (controlsController != null)
             controlsController.ShowMobileControlsUI(true);
 
-        if (holdToSkipOverlay != null)
-            holdToSkipOverlay.Hide(this);
+        mainUIController?.HideHoldToSkip(this);
     }
 
     /// <summary>
