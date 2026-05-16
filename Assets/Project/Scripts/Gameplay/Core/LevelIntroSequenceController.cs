@@ -243,6 +243,9 @@ public class LevelIntroSequenceController : MonoBehaviour
         if (controlsController != null)
             controlsController.DisableGameplayControls();
 
+        if (mainUIController != null)
+            mainUIController.ShowHoldToSkip(this, OnSkipButtonPressed);
+
         bool shipDone = !shipIntroEnabled;
         bool dialogsDone = false;
         bool boardDone = boardIntroAssembler == null;
@@ -256,10 +259,8 @@ public class LevelIntroSequenceController : MonoBehaviour
         if (!skipRequested)
             introLines = TryResolveIntroLines();
 
-        if (mainUIController != null && introLines != null && introLines.Length > 0)
+        if (!skipRequested && mainUIController != null && introLines != null && introLines.Length > 0)
         {
-            mainUIController.ShowHoldToSkip(this, OnSkipButtonPressed);
-
             mainUIController.PlayDialogSequence(
                 introLines,
                 DialogSequenceRunner.PlaybackMode.Interactive,
@@ -314,9 +315,12 @@ public class LevelIntroSequenceController : MonoBehaviour
         {
             bool countdownDone = false;
             countdownUI.PlayStartCountdown(() => countdownDone = true);
+
             while (!countdownDone)
                 yield return null;
         }
+
+        mainUIController?.HideHoldToSkip(this);
 
         onCompleteCallback?.Invoke();
     }

@@ -8,6 +8,20 @@ public class ShipVisualBinder : MonoBehaviour
 
     private void OnEnable()
     {
+        if (runSessionState != null)
+            runSessionState.OnShipChanged.AddListener(OnShipChanged);
+
+        Refresh();
+    }
+
+    private void OnDisable()
+    {
+        if (runSessionState != null)
+            runSessionState.OnShipChanged.RemoveListener(OnShipChanged);
+    }
+
+    private void OnShipChanged(string shipId)
+    {
         Refresh();
     }
 
@@ -16,7 +30,9 @@ public class ShipVisualBinder : MonoBehaviour
         if (runSessionState == null || image == null)
             return;
 
-        var def = ShipCatalogService.GetById(runSessionState.ShipId);
+        Debug.Log("[ShipVisualBinder] ShipId=" + runSessionState.ShipId);
+
+        ShipDefinition def = ShipCatalogService.GetById(runSessionState.ShipId);
 
         if (def == null || string.IsNullOrWhiteSpace(def.imagePath))
         {
@@ -25,7 +41,7 @@ public class ShipVisualBinder : MonoBehaviour
             return;
         }
 
-        var sprite = Resources.Load<Sprite>(def.imagePath);
+        Sprite sprite = Resources.Load<Sprite>(def.imagePath);
 
         image.sprite = sprite;
         image.enabled = sprite != null;

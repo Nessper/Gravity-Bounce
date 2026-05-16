@@ -21,6 +21,12 @@ public class LevelBootstrapper : MonoBehaviour
             return false;
         }
 
+        if (!runSession.LoadFromSave())
+        {
+            Debug.LogError("[LevelBootstrapper] LoadFromSave a échoué.");
+            return false;
+        }
+
         if (!runSession.EnsurePlanLoaded())
         {
             Debug.LogError("[LevelBootstrapper] EnsurePlanLoaded a échoué.");

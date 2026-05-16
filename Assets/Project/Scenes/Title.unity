@@ -938,7 +938,7 @@ GameObject:
   - component: {fileID: 847432773}
   - component: {fileID: 847432774}
   m_Layer: 5
-  m_Name: Canva916
+  m_Name: PortraitRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -962,8 +962,8 @@ RectTransform:
   - {fileID: 1411401319}
   m_Father: {fileID: 1990538020}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0}
-  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -979,8 +979,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 86710e43de46f6f4bac7c8e50813a599, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.AspectRatioFitter
-  m_AspectMode: 2
-  m_AspectRatio: 0.5625
+  m_AspectMode: 3
+  m_AspectRatio: 0.5
 --- !u!1 &895058321
 GameObject:
   m_ObjectHideFlags: 0
@@ -1154,8 +1154,8 @@ Camera:
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
-  orthographic: 0
-  orthographic size: 5
+  orthographic: 1
+  orthographic size: 6
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -2629,7 +2629,7 @@ GameObject:
   - component: {fileID: 1990538018}
   - component: {fileID: 1990538017}
   m_Layer: 5
-  m_Name: Canvas_Title
+  m_Name: UI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2900,6 +2900,6 @@ SceneRoots:
   m_Roots:
   - {fileID: 961739753}
   - {fileID: 203844589}
+  - {fileID: 895058324}
   - {fileID: 1475599685}
   - {fileID: 1990538020}
-  - {fileID: 895058324}
