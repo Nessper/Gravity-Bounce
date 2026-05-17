@@ -16,7 +16,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float mouseSensitivity = 0.15f;
 
     [Header("Feedback visuel")]
-    [SerializeField] private PlayerFlashFeedback flashFeedback;
+    [SerializeField] private PlayerImpactMotionController impactMotion;
+    [SerializeField] private PlayerShaderFlashFeedback shaderFlashFeedback;
 
     [Header("Rebond custom")]
     [SerializeField] private bool useCustomBounce = true;
@@ -102,7 +103,8 @@ public class PlayerController : MonoBehaviour
         if (!collision.collider.CompareTag("Ball"))
             return;
 
-        flashFeedback?.TriggerFlash();
+        impactMotion?.TriggerImpact();
+        shaderFlashFeedback?.TriggerFlash();
 
         if (useCustomBounce)
             ApplyCustomBounce(collision);
@@ -122,21 +124,11 @@ public class PlayerController : MonoBehaviour
         if (halfWidth <= 0.0001f)
             return;
 
-        // --------------------------------------------------
-        // 1) POSITION D'IMPACT SUR LE PADDLE
-        // --------------------------------------------------
-
         float hitOffsetX = contact.point.x - boxCollider.bounds.center.x;
         float normalizedX = Mathf.Clamp(hitOffsetX / halfWidth, -1f, 1f);
 
-        // On garde un collider large pour le confort,
-        // mais on limite l'influence des extrémités.
         normalizedX = Mathf.Clamp(normalizedX, -maxInfluence, maxInfluence);
         normalizedX /= maxInfluence;
-
-        // --------------------------------------------------
-        // 2) ZONE CENTRALE + COURBE DE CONTRÔLE
-        // --------------------------------------------------
 
         float absX = Mathf.Abs(normalizedX);
 
@@ -152,74 +144,40 @@ public class PlayerController : MonoBehaviour
             normalizedX = sign * absX;
         }
 
-        // Influence "volontaire" du paddle :
-        // douce au centre, plus forte sur les bords.
         float paddleX = Mathf.Sign(normalizedX) * Mathf.Pow(Mathf.Abs(normalizedX), bounceCurvePower);
-
-        // --------------------------------------------------
-        // 3) DIRECTION D'ARRIVÉE DE LA BALLE
-        // --------------------------------------------------
 
         Vector3 incomingVel = ballRb.linearVelocity;
         float incomingSpeed = incomingVel.magnitude;
+
         if (incomingSpeed < 0.01f)
             incomingSpeed = 0.01f;
 
         Vector3 incomingDir = incomingVel.normalized;
 
-        // Composante "naturelle" :
-        // au centre, on garde une partie de la tendance horizontale
-        // de la balle entrante pour un ressenti plus intuitif.
         float naturalX = Mathf.Clamp(incomingDir.x, -0.75f, 0.75f);
 
-        // Au centre, on renforce franchement la composante latérale
-        // pour que le rebond soit plus lisible quand la balle arrive des côtés.
         float centerBias = 0.35f;
-        float centerInfluence = 1f - absX; // max au centre, 0 au bord
+        float centerInfluence = 1f - absX;
 
         naturalX += Mathf.Sign(naturalX) * centerBias * centerInfluence;
-
-        // Re-clamp après boost
         naturalX = Mathf.Clamp(naturalX, -0.95f, 0.95f);
 
-        // --------------------------------------------------
-        // 4) MÉLANGE NATUREL / CONTRÔLE JOUEUR
-        // --------------------------------------------------
-
-        // Centre = plus naturel
-        // Bords = plus de contrôle paddle
         float edgeWeight = Mathf.SmoothStep(0f, 1f, absX);
         float naturalWeight = 1f - edgeWeight;
 
         float finalX = (naturalX * naturalWeight) + (paddleX * edgeWeight);
-
-        // Sécurité : on évite les angles trop plats / trop extrêmes.
         finalX = Mathf.Clamp(finalX, -0.95f, 0.95f);
-
-        // --------------------------------------------------
-        // 5) DIRECTION FINALE DE REBOND
-        // --------------------------------------------------
 
         Vector3 bounceDir = new Vector3(finalX, 1f, 0f).normalized;
 
-        // Toujours repartir franchement vers le haut.
         if (bounceDir.y < 0.05f)
         {
             bounceDir.y = 0.05f;
             bounceDir.Normalize();
         }
 
-        // --------------------------------------------------
-        // 6) IMPULSION DE RENVOI DU PADDLE
-        // --------------------------------------------------
-
-        // Logique multiplicative, proche du rebond physique d'avant :
-        // une balle rapide repart fort, une balle lente repart plus calmement.
         float outgoingSpeed = incomingSpeed * bounceSpeedMultiplier;
 
-        // Plancher dynamique :
-        // fort au centre pour éviter les billes collées,
-        // faible sur les bords pour préserver les coups précis.
         float currentMinEffectiveSpeed = Mathf.Lerp(centerSpeedFloor, edgeSpeedFloor, absX);
 
         if (outgoingSpeed < currentMinEffectiveSpeed)

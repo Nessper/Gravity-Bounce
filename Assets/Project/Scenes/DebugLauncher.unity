@@ -277,7 +277,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MainDebugStarterV3
   startDestination: 1
   debugWorldId: W1
-  debugNodeIndex: 7
+  debugNodeIndex: 2
   debugShipId: CORE_SCOUT
   debugCurrentHull: 9
   debugContractLives: 2
