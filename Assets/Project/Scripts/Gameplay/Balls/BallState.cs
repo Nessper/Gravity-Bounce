@@ -28,6 +28,14 @@ public class BallState : MonoBehaviour
     [Header("Référence visuelle")]
     [SerializeField] private Renderer visualRenderer;
 
+    [Header("Physique")]
+    [SerializeField] private Rigidbody rb;
+
+    [Header("Black Trail Speed Filter")]
+    [SerializeField] private float blackTrailStartSpeed = 4f;
+    [SerializeField] private float blackTrailStopSpeed = 2f;
+    [SerializeField] private float blackTrailStopDelay = 0.18f;
+
     [Header("Matériaux par type")]
     [SerializeField] private Material whiteMaterial;
     [SerializeField] private Material blueMaterial;
@@ -45,7 +53,7 @@ public class BallState : MonoBehaviour
 
     [Header("Layers visuels")]
     [SerializeField] private string defaultLayerName = "Gameplay";
-    [SerializeField] private string blackBallLayerName = "BlackBall";
+    [SerializeField] private string cleanGameplayLayerName = "CleanGameplay";
 
     public string TypeName => type.ToString();
 
@@ -55,17 +63,26 @@ public class BallState : MonoBehaviour
     private int defaultLayer = -1;
     private int blackBallLayer = -1;
 
+    private TrailRenderer activeTrail;
+
+    private bool blackTrailAllowed;
+    private float blackTrailStopTimer;
+
     private void Awake()
     {
         defaultLayer = LayerMask.NameToLayer(defaultLayerName);
-        blackBallLayer = LayerMask.NameToLayer(blackBallLayerName);
+        blackBallLayer = LayerMask.NameToLayer(cleanGameplayLayerName);
 
         if (visualRenderer == null)
         {
             Transform visual = transform.Find("Visual");
+
             if (visual != null)
                 visualRenderer = visual.GetComponent<Renderer>();
         }
+
+        if (rb == null)
+            rb = GetComponent<Rigidbody>();
     }
 
     private void Start()
@@ -80,6 +97,11 @@ public class BallState : MonoBehaviour
         UpdateBlackThreatRegistration();
     }
 
+    private void Update()
+    {
+        UpdateTrailEmission();
+    }
+
     public void Initialize(BallType newType, int newPoints)
     {
         UnregisterBlackThreatIfNeeded();
@@ -89,6 +111,9 @@ public class BallState : MonoBehaviour
         initialized = true;
 
         transform.localScale = scale;
+
+        blackTrailAllowed = false;
+        blackTrailStopTimer = 0f;
 
         ApplyVisuals(type);
         ApplyLayerForType(type);
@@ -132,7 +157,10 @@ public class BallState : MonoBehaviour
         if (defaultLayer < 0 || blackBallLayer < 0)
             return;
 
-        int visualLayer = t == BallType.Black ? blackBallLayer : defaultLayer;
+        int visualLayer =
+            t == BallType.Black
+            ? blackBallLayer
+            : defaultLayer;
 
         // Le root reste en Gameplay pour ne pas casser collisions / physique.
         gameObject.layer = defaultLayer;
@@ -161,7 +189,7 @@ public class BallState : MonoBehaviour
         SetTrail(trailRed, false);
         SetTrail(trailBlack, false);
 
-        TrailRenderer activeTrail = null;
+        activeTrail = null;
 
         switch (type)
         {
@@ -185,8 +213,48 @@ public class BallState : MonoBehaviour
         if (activeTrail != null)
         {
             activeTrail.Clear();
-            activeTrail.emitting = true;
+            activeTrail.emitting = type != BallType.Black;
         }
+    }
+
+    private void UpdateTrailEmission()
+    {
+        if (activeTrail == null)
+            return;
+
+        // Les trails normaux restent toujours actifs.
+        if (type != BallType.Black)
+        {
+            activeTrail.emitting = true;
+            return;
+        }
+
+        if (rb == null)
+        {
+            activeTrail.emitting = false;
+            return;
+        }
+
+        float speed = rb.linearVelocity.magnitude;
+
+        if (speed >= blackTrailStartSpeed)
+        {
+            blackTrailAllowed = true;
+            blackTrailStopTimer = 0f;
+        }
+        else if (speed <= blackTrailStopSpeed)
+        {
+            blackTrailStopTimer += Time.deltaTime;
+
+            if (blackTrailStopTimer >= blackTrailStopDelay)
+                blackTrailAllowed = false;
+        }
+        else
+        {
+            blackTrailStopTimer = 0f;
+        }
+
+        activeTrail.emitting = blackTrailAllowed;
     }
 
     private void SetTrail(TrailRenderer tr, bool emitting)
@@ -234,17 +302,29 @@ public class BallState : MonoBehaviour
 
     private void UpdateBlackFX()
     {
-        if (blackCrackleFX == null)
+        bool shouldPlay = type == BallType.Black;
+
+        UpdateParticleFx(blackCrackleFX, shouldPlay);
+    }
+
+    private void UpdateParticleFx(
+        ParticleSystem ps,
+        bool shouldPlay)
+    {
+        if (ps == null)
             return;
 
-        if (type == BallType.Black)
+        if (shouldPlay)
         {
-            if (!blackCrackleFX.isPlaying)
-                blackCrackleFX.Play(true);
+            if (!ps.isPlaying)
+                ps.Play(true);
         }
         else
         {
-            blackCrackleFX.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            ps.Stop(
+                true,
+                ParticleSystemStopBehavior.StopEmittingAndClear
+            );
         }
     }
 

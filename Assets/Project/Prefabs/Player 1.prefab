@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3638184396537420092}
   - component: {fileID: 2315006292800509917}
-  m_Layer: 16
+  m_Layer: 18
   m_Name: PlayerShell
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -100,7 +100,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1815536601077622949}
   - component: {fileID: 3314507446319343949}
-  m_Layer: 16
+  m_Layer: 18
   m_Name: PlayerShadow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -197,7 +197,7 @@ GameObject:
   - component: {fileID: 7931259763197362485}
   - component: {fileID: 3721046236444971157}
   - component: {fileID: 6089832163420704087}
-  m_Layer: 16
+  m_Layer: 18
   m_Name: Player 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -393,7 +393,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4600435009974294654}
   - component: {fileID: 301316976679447878}
-  m_Layer: 16
+  m_Layer: 18
   m_Name: PlayerInnerScan
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -483,7 +483,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8482911773616297376}
   - component: {fileID: 4373076606306438779}
-  m_Layer: 16
+  m_Layer: 18
   m_Name: PlayerSpeedSmear
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -573,7 +573,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2612836460599814994}
   - component: {fileID: 3932840115025561291}
-  m_Layer: 16
+  m_Layer: 18
   m_Name: PlayerGlowMask
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -662,7 +662,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 514291224116634511}
-  m_Layer: 16
+  m_Layer: 18
   m_Name: PlayerVisualRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}

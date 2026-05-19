@@ -15,11 +15,32 @@ public class BinTrigger : MonoBehaviour
     [SerializeField] private bool autoFlushOnThreshold = true;
 
     public event Action<BallState, Side> OnBallEnteredBin;
+    public event Action OnContentChanged;
 
     private readonly HashSet<BallState> present = new HashSet<BallState>();
+
     private bool autoFlushEnabled = true;
 
     public int Count => present.Count;
+
+    public int BlackCount
+    {
+        get
+        {
+            int count = 0;
+
+            foreach (BallState st in present)
+            {
+                if (st == null)
+                    continue;
+
+                if (st.type == BallType.Black)
+                    count++;
+            }
+
+            return count;
+        }
+    }
 
     public void SetAutoFlushEnabled(bool enabled)
     {
@@ -29,34 +50,41 @@ public class BinTrigger : MonoBehaviour
     public int PeekTotalPoints()
     {
         int total = 0;
-        foreach (var st in present)
+
+        foreach (BallState st in present)
         {
-            if (st == null) continue;
+            if (st == null)
+                continue;
+
             total += st.points;
         }
+
         return total;
     }
 
     public bool ContainsBlack()
     {
-        foreach (var st in present)
+        foreach (BallState st in present)
         {
-            if (st == null) continue;
+            if (st == null)
+                continue;
+
             if (st.type == BallType.Black)
                 return true;
         }
+
         return false;
     }
 
-
-
     public List<BallState> TakeSnapshotAndClear()
     {
-        var snapshot = new List<BallState>(present.Count);
+        List<BallState> snapshot = new List<BallState>(present.Count);
 
-        foreach (var st in present)
+        foreach (BallState st in present)
         {
-            if (st == null) continue;
+            if (st == null)
+                continue;
+
             snapshot.Add(st);
 
             if (st.currentSide == side)
@@ -67,6 +95,7 @@ public class BinTrigger : MonoBehaviour
         }
 
         present.Clear();
+        OnContentChanged?.Invoke();
 
         return snapshot;
     }
@@ -76,28 +105,21 @@ public class BinTrigger : MonoBehaviour
         if (!other.CompareTag("Ball"))
             return;
 
-        var state = other.GetComponent<BallState>();
+        BallState state = other.GetComponent<BallState>();
+
         if (state == null || state.collected)
             return;
 
-        if (present.Add(state))
-        {
-            state.inBin = true;
-            state.currentSide = side;
+        if (!present.Add(state))
+            return;
 
-            OnBallEnteredBin?.Invoke(state, side);
+        state.inBin = true;
+        state.currentSide = side;
 
-            if (autoFlushEnabled && autoFlushOnThreshold && collector != null)
-            {
-                int effectiveThreshold = collector.GetEffectiveFlushThresholdFor(this);
-                if (present.Count >= effectiveThreshold)
-                {
-                    bool sideBusy = (side == Side.Left) ? collector.IsLeftFlushing() : collector.IsRightFlushing();
-                    if (!sideBusy)
-                        collector.CollectFromBin(side);
-                }
-            }
-        }
+        OnBallEnteredBin?.Invoke(state, side);
+        OnContentChanged?.Invoke();
+
+        TryAutoFlush();
     }
 
     private void OnTriggerExit(Collider other)
@@ -105,17 +127,45 @@ public class BinTrigger : MonoBehaviour
         if (!other.CompareTag("Ball"))
             return;
 
-        var state = other.GetComponent<BallState>();
+        BallState state = other.GetComponent<BallState>();
+
         if (state == null)
             return;
 
-        if (present.Remove(state))
+        if (!present.Remove(state))
+            return;
+
+        if (state.currentSide == side)
         {
-            if (state.currentSide == side)
-            {
-                state.inBin = false;
-                state.currentSide = Side.None;
-            }
+            state.inBin = false;
+            state.currentSide = Side.None;
         }
+
+        OnContentChanged?.Invoke();
+    }
+
+    private void TryAutoFlush()
+    {
+        if (!autoFlushEnabled)
+            return;
+
+        if (!autoFlushOnThreshold)
+            return;
+
+        if (collector == null)
+            return;
+
+        int effectiveThreshold = collector.GetEffectiveFlushThresholdFor(this);
+
+        if (present.Count < effectiveThreshold)
+            return;
+
+        bool sideBusy =
+            side == Side.Left
+            ? collector.IsLeftFlushing()
+            : collector.IsRightFlushing();
+
+        if (!sideBusy)
+            collector.CollectFromBin(side);
     }
 }
