@@ -136,7 +136,12 @@ public class RunHubShipStatusController : MonoBehaviour
         if (ship == null || durationText == null)
             return;
 
-        durationText.text = ship.baseLevelDurationSec.ToString("0") + "s";
+        float duration = ship.baseLevelDurationSec;
+
+        if (ModuleRuntimeStats.Instance != null)
+            duration += ModuleRuntimeStats.Instance.LevelDurationBonusSec;
+
+        durationText.text = duration.ToString("0") + "s";
     }
 
     // ----------------------------------------

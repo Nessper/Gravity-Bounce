@@ -137,6 +137,139 @@
       "iconPath": "Modules/Icons/C",
       "endLevelFullHullHullMaxAdd": 1,
       "endLevelScoreDelta": 100
+    },
+
+    {
+      "id": "BLACK_FILTER_T1",
+      "familyId": "A",
+      "displayNameLocKey": "module.black_filter.name",
+      "descriptionLocKey": "module.black_filter.t1.description",
+      "tier": 1,
+      "cost": 4,
+      "iconPath": "Modules/Icons/A",
+      "blackFilterChargesPerMission": 1
+    },
+    {
+      "id": "BLACK_FILTER_T2",
+      "familyId": "A",
+      "displayNameLocKey": "module.black_filter.name",
+      "descriptionLocKey": "module.black_filter.t2.description",
+      "tier": 2,
+      "cost": 10,
+      "iconPath": "Modules/Icons/A",
+      "blackFilterChargesPerMission": 2
+    },
+    {
+      "id": "BLACK_FILTER_T3",
+      "familyId": "A",
+      "displayNameLocKey": "module.black_filter.name",
+      "descriptionLocKey": "module.black_filter.t3.description",
+      "tier": 3,
+      "cost": 16,
+      "iconPath": "Modules/Icons/A",
+      "blackFilterChargesPerMission": 3
+    },
+
+    {
+      "id": "WHITE_UPGRADE_T1",
+      "familyId": "B",
+      "displayNameLocKey": "module.white_upgrade.name",
+      "descriptionLocKey": "module.white_upgrade.t1.description",
+      "tier": 1,
+      "cost": 4,
+      "iconPath": "Modules/Icons/B",
+      "flushWhiteToBlueCount": 1,
+      "flushWhiteToRedCount": 0
+    },
+    {
+      "id": "WHITE_UPGRADE_T2",
+      "familyId": "B",
+      "displayNameLocKey": "module.white_upgrade.name",
+      "descriptionLocKey": "module.white_upgrade.t2.description",
+      "tier": 2,
+      "cost": 10,
+      "iconPath": "Modules/Icons/B",
+      "flushWhiteToBlueCount": 0,
+      "flushWhiteToRedCount": 1
+    },
+    {
+      "id": "WHITE_UPGRADE_T3",
+      "familyId": "B",
+      "displayNameLocKey": "module.white_upgrade.name",
+      "descriptionLocKey": "module.white_upgrade.t3.description",
+      "tier": 3,
+      "cost": 16,
+      "iconPath": "Modules/Icons/B",
+      "flushWhiteToBlueCount": 1,
+      "flushWhiteToRedCount": 1
+    },
+
+    {
+      "id": "TIME_BUFFER_T1",
+      "familyId": "E",
+      "displayNameLocKey": "module.time_buffer.name",
+      "descriptionLocKey": "module.time_buffer.t1.description",
+      "tier": 1,
+      "cost": 4,
+      "iconPath": "Modules/Icons/E",
+      "levelDurationBonusSec": 5
+    },
+    {
+      "id": "TIME_BUFFER_T2",
+      "familyId": "E",
+      "descriptionLocKey": "module.time_buffer.t2.description",
+      "displayNameLocKey": "module.time_buffer.name",
+      "tier": 2,
+      "cost": 10,
+      "iconPath": "Modules/Icons/E",
+      "levelDurationBonusSec": 10
+    },
+    {
+      "id": "TIME_BUFFER_T3",
+      "familyId": "E",
+      "displayNameLocKey": "module.time_buffer.name",
+      "descriptionLocKey": "module.time_buffer.t3.description",
+      "tier": 3,
+      "cost": 16,
+      "iconPath": "Modules/Icons/E",
+      "levelDurationBonusSec": 15
+    },
+
+    {
+      "id": "MEDAL_CASH_T1",
+      "familyId": "F",
+      "displayNameLocKey": "module.medal_cash.name",
+      "descriptionLocKey": "module.medal_cash.t1.description",
+      "tier": 1,
+      "cost": 4,
+      "iconPath": "Modules/Icons/F",
+      "medalBronzeMoney": 3,
+      "medalSilverMoney": 5,
+      "medalGoldMoney": 7
+    },
+    {
+      "id": "MEDAL_CASH_T2",
+      "familyId": "F",
+      "displayNameLocKey": "module.medal_cash.name",
+      "descriptionLocKey": "module.medal_cash.t2.description",
+      "tier": 2,
+      "cost": 10,
+      "iconPath": "Modules/Icons/F",
+      "medalBronzeMoney": 3,
+      "medalSilverMoney": 6,
+      "medalGoldMoney": 9
+    },
+    {
+      "id": "MEDAL_CASH_T3",
+      "familyId": "F",
+      "displayNameLocKey": "module.medal_cash.name",
+      "descriptionLocKey": "module.medal_cash.t3.description",
+      "tier": 3,
+      "cost": 16,
+      "iconPath": "Modules/Icons/F",
+      "medalBronzeMoney": 4,
+      "medalSilverMoney": 7,
+      "medalGoldMoney": 10
     }
   ]
 }

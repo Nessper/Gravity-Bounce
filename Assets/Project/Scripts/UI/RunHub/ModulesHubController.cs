@@ -604,10 +604,18 @@ public class ModulesHubController : MonoBehaviour
             return;
 
         // Important :
-        // si l offre a deja ete initialisee pour ce shop,
-        // on ne redeal PAS, meme si elle est maintenant vide
-        // parce qu elle a pu etre completement achetee.
-        if (run.shopOfferInitialized)
+        // on ne redeal PAS si une offre a deja ete generee
+        // pour CE shop node precis.
+        //
+        // Cela permet :
+        // - de conserver la meme offre apres quit/reload
+        // - d eviter un redeal si le joueur a tout achete
+        // - MAIS de generer une nouvelle offre au shop suivant
+        bool sameShopNode =
+            run.shopOfferInitialized &&
+            run.shopOfferNodeIndex == run.currentNodeIndex;
+
+        if (sameShopNode)
             return;
 
         string worldId = run.worldId;
@@ -631,6 +639,7 @@ public class ModulesHubController : MonoBehaviour
         }
 
         run.shopOfferInitialized = true;
+        run.shopOfferNodeIndex = run.currentNodeIndex;
         SaveManager.Instance.Save();
     }
 

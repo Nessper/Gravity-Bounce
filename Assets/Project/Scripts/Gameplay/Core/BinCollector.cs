@@ -256,6 +256,24 @@ public class BinCollector : MonoBehaviour
     // Utilitaires internes
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Construit le snapshot logique du flush.
+    ///
+    /// IMPORTANT :
+    /// - Le snapshot représente le résultat FINAL utilisé
+    ///   pour le scoring et les combos.
+    /// - Certains modules peuvent modifier le type logique
+    ///   d'une bille au flush.
+    /// - Le BallType réel des BallState n'est PAS modifié.
+    /// - Les transformations sont purement logiques/runtime.
+    ///
+    /// Ordre des modules :
+    /// 1) Famille A : Black Filter
+    ///    - une noire réservée devient White.
+    /// 2) Famille B : White Upgrade
+    ///    - une White devient Red.
+    ///    - puis une White devient Blue.
+    /// </summary>
     private BinSnapshot BuildSnapshot(List<BallState> lot, Side side, out int blackCount)
     {
         var snapshot = new BinSnapshot
@@ -271,16 +289,45 @@ public class BinCollector : MonoBehaviour
         blackCount = 0;
         int totalPoints = 0;
 
+        int whiteToRedLeft = 0;
+        int whiteToBlueLeft = 0;
+
+        if (ModuleRuntimeStats.Instance != null)
+        {
+            whiteToRedLeft = Mathf.Max(0, ModuleRuntimeStats.Instance.FlushWhiteToRedCount);
+            whiteToBlueLeft = Mathf.Max(0, ModuleRuntimeStats.Instance.FlushWhiteToBlueCount);
+        }
+
         for (int i = 0; i < lot.Count; i++)
         {
             BallState st = lot[i];
+
             if (st == null)
                 continue;
 
-            totalPoints += st.points;
+            BallType resolvedType = ResolveTypeForFlushFamilyA(st);
+
+            if (resolvedType == BallType.White && whiteToRedLeft > 0)
+            {
+                resolvedType = BallType.Red;
+                whiteToRedLeft--;
+            }
+            else if (resolvedType == BallType.White && whiteToBlueLeft > 0)
+            {
+                resolvedType = BallType.Blue;
+                whiteToBlueLeft--;
+            }
+
+            if (st.type == BallType.Black)
+                blackCount++;
+
+            int resolvedPoints =
+                GetPointsForResolvedType(st, resolvedType);
+
+            totalPoints += resolvedPoints;
             snapshot.nombreDeBilles++;
 
-            string typeName = st.type.ToString();
+            string typeName = resolvedType.ToString();
 
             int count;
             if (!snapshot.parType.TryGetValue(typeName, out count))
@@ -290,16 +337,100 @@ public class BinCollector : MonoBehaviour
 
             int pts;
             if (!snapshot.pointsParType.TryGetValue(typeName, out pts))
-                snapshot.pointsParType[typeName] = st.points;
+                snapshot.pointsParType[typeName] = resolvedPoints;
             else
-                snapshot.pointsParType[typeName] = pts + st.points;
-
-            if (st.type == BallType.Black)
-                blackCount++;
+                snapshot.pointsParType[typeName] = pts + resolvedPoints;
         }
 
         snapshot.totalPointsDuLot = totalPoints;
+
         return snapshot;
+    }
+
+    /// <summary>
+    /// Résout le type logique final d'une bille au flush.
+    ///
+    /// IMPORTANT :
+    /// - Le BallState réel n'est jamais modifié ici.
+    /// - Cette méthode décide seulement comment la bille
+    ///   doit être comptée dans le snapshot.
+    ///
+    /// Famille A :
+    /// - Une noire réservée devient White.
+    /// - La charge est consommée définitivement.
+    /// </summary>
+    private BallType ResolveTypeForFlush(BallState st)
+    {
+        if (st == null)
+            return BallType.White;
+
+        // --------------------------------------------------------
+        // Famille A : Black Filter
+        // --------------------------------------------------------
+        if (BlackFilterRuntimeController.Instance != null)
+        {
+            bool consumed =
+                BlackFilterRuntimeController.Instance.ConsumeReservation(st);
+
+            if (consumed)
+                return BallType.White;
+        }
+
+        return st.type;
+    }
+
+    /// <summary>
+    /// Applique uniquement la famille A au type logique d'une bille.
+    ///
+    /// La famille B est appliquée dans BuildSnapshot car elle dépend
+    /// de compteurs par flush.
+    /// </summary>
+    private BallType ResolveTypeForFlushFamilyA(BallState st)
+    {
+        if (st == null)
+            return BallType.White;
+
+        if (BlackFilterRuntimeController.Instance != null)
+        {
+            bool consumed =
+                BlackFilterRuntimeController.Instance.ConsumeReservation(st);
+
+            if (consumed)
+                return BallType.White;
+        }
+
+        return st.type;
+    }
+
+
+    /// <summary>
+    /// Retourne les points associés au type logique final.
+    /// </summary>
+    private int GetPointsForResolvedType(
+        BallState source,
+        BallType resolvedType)
+    {
+        switch (resolvedType)
+        {
+            case BallType.White:
+                return 100;
+
+            case BallType.Blue:
+                return 150;
+
+            case BallType.Red:
+                return 200;
+
+            case BallType.Black:
+                return source != null
+                    ? source.points
+                    : -120;
+
+            default:
+                return source != null
+                    ? source.points
+                    : 0;
+        }
     }
 
     private void TriggerFlushFx(Side side, int flushScore, bool hasBlack)

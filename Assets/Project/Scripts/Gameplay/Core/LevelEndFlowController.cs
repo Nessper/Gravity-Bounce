@@ -341,6 +341,38 @@ public class LevelEndFlowController : MonoBehaviour
             });
         }
 
+        // --------------------------------------------------
+        // Famille F : bonus money selon médaille
+        // --------------------------------------------------
+        if (ModuleRuntimeStats.Instance != null)
+        {
+            int moduleReward = 0;
+
+            switch (medal)
+            {
+                case EndMedal.Bronze:
+                    moduleReward = ModuleRuntimeStats.Instance.MedalBronzeMoney;
+                    break;
+
+                case EndMedal.Silver:
+                    moduleReward = ModuleRuntimeStats.Instance.MedalSilverMoney;
+                    break;
+
+                case EndMedal.Gold:
+                    moduleReward = ModuleRuntimeStats.Instance.MedalGoldMoney;
+                    break;
+            }
+
+            if (moduleReward > 0)
+            {
+                lines.Add(new MoneyRewardLine
+                {
+                    Label = "Medal Bonus",
+                    Amount = moduleReward
+                });
+            }
+        }
+
         if (ModuleRuntimeStats.Instance != null)
         {
             var sustain = ModuleRuntimeStats.Instance.GetEndLevelSustainBonus();

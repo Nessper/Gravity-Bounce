@@ -1,5 +1,3 @@
-// Chemin recommandé (projet Unity) : Scripts/Systems/Modules/ModuleRuntimeStats.cs
-
 using UnityEngine;
 using UnityEngine.Events;
 using VoidScrappers.Briefing;
@@ -9,18 +7,11 @@ using VoidScrappers.Briefing;
 /// ------------------------------------------------------------
 /// Service runtime global qui agrège les effets des modules équipés.
 ///
-/// Responsabilités :
-/// - Lire les modules équipés dans RunSessionState.
-/// - Charger leurs définitions via ModuleCatalogService.
-/// - Agréger les effets runtime utiles pour le gameplay.
-/// - Exposer un snapshot simple pour le reste du jeu.
-/// - Se reconstruire quand l'équipement ou le ship changent.
-///
 /// Important :
 /// - Ce script ne persiste rien.
 /// - Ce script ne gère pas l'équipement.
-/// - Ce script ne fait qu'agréger des effets à partir de l'état courant.
-/// - Il vit une seule fois dans BootRoot et s'expose via Instance.
+/// - Ce script expose seulement les bonus donnés par les modules équipés.
+/// - Les états gameplay vivants restent dans des controllers dédiés.
 /// </summary>
 public class ModuleRuntimeStats : MonoBehaviour
 {
@@ -29,12 +20,25 @@ public class ModuleRuntimeStats : MonoBehaviour
     [Header("Références")]
     [SerializeField] private RunSessionState runSessionState;
 
-    [Header("Debug / Lecture seule")]
+    [Header("Debug / Lecture seule - Passifs")]
     [SerializeField] private int briefingScanTier = 0;
     [SerializeField] private int hullMaxAdd = 0;
     [SerializeField] private int flushMinBallsAdd = 0;
     [SerializeField] private int sustainHullGainEndLevel = 0;
     [SerializeField] private int sustainMoneyGainEndLevel = 0;
+    [SerializeField] private float levelDurationBonusSec = 0f;
+
+    [Header("Debug / Lecture seule - Famille A")]
+    [SerializeField] private int blackFilterChargesPerMission = 0;
+
+    [Header("Debug / Lecture seule - Famille B")]
+    [SerializeField] private int flushWhiteToBlueCount = 0;
+    [SerializeField] private int flushWhiteToRedCount = 0;
+
+    [Header("Debug / Lecture seule - Famille F")]
+    [SerializeField] private int medalBronzeMoney = 0;
+    [SerializeField] private int medalSilverMoney = 0;
+    [SerializeField] private int medalGoldMoney = 0;
 
     public UnityEvent OnStatsRebuilt = new UnityEvent();
 
@@ -43,6 +47,16 @@ public class ModuleRuntimeStats : MonoBehaviour
     public int FlushMinBallsAdd => flushMinBallsAdd;
     public int SustainHullGainEndLevel => sustainHullGainEndLevel;
     public int SustainMoneyGainEndLevel => sustainMoneyGainEndLevel;
+    public float LevelDurationBonusSec => levelDurationBonusSec;
+
+    public int BlackFilterChargesPerMission => blackFilterChargesPerMission;
+
+    public int FlushWhiteToBlueCount => flushWhiteToBlueCount;
+    public int FlushWhiteToRedCount => flushWhiteToRedCount;
+
+    public int MedalBronzeMoney => medalBronzeMoney;
+    public int MedalSilverMoney => medalSilverMoney;
+    public int MedalGoldMoney => medalGoldMoney;
 
     private void Awake()
     {
@@ -69,9 +83,6 @@ public class ModuleRuntimeStats : MonoBehaviour
             Instance = null;
     }
 
-    /// <summary>
-    /// Recalcule tous les effets modules à partir des modules équipés.
-    /// </summary>
     public void Rebuild()
     {
         ResetAggregates();
@@ -106,9 +117,6 @@ public class ModuleRuntimeStats : MonoBehaviour
         OnStatsRebuilt.Invoke();
     }
 
-    /// <summary>
-    /// Remet toutes les stats agrégées à zéro avant reconstruction.
-    /// </summary>
     private void ResetAggregates()
     {
         briefingScanTier = 0;
@@ -116,29 +124,43 @@ public class ModuleRuntimeStats : MonoBehaviour
         flushMinBallsAdd = 0;
         sustainHullGainEndLevel = 0;
         sustainMoneyGainEndLevel = 0;
+        levelDurationBonusSec = 0f;
+
+        blackFilterChargesPerMission = 0;
+
+        flushWhiteToBlueCount = 0;
+        flushWhiteToRedCount = 0;
+
+        medalBronzeMoney = 0;
+        medalSilverMoney = 0;
+        medalGoldMoney = 0;
     }
 
-    /// <summary>
-    /// Agrège les effets d'un module unique.
-    /// </summary>
     private void AggregateOneModule(ModuleDefinition mod)
     {
         if (mod == null)
             return;
 
-        // SCAN
         briefingScanTier = Mathf.Max(briefingScanTier, Mathf.Max(0, mod.scanTierSet));
 
-        // Bonus passifs déclaratifs
         hullMaxAdd += Mathf.Max(0, mod.hullMaxAdd);
         flushMinBallsAdd += Mathf.Max(0, mod.flushMinBallsAdd);
+        levelDurationBonusSec += Mathf.Max(0f, mod.levelDurationBonusSec);
 
-        // Sustain famille H
         if (string.Equals(mod.familyId, "H", System.StringComparison.Ordinal))
         {
             sustainHullGainEndLevel += Mathf.Max(0, mod.endLevelHullRepair);
             sustainMoneyGainEndLevel += Mathf.Max(0, mod.endLevelMoneyGain);
         }
+
+        blackFilterChargesPerMission += Mathf.Max(0, mod.blackFilterChargesPerMission);
+
+        flushWhiteToBlueCount += Mathf.Max(0, mod.flushWhiteToBlueCount);
+        flushWhiteToRedCount += Mathf.Max(0, mod.flushWhiteToRedCount);
+
+        medalBronzeMoney += Mathf.Max(0, mod.medalBronzeMoney);
+        medalSilverMoney += Mathf.Max(0, mod.medalSilverMoney);
+        medalGoldMoney += Mathf.Max(0, mod.medalGoldMoney);
     }
 
     private void SubscribeToRunState()
@@ -164,43 +186,26 @@ public class ModuleRuntimeStats : MonoBehaviour
         Rebuild();
     }
 
-    /// <summary>
-    /// Helper de compatibilité avec le système de briefing existant.
-    /// </summary>
     public BriefingTier GetEffectiveBriefingTier()
     {
         switch (briefingScanTier)
         {
             case 3:
                 return BriefingTier.T3;
-
             case 2:
                 return BriefingTier.T2;
-
             case 1:
                 return BriefingTier.T1;
-
             default:
                 return BriefingTier.T0;
         }
     }
 
-    /// <summary>
-    /// Helper de compatibilité avec le flow end-level existant.
-    /// </summary>
     public (int hullGain, int moneyGain) GetEndLevelSustainBonus()
     {
         return (sustainHullGainEndLevel, sustainMoneyGainEndLevel);
     }
 
-    /// <summary>
-    /// Retourne l'effet de fin de niveau de la famille C.
-    ///
-    /// Règle :
-    /// - le score delta est toujours appliqué
-    /// - le bonus HullMax ne doit être appliqué que si Hull plein,
-    ///   décision prise par le flow appelant
-    /// </summary>
     public (int fullHullHullMaxAdd, int scoreDelta) GetEndLevelCoreGrowthEffect()
     {
         if (runSessionState == null)

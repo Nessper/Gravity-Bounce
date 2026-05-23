@@ -30,6 +30,41 @@ public class ModuleDefinition
     public int cost;
     public string iconPath;              // Resources path sans extension
 
+
+    // ----------------------------------------------------
+    // Famille A : filtre noir pendant la mission
+    // ----------------------------------------------------
+    public int blackFilterChargesPerMission; // nombre de noires filtrées par mission
+
+    // ----------------------------------------------------
+    // Famille B : upgrade des billes blanches au flush
+    // ----------------------------------------------------
+    public int flushWhiteToBlueCount;        // convertit N blanches en bleues au flush
+    public int flushWhiteToRedCount;         // convertit N blanches en rouges au flush
+
+    // ----------------------------------------------------
+    // Famille C : croissance conditionnelle du HullMax
+    // ----------------------------------------------------
+    public int endLevelFullHullHullMaxAdd;  // +N HullMax si Hull plein en fin de level
+    public int endLevelScoreDelta;          // score appliqué en fin de level (peut être négatif)
+
+    // ----------------------------------------------------
+    // Famille E : bonus de durée de mission
+    // ----------------------------------------------------
+    public float levelDurationBonusSec;
+
+    // ----------------------------------------------------
+    // Famille F : bonus money selon médaille de fin
+    // ----------------------------------------------------
+    public int medalBronzeMoney;
+    public int medalSilverMoney;
+    public int medalGoldMoney;
+
+    // ----------------------------------------------------
+    // Famille G : Augmentation du seuil de flush
+    // ----------------------------------------------------
+    public int flushMinBallsAdd;         // +N billes requises pour déclencher un flush
+
     // ----------------------------------------------------
     // Famille H : sustain en fin de mission
     // ----------------------------------------------------
@@ -41,19 +76,12 @@ public class ModuleDefinition
     // ----------------------------------------------------
     public int scanTierSet;              // 0 si pas SCAN, sinon 1..3
 
-    // ----------------------------------------------------
-    // Famille G : Augmentation du seuil de flush
-    // ----------------------------------------------------
-    public int flushMinBallsAdd;         // +N billes requises pour déclencher un flush
+
 
     // ----------------------------------------------------
     // Bonus passifs déclaratifs
     // ----------------------------------------------------
     public int hullMaxAdd;               // bonus permanent de HullMax
 
-    // ----------------------------------------------------
-    // Famille C : croissance conditionnelle du HullMax
-    // ----------------------------------------------------
-    public int endLevelFullHullHullMaxAdd;  // +N HullMax si Hull plein en fin de level
-    public int endLevelScoreDelta;          // score appliqué en fin de level (peut être négatif)
+
 }

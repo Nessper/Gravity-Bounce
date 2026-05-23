@@ -132,6 +132,7 @@ public class RunStateData
     /// - lors d un reroll
     /// </summary>
     public bool shopOfferInitialized = false;
+    public int shopOfferNodeIndex = -1;
 
     // ------------------------------------------------------------
     // SHOP REROLL (pour fixer le prix du reroll)

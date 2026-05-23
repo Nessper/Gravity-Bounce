@@ -67,6 +67,70 @@
     {
       "key": "module.core_growth.t3.description",
       "text": "Final score +100. If hull is full: +1 max hull."
+    },
+    {
+      "key": "module.black_filter.name",
+      "text": "Black Filter"
+    },
+    {
+      "key": "module.black_filter.t1.description",
+      "text": "Filters 1 black node per mission into a white node."
+    },
+    {
+      "key": "module.black_filter.t2.description",
+      "text": "Filters 2 black nodes per mission into white nodes."
+    },
+    {
+      "key": "module.black_filter.t3.description",
+      "text": "Filters 3 black nodes per mission into white nodes."
+    },
+    {
+      "key": "module.white_upgrade.name",
+      "text": "White Upgrade"
+    },
+    {
+      "key": "module.white_upgrade.t1.description",
+      "text": "On each flush, 1 white node becomes blue."
+    },
+    {
+      "key": "module.white_upgrade.t2.description",
+      "text": "On each flush, 1 white node becomes red."
+    },
+    {
+      "key": "module.white_upgrade.t3.description",
+      "text": "On each flush, 1 white node becomes red and 1 white node becomes blue."
+    },
+    {
+      "key": "module.time_buffer.name",
+      "text": "Time Buffer"
+    },
+    {
+      "key": "module.time_buffer.t1.description",
+      "text": "Mission duration +5 sec. More time, more score opportunities, more risk."
+    },
+    {
+      "key": "module.time_buffer.t2.description",
+      "text": "Mission duration +10 sec. More time, more score opportunities, more risk."
+    },
+    {
+      "key": "module.time_buffer.t3.description",
+      "text": "Mission duration +15 sec. More time, more score opportunities, more risk."
+    },
+    {
+      "key": "module.medal_cash.name",
+      "text": "Medal Cash"
+    },
+    {
+      "key": "module.medal_cash.t1.description",
+      "text": "Earn bonus credits from medals. Bronze +3 / Silver +5 / Gold +7."
+    },
+    {
+      "key": "module.medal_cash.t2.description",
+      "text": "Earn bonus credits from medals. Bronze +3 / Silver +6 / Gold +9."
+    },
+    {
+      "key": "module.medal_cash.t3.description",
+      "text": "Earn bonus credits from medals. Bronze +4 / Silver +7 / Gold +10."
     }
   ]
 }

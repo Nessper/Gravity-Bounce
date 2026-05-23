@@ -68,6 +68,9 @@ public class BallState : MonoBehaviour
     private bool blackTrailAllowed;
     private float blackTrailStopTimer;
 
+    private bool hasModuleVisualPreview;
+    private BallType moduleVisualPreviewType;
+
     private void Awake()
     {
         defaultLayer = LayerMask.NameToLayer(defaultLayerName);
@@ -94,6 +97,7 @@ public class BallState : MonoBehaviour
 
         ApplyLayerForType(type);
         UpdateTrails();
+        UpdateBlackFX();
         UpdateBlackThreatRegistration();
     }
 
@@ -115,11 +119,60 @@ public class BallState : MonoBehaviour
         blackTrailAllowed = false;
         blackTrailStopTimer = 0f;
 
+        hasModuleVisualPreview = false;
+        moduleVisualPreviewType = type;
+
         ApplyVisuals(type);
         ApplyLayerForType(type);
         UpdateTrails();
         UpdateBlackFX();
         UpdateBlackThreatRegistration();
+    }
+
+    public void SetModuleVisualPreview(BallType? previewType)
+    {
+        if (previewType.HasValue)
+        {
+            hasModuleVisualPreview = true;
+            moduleVisualPreviewType = previewType.Value;
+
+            ApplyVisuals(moduleVisualPreviewType);
+            ApplyPreviewTrail(moduleVisualPreviewType);
+            return;
+        }
+
+        hasModuleVisualPreview = false;
+        moduleVisualPreviewType = type;
+
+        ApplyVisuals(type);
+        UpdateTrails();
+    }
+
+    private void ApplyPreviewTrail(BallType previewType)
+    {
+        SetTrail(trailWhite, previewType == BallType.White);
+        SetTrail(trailBlue, previewType == BallType.Blue);
+        SetTrail(trailRed, previewType == BallType.Red);
+        SetTrail(trailBlack, previewType == BallType.Black);
+
+        switch (previewType)
+        {
+            case BallType.White:
+                activeTrail = trailWhite;
+                break;
+
+            case BallType.Blue:
+                activeTrail = trailBlue;
+                break;
+
+            case BallType.Red:
+                activeTrail = trailRed;
+                break;
+
+            case BallType.Black:
+                activeTrail = trailBlack;
+                break;
+        }
     }
 
     private void ApplyVisuals(BallType t)
@@ -159,10 +212,9 @@ public class BallState : MonoBehaviour
 
         int visualLayer =
             t == BallType.Black
-            ? blackBallLayer
-            : defaultLayer;
+                ? blackBallLayer
+                : defaultLayer;
 
-        // Le root reste en Gameplay pour ne pas casser collisions / physique.
         gameObject.layer = defaultLayer;
 
         if (visualRenderer != null)
@@ -222,7 +274,12 @@ public class BallState : MonoBehaviour
         if (activeTrail == null)
             return;
 
-        // Les trails normaux restent toujours actifs.
+        if (hasModuleVisualPreview)
+        {
+            activeTrail.emitting = true;
+            return;
+        }
+
         if (type != BallType.Black)
         {
             activeTrail.emitting = true;
@@ -307,9 +364,7 @@ public class BallState : MonoBehaviour
         UpdateParticleFx(blackCrackleFX, shouldPlay);
     }
 
-    private void UpdateParticleFx(
-        ParticleSystem ps,
-        bool shouldPlay)
+    private void UpdateParticleFx(ParticleSystem ps, bool shouldPlay)
     {
         if (ps == null)
             return;
@@ -330,11 +385,13 @@ public class BallState : MonoBehaviour
 
     private void OnDisable()
     {
+        hasModuleVisualPreview = false;
         UnregisterBlackThreatIfNeeded();
     }
 
     private void OnDestroy()
     {
+        hasModuleVisualPreview = false;
         UnregisterBlackThreatIfNeeded();
     }
 }

@@ -87,10 +87,13 @@ public class ShipRuntimeSetup : MonoBehaviour
             return false;
         }
 
-        runDurationSec = duration;
+        float moduleBonusDuration = 0f;
 
-        // Si ton UI appelle ca "shield", c'est juste un label pour l'instant.
-        shieldSeconds = duration;
+        if (ModuleRuntimeStats.Instance != null)
+            moduleBonusDuration = Mathf.Max(0f, ModuleRuntimeStats.Instance.LevelDurationBonusSec);
+
+        runDurationSec = duration + moduleBonusDuration;
+        shieldSeconds = runDurationSec;
 
         return true;
     }

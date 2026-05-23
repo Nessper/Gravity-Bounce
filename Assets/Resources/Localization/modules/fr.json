@@ -1,3 +1,5 @@
+
+
 {
   "language": "fr",
   "entries": [
@@ -67,6 +69,70 @@
     {
       "key": "module.core_growth.t3.description",
       "text": "Score final +100. Si PV max : +1 PV max."
+    },
+    {
+      "key": "module.black_filter.name",
+      "text": "Filtre noir"
+    },
+    {
+      "key": "module.black_filter.t1.description",
+      "text": "Filtre 1 bille noire par mission en bille blanche."
+    },
+    {
+      "key": "module.black_filter.t2.description",
+      "text": "Filtre 2 billes noires par mission en billes blanches."
+    },
+    {
+      "key": "module.black_filter.t3.description",
+      "text": "Filtre 3 billes noires par mission en billes blanches."
+    },
+    {
+      "key": "module.white_upgrade.name",
+      "text": "Upgrade blanc"
+    },
+    {
+      "key": "module.white_upgrade.t1.description",
+      "text": "À chaque flush, 1 bille blanche devient bleue."
+    },
+    {
+      "key": "module.white_upgrade.t2.description",
+      "text": "À chaque flush, 1 bille blanche devient rouge."
+    },
+    {
+      "key": "module.white_upgrade.t3.description",
+      "text": "À chaque flush, 1 bille blanche devient rouge et 1 bille blanche devient bleue."
+    },
+    {
+      "key": "module.time_buffer.name",
+      "text": "Tampon temporel"
+    },
+    {
+      "key": "module.time_buffer.t1.description",
+      "text": "Durée de mission +5 s. Plus de temps, plus d’opportunités de score, plus de risque."
+    },
+    {
+      "key": "module.time_buffer.t2.description",
+      "text": "Durée de mission +10 s. Plus de temps, plus d’opportunités de score, plus de risque."
+    },
+    {
+      "key": "module.time_buffer.t3.description",
+      "text": "Durée de mission +15 s. Plus de temps, plus d’opportunités de score, plus de risque."
+    },
+    {
+      "key": "module.medal_cash.name",
+      "text": "Prime de médaille"
+    },
+    {
+      "key": "module.medal_cash.t1.description",
+      "text": "Gagnez des crédits bonus selon la médaille. Bronze +3 / Argent +5 / Or +7."
+    },
+    {
+      "key": "module.medal_cash.t2.description",
+      "text": "Gagnez des crédits bonus selon la médaille. Bronze +3 / Argent +6 / Or +9."
+    },
+    {
+      "key": "module.medal_cash.t3.description",
+      "text": "Gagnez des crédits bonus selon la médaille. Bronze +4 / Argent +7 / Or +10."
     }
   ]
 }
