@@ -1,0 +1,145 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89a0aa83ad20f6f43a9341ed0ef1e6f0, type: 3}
+  m_Name: ComboDefinitionCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::ComboDefinitionCatalog
+  definitions:
+  - Id: WhiteStreak
+    Family: 0
+    Intensity: 0
+    NameLocKey: combo.white_streak.name
+    DescriptionLocKey: combo.white_streak.description
+    BonusMode: 1
+    BonusValue: 0.2
+    UiColor: {r: 0.7837753, g: 0.96617097, b: 0.9716981, a: 1}
+    OverlayStyle: 0
+    TimingWindowSec: 0
+    Threshold: 0
+    MaxLevel: 0
+    BonusPerLevel: 0
+  - Id: BlueRush
+    Family: 0
+    Intensity: 1
+    NameLocKey: combo.blue_rush.name
+    DescriptionLocKey: combo.blue_rush.description
+    BonusMode: 1
+    BonusValue: 0.18
+    UiColor: {r: 0.07262372, g: 0.3171436, b: 0.9056604, a: 1}
+    OverlayStyle: 0
+    TimingWindowSec: 0
+    Threshold: 0
+    MaxLevel: 0
+    BonusPerLevel: 0
+  - Id: RedStorm
+    Family: 0
+    Intensity: 2
+    NameLocKey: combo.red_storm.name
+    DescriptionLocKey: combo.red_storm.description
+    BonusMode: 1
+    BonusValue: 0.25
+    UiColor: {r: 0.90588236, g: 0.07450979, b: 0.121851385, a: 1}
+    OverlayStyle: 0
+    TimingWindowSec: 0
+    Threshold: 0
+    MaxLevel: 0
+    BonusPerLevel: 0
+  - Id: FastFlush
+    Family: 2
+    Intensity: 0
+    NameLocKey: combo.fast_flush.name
+    DescriptionLocKey: combo.fast_flush.description
+    BonusMode: 0
+    BonusValue: 100
+    UiColor: {r: 0.07450979, g: 0.90588236, b: 0.90588236, a: 1}
+    OverlayStyle: 2
+    TimingWindowSec: 3
+    Threshold: 0
+    MaxLevel: 0
+    BonusPerLevel: 0
+  - Id: WhiteChain
+    Family: 3
+    Intensity: 0
+    NameLocKey: combo.white_chain.name
+    DescriptionLocKey: combo.white_chain.description
+    BonusMode: 1
+    BonusValue: 0.15
+    UiColor: {r: 0.48126557, g: 0.94770235, b: 0.9716981, a: 1}
+    OverlayStyle: 1
+    TimingWindowSec: 0
+    Threshold: 10
+    MaxLevel: 3
+    BonusPerLevel: 0.05
+  - Id: BlueChain
+    Family: 3
+    Intensity: 1
+    NameLocKey: combo.blue_chain.name
+    DescriptionLocKey: combo.blue_chain.description
+    BonusMode: 1
+    BonusValue: 0.15
+    UiColor: {r: 0.07450979, g: 0.25519595, b: 0.90588236, a: 1}
+    OverlayStyle: 1
+    TimingWindowSec: 0
+    Threshold: 8
+    MaxLevel: 3
+    BonusPerLevel: 0.05
+  - Id: RedChain
+    Family: 3
+    Intensity: 2
+    NameLocKey: combo.red_chain.name
+    DescriptionLocKey: combo.red_storm.description
+    BonusMode: 1
+    BonusValue: 0.15
+    UiColor: {r: 0.90588236, g: 0.07450979, b: 0.121851385, a: 1}
+    OverlayStyle: 1
+    TimingWindowSec: 0
+    Threshold: 6
+    MaxLevel: 3
+    BonusPerLevel: 0.05
+  - Id: SuperFlush
+    Family: 1
+    Intensity: 1
+    NameLocKey: combo.super_flush.name
+    DescriptionLocKey: combo.super_flush.description
+    BonusMode: 1
+    BonusValue: 0.1
+    UiColor: {r: 0.2720447, g: 0.90588236, b: 0.07450979, a: 1}
+    OverlayStyle: 0
+    TimingWindowSec: 0
+    Threshold: 0
+    MaxLevel: 0
+    BonusPerLevel: 0
+  - Id: UltraFlush
+    Family: 1
+    Intensity: 2
+    NameLocKey: combo.ultra_flush.name
+    DescriptionLocKey: combo.ultra_flush.description
+    BonusMode: 1
+    BonusValue: 0.2
+    UiColor: {r: 0.5669162, g: 0.07450979, b: 0.90588236, a: 1}
+    OverlayStyle: 0
+    TimingWindowSec: 0
+    Threshold: 0
+    MaxLevel: 0
+    BonusPerLevel: 0
+  - Id: MonsterFlush
+    Family: 1
+    Intensity: 3
+    NameLocKey: combo.monster_flush.name
+    DescriptionLocKey: combo.monster_flush.description
+    BonusMode: 1
+    BonusValue: 0.3
+    UiColor: {r: 0.90588236, g: 0.47235823, b: 0.07450979, a: 1}
+    OverlayStyle: 0
+    TimingWindowSec: 0
+    Threshold: 0
+    MaxLevel: 0
+    BonusPerLevel: 0

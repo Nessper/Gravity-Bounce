@@ -22,7 +22,7 @@ public class BinCollector : MonoBehaviour
 {
     [Header("Références")]
     [SerializeField] private ScoreManager scoreManager;
-    [SerializeField] private ComboEngine comboEngine;
+    [SerializeField] private FlushResolutionEngine flushResolutionEngine;
     [SerializeField] private BinTrigger leftBin;
     [SerializeField] private BinTrigger rightBin;
     [SerializeField] private BallSpawner spawner;
@@ -205,8 +205,8 @@ public class BinCollector : MonoBehaviour
             if (scoreManager != null)
                 scoreManager.GetSnapshot(snapshot);
 
-            if (comboEngine != null)
-                comboEngine.OnFlush(snapshot);
+            if (flushResolutionEngine != null)
+                flushResolutionEngine.OnFlush(snapshot);
 
             // --------------------------------------------------------
             // 3) Recyclage
@@ -345,38 +345,6 @@ public class BinCollector : MonoBehaviour
         snapshot.totalPointsDuLot = totalPoints;
 
         return snapshot;
-    }
-
-    /// <summary>
-    /// Résout le type logique final d'une bille au flush.
-    ///
-    /// IMPORTANT :
-    /// - Le BallState réel n'est jamais modifié ici.
-    /// - Cette méthode décide seulement comment la bille
-    ///   doit être comptée dans le snapshot.
-    ///
-    /// Famille A :
-    /// - Une noire réservée devient White.
-    /// - La charge est consommée définitivement.
-    /// </summary>
-    private BallType ResolveTypeForFlush(BallState st)
-    {
-        if (st == null)
-            return BallType.White;
-
-        // --------------------------------------------------------
-        // Famille A : Black Filter
-        // --------------------------------------------------------
-        if (BlackFilterRuntimeController.Instance != null)
-        {
-            bool consumed =
-                BlackFilterRuntimeController.Instance.ConsumeReservation(st);
-
-            if (consumed)
-                return BallType.White;
-        }
-
-        return st.type;
     }
 
     /// <summary>

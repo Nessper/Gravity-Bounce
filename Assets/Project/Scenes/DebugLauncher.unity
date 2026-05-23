@@ -275,9 +275,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 471fec000f8ee8a4a85c689c7a5dc1c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainDebugStarterV3
-  startDestination: 0
+  startDestination: 1
   debugWorldId: W1
-  debugNodeIndex: 0
+  debugNodeIndex: 1
   debugShipId: CORE_SCOUT
   debugCurrentHull: 9
   debugContractLives: 2

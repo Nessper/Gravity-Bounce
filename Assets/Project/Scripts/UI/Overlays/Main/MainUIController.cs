@@ -39,6 +39,9 @@ public class MainUIController : MonoBehaviour
     [Header("Overlay Controllers")]
     [SerializeField] private PauseOverlayController pauseOverlayController;
 
+    [Header("Gameplay Overlays")]
+    [SerializeField] private FlushComboOverlayController flushComboOverlayController;
+
     [Header("Timings")]
     [SerializeField] private float briefingFadeDuration = 0.25f;
     [SerializeField] private float closeBriefingFadeDuration = 0.25f;
@@ -507,5 +510,13 @@ public class MainUIController : MonoBehaviour
     public void StopAndHideDialog()
     {
         dialogSequenceRunner?.StopAndHide();
+    }
+
+    public void PlayFlushResolution(FlushResolution resolution)
+    {
+        if (flushComboOverlayController == null)
+            return;
+
+        flushComboOverlayController.Play(resolution);
     }
 }

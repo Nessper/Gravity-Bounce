@@ -45,7 +45,7 @@ public class LevelTutorialController : MonoBehaviour
     [SerializeField] private BinCollector binCollector;
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private HullSystem hullSystem;
-    [SerializeField] private ComboEngine comboEngine;
+    [SerializeField] private FlushResolutionEngine flushResolutionEngine;
 
     [Header("References UI")]
     [SerializeField] private MainUIController mainUIController;
@@ -254,7 +254,7 @@ public class LevelTutorialController : MonoBehaviour
         mainUIController?.ShowTutorialDimmerImmediate();
 
         scoreManager?.ResetForLevelStart(0);
-        comboEngine?.ResetRuntimeState();
+        flushResolutionEngine?.ResetRuntimeState();
 
         if (hullSystem != null)
             hullSystem.RestoreRuntimeState(tutorialStartHull, tutorialStartMaxHull);
