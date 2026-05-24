@@ -3,27 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Controleur de tutoriel ultra cible pour W1-L1.
-///
-/// Principes :
-/// - Le tuto se joue AVANT le vrai StartLevel.
-/// - Les billes de tuto sont hors gameplay reel.
-/// - Si le joueur rate, on rejoue simplement la meme etape.
-/// - Le score / les combos / le hull peuvent vivre normalement pendant le tuto,
-///   puis tout est reset proprement a la fin.
-/// - Le tuto ne se joue qu une seule fois par sauvegarde.
-///
-/// Architecture dialogue :
-/// - Le tuto passe par DialogSequenceRunner, comme le reste du jeu.
-/// - Les messages tuto sont joues en mode interactif.
-/// - Les textes et speakers viennent des sequences JSON.
-/// - Au retry, on ne rejoue que des phrases courtes dediees.
-///
-/// IMPORTANT :
-/// - Le tuto ne pilote plus directement le dimmer global.
-/// - Toute demande visuelle de dimmer passe par MainUIController.
-/// </summary>
 public class LevelTutorialController : MonoBehaviour
 {
     private enum TutorialStepMode
@@ -46,6 +25,9 @@ public class LevelTutorialController : MonoBehaviour
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private HullSystem hullSystem;
     [SerializeField] private FlushResolutionEngine flushResolutionEngine;
+
+    [Header("Ball Definitions")]
+    [SerializeField] private BallDefinitionCatalog ballCatalog;
 
     [Header("References UI")]
     [SerializeField] private MainUIController mainUIController;
@@ -126,6 +108,10 @@ public class LevelTutorialController : MonoBehaviour
 
     private LocalizationManager Loc => LocalizationManager.Instance;
 
+    private BallDefinition WhiteDef => GetDef("white");
+    private BallDefinition BlueDef => GetDef("blue");
+    private BallDefinition BlackDef => GetDef("black");
+
     public bool ShouldRunForLevel(string levelId)
     {
         if (!string.Equals(levelId, tutorialLevelId, StringComparison.Ordinal))
@@ -203,7 +189,6 @@ public class LevelTutorialController : MonoBehaviour
         if (pauseBeforeTutorialOutroSec > 0f)
             yield return new WaitForSeconds(pauseBeforeTutorialOutroSec);
 
-        // Reset sous overlay, pour que la transition soit invisible.
         ResetGameplayStateAfterTutorial();
 
         yield return ShowStepSequence(tutorialOutroSequenceId, keepOverlayVisibleAfter: true);
@@ -273,7 +258,7 @@ public class LevelTutorialController : MonoBehaviour
 
             yield return ShowStepSequence(firstAttempt ? whiteStepSequenceId : whiteRetrySequenceId);
 
-            SpawnActiveTutorialBall(whiteSpawnPosition, whiteVelocity, BallType.White);
+            SpawnActiveTutorialBall(whiteSpawnPosition, whiteVelocity, WhiteDef);
 
             ResetStepState();
             HookEvents();
@@ -315,7 +300,7 @@ public class LevelTutorialController : MonoBehaviour
 
             yield return ShowStepSequence(firstAttempt ? blackStepSequenceId : blackRetrySequenceId);
 
-            SpawnActiveTutorialBall(blackSpawnPosition, blackVelocity, BallType.Black);
+            SpawnActiveTutorialBall(blackSpawnPosition, blackVelocity, BlackDef);
 
             ResetStepState();
             HookEvents();
@@ -358,11 +343,11 @@ public class LevelTutorialController : MonoBehaviour
             if (binCollector != null)
                 binCollector.SetAutoFlushEnabled(false);
 
-            yield return StartCoroutine(PrepareFlushPrefillRoutine(BallType.White, 4));
+            yield return StartCoroutine(PrepareFlushPrefillRoutine(WhiteDef, 4));
 
             yield return ShowStepSequence(firstAttempt ? flushStepSequenceId : flushRetrySequenceId);
 
-            SpawnActiveTutorialBall(flushSpawnPosition, flushVelocity, BallType.Blue);
+            SpawnActiveTutorialBall(flushSpawnPosition, flushVelocity, BlueDef);
 
             ResetStepState();
             HookEvents();
@@ -412,7 +397,7 @@ public class LevelTutorialController : MonoBehaviour
 
             yield return ShowStepSequence(firstAttempt ? blackHullStepSequenceId : blackHullRetrySequenceId);
 
-            SpawnActiveTutorialBall(blackHullSpawnPosition, blackHullVelocity, BallType.White);
+            SpawnActiveTutorialBall(blackHullSpawnPosition, blackHullVelocity, WhiteDef);
 
             ResetStepState();
             HookEvents();
@@ -457,7 +442,7 @@ public class LevelTutorialController : MonoBehaviour
         currentStepMode = TutorialStepMode.None;
     }
 
-    private IEnumerator PrepareFlushPrefillRoutine(BallType prefillType, int targetCount)
+    private IEnumerator PrepareFlushPrefillRoutine(BallDefinition prefillDefinition, int targetCount)
     {
         if (flushPrefillSlots == null || flushPrefillSlots.Length < targetCount)
         {
@@ -475,7 +460,7 @@ public class LevelTutorialController : MonoBehaviour
         for (int i = 0; i < targetCount; i++)
         {
             Transform slot = flushPrefillSlots[i];
-            SpawnTutorialPrefillBall(slot, prefillType);
+            SpawnTutorialPrefillBall(slot, prefillDefinition);
         }
 
         float elapsed = 0f;
@@ -507,10 +492,10 @@ public class LevelTutorialController : MonoBehaviour
             yield break;
         }
 
-        SpawnTutorialPrefillBall(blackHullPrefillSlots[0], BallType.White);
-        SpawnTutorialPrefillBall(blackHullPrefillSlots[1], BallType.White);
-        SpawnTutorialPrefillBall(blackHullPrefillSlots[2], BallType.White);
-        SpawnTutorialPrefillBall(blackHullPrefillSlots[3], BallType.Black);
+        SpawnTutorialPrefillBall(blackHullPrefillSlots[0], WhiteDef);
+        SpawnTutorialPrefillBall(blackHullPrefillSlots[1], WhiteDef);
+        SpawnTutorialPrefillBall(blackHullPrefillSlots[2], WhiteDef);
+        SpawnTutorialPrefillBall(blackHullPrefillSlots[3], BlackDef);
 
         float elapsed = 0f;
 
@@ -524,21 +509,52 @@ public class LevelTutorialController : MonoBehaviour
             Debug.LogWarning("[LevelTutorialController] Prefill BlackHull incomplet avant timeout. Count=" + targetTrigger.Count);
     }
 
-    private void SpawnTutorialPrefillBall(Transform slot, BallType type)
+    private void SpawnTutorialPrefillBall(Transform slot, BallDefinition definition)
     {
-        if (slot == null || ballSpawner == null)
+        if (slot == null || ballSpawner == null || definition == null)
             return;
 
         GameObject go = ballSpawner.SpawnTutorialBall(
             slot.position,
             Vector3.zero,
-            type,
+            definition,
             releasePhysics: true,
             applyInitialVelocity: false
         );
 
         if (go != null)
             RegisterTutorialBall(go);
+    }
+
+    private void SpawnActiveTutorialBall(Vector3 position, Vector3 velocity, BallDefinition definition)
+    {
+        CleanupActiveTutorialBallOnly();
+
+        if (ballSpawner == null)
+        {
+            Debug.LogError("[LevelTutorialController] ballSpawner manquant.");
+            return;
+        }
+
+        if (definition == null)
+        {
+            Debug.LogError("[LevelTutorialController] BallDefinition manquante pour le spawn tuto.");
+            return;
+        }
+
+        activeTutorialBall = ballSpawner.SpawnTutorialBall(
+            position,
+            velocity,
+            definition,
+            releasePhysics: true,
+            applyInitialVelocity: true
+        );
+
+        activeTutorialBallState = activeTutorialBall != null
+            ? activeTutorialBall.GetComponent<BallState>()
+            : null;
+
+        RegisterTutorialBall(activeTutorialBall);
     }
 
     private IEnumerator ShowStepSequence(string sequenceId, bool keepOverlayVisibleAfter = false)
@@ -624,31 +640,6 @@ public class LevelTutorialController : MonoBehaviour
 
         while (!done)
             yield return null;
-    }
-
-    private void SpawnActiveTutorialBall(Vector3 position, Vector3 velocity, BallType type)
-    {
-        CleanupActiveTutorialBallOnly();
-
-        if (ballSpawner == null)
-        {
-            Debug.LogError("[LevelTutorialController] ballSpawner manquant.");
-            return;
-        }
-
-        activeTutorialBall = ballSpawner.SpawnTutorialBall(
-            position,
-            velocity,
-            type,
-            releasePhysics: true,
-            applyInitialVelocity: true
-        );
-
-        activeTutorialBallState = activeTutorialBall != null
-            ? activeTutorialBall.GetComponent<BallState>()
-            : null;
-
-        RegisterTutorialBall(activeTutorialBall);
     }
 
     private void RegisterTutorialBall(GameObject go)
@@ -770,28 +761,28 @@ public class LevelTutorialController : MonoBehaviour
         activeTutorialBall = null;
         activeTutorialBallState = null;
 
-        if (currentStepMode == TutorialStepMode.White && lostBall.type == BallType.White)
+        if (currentStepMode == TutorialStepMode.White && IsBall(lostBall, "white"))
         {
             stepFailed = true;
             waitingStepResult = false;
             return;
         }
 
-        if (currentStepMode == TutorialStepMode.Black && lostBall.type == BallType.Black)
+        if (currentStepMode == TutorialStepMode.Black && IsBall(lostBall, "black"))
         {
             stepSucceeded = true;
             waitingStepResult = false;
             return;
         }
 
-        if (currentStepMode == TutorialStepMode.Flush && lostBall.type == BallType.Blue)
+        if (currentStepMode == TutorialStepMode.Flush && IsBall(lostBall, "blue"))
         {
             stepFailed = true;
             waitingStepResult = false;
             return;
         }
 
-        if (currentStepMode == TutorialStepMode.BlackHull && lostBall.type == BallType.White)
+        if (currentStepMode == TutorialStepMode.BlackHull && IsBall(lostBall, "white"))
         {
             stepFailed = true;
             waitingStepResult = false;
@@ -808,7 +799,7 @@ public class LevelTutorialController : MonoBehaviour
 
         if (currentStepMode == TutorialStepMode.White)
         {
-            if (enteredBall.type == BallType.White)
+            if (IsBall(enteredBall, "white"))
             {
                 stepSucceeded = true;
                 waitingStepResult = false;
@@ -819,7 +810,7 @@ public class LevelTutorialController : MonoBehaviour
 
         if (currentStepMode == TutorialStepMode.Black)
         {
-            if (enteredBall.type == BallType.Black)
+            if (IsBall(enteredBall, "black"))
             {
                 stepFailed = true;
                 waitingStepResult = false;
@@ -919,5 +910,25 @@ public class LevelTutorialController : MonoBehaviour
             return rightBinTrigger;
 
         return null;
+    }
+
+    private BallDefinition GetDef(string id)
+    {
+        if (ballCatalog == null)
+            return null;
+
+        ballCatalog.TryGet(id, out BallDefinition def);
+        return def;
+    }
+
+    private bool IsBall(BallState st, string id)
+    {
+        if (st == null)
+            return false;
+
+        return string.Equals(
+            st.BallId,
+            id,
+            StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -18,7 +18,6 @@ public struct PhasePlanInfo
     public float DurationSec;
     public float IntervalSec;
     public int Quota;
-
     public BallPlanCount[] Counts;
 }
 
@@ -56,8 +55,8 @@ public class BallSpawner : MonoBehaviour
     public event Action<int> OnPlannedReady;
     public event Action<int> OnActivated;
 
-    private readonly Dictionary<string, int> recycledCollectedByBallId = new();
-    private readonly Dictionary<string, int> recycledLostByBallId = new();
+    private readonly Dictionary<string, int> recycledCollectedByBallId = new Dictionary<string, int>();
+    private readonly Dictionary<string, int> recycledLostByBallId = new Dictionary<string, int>();
 
     private LevelData data;
 
@@ -73,21 +72,21 @@ public class BallSpawner : MonoBehaviour
 
     private struct MixEntry
     {
-        public BallType t;
-        public float w;
+        public BallDefinition definition;
+        public float weight;
     }
 
     private struct ForcedInsertion
     {
         public int index;
-        public BallType type;
+        public BallDefinition definition;
     }
 
-    private readonly List<PhasePlan> plans = new();
-    private readonly List<List<MixEntry>> mixes = new();
-    private readonly List<float> mixTotals = new();
-    private readonly List<Queue<BallType>> typeQueues = new();
-    private readonly Stack<GameObject> pool = new();
+    private readonly List<PhasePlan> plans = new List<PhasePlan>();
+    private readonly List<List<MixEntry>> mixes = new List<List<MixEntry>>();
+    private readonly List<float> mixTotals = new List<float>();
+    private readonly List<Queue<BallDefinition>> definitionQueues = new List<Queue<BallDefinition>>();
+    private readonly Stack<GameObject> pool = new Stack<GameObject>();
 
     private Coroutine prewarmCoro;
     private Coroutine loop;
@@ -105,12 +104,15 @@ public class BallSpawner : MonoBehaviour
     {
         data = levelData;
 
+        if (ballCatalog != null)
+            ballCatalog.Initialize();
+
         recycledCollectedByBallId.Clear();
         recycledLostByBallId.Clear();
 
         BuildPlansFromWeights(totalRunSec);
         BuildMixes();
-        BuildTypeQueues();
+        BuildDefinitionQueues();
 
         PlannedSpawnCount = plannedTotal;
 
@@ -138,9 +140,9 @@ public class BallSpawner : MonoBehaviour
     {
         if (data != null && data.Phases != null && phaseIndex >= 0 && phaseIndex < data.Phases.Length)
         {
-            float phaseIv = data.Phases[phaseIndex].Intervalle;
-            if (phaseIv > 0f)
-                return phaseIv;
+            float phaseInterval = data.Phases[phaseIndex].Intervalle;
+            if (phaseInterval > 0f)
+                return phaseInterval;
         }
 
         return GetGlobalSpawnInterval();
@@ -153,21 +155,21 @@ public class BallSpawner : MonoBehaviour
         if (data == null || data.Phases == null || totalRunSec <= 0f)
             return;
 
-        float sumW = 0f;
+        float sumWeight = 0f;
 
         for (int i = 0; i < data.Phases.Length; i++)
-            sumW += Mathf.Max(0f, data.Phases[i].Weight);
+            sumWeight += Mathf.Max(0f, data.Phases[i].Weight);
 
-        if (sumW <= 0f)
+        if (sumWeight <= 0f)
             return;
 
         float accumulated = 0f;
 
         for (int i = 0; i < data.Phases.Length; i++)
         {
-            PhaseData ph = data.Phases[i];
+            PhaseData phase = data.Phases[i];
 
-            float duration = (ph.Weight / sumW) * totalRunSec;
+            float duration = (phase.Weight / sumWeight) * totalRunSec;
             if (i == data.Phases.Length - 1)
                 duration = Mathf.Max(0f, totalRunSec - accumulated);
 
@@ -176,11 +178,11 @@ public class BallSpawner : MonoBehaviour
             plans.Add(new PhasePlan
             {
                 Index = i,
-                Name = string.IsNullOrWhiteSpace(ph.Name) ? $"PHASE {i + 1}" : ph.Name,
+                Name = string.IsNullOrWhiteSpace(phase.Name) ? "PHASE " + (i + 1) : phase.Name,
                 DurationSec = Mathf.Max(0f, duration),
                 Interval = Mathf.Max(0.0001f, interval),
                 Quota = 0,
-                Weight = Mathf.Max(0f, ph.Weight)
+                Weight = Mathf.Max(0f, phase.Weight)
             });
 
             accumulated += duration;
@@ -197,35 +199,51 @@ public class BallSpawner : MonoBehaviour
 
         for (int i = 0; i < data.Phases.Length; i++)
         {
-            PhaseData ph = data.Phases[i];
+            PhaseData phase = data.Phases[i];
 
-            List<MixEntry> list = new();
+            List<MixEntry> list = new List<MixEntry>();
             float total = 0f;
 
-            if (ph != null && ph.Mix != null)
+            if (phase != null && phase.Mix != null)
             {
-                for (int k = 0; k < ph.Mix.Length; k++)
+                for (int k = 0; k < phase.Mix.Length; k++)
                 {
-                    PhaseMixEntry m = ph.Mix[k];
-                    if (m == null || string.IsNullOrWhiteSpace(m.BallId))
+                    PhaseMixEntry mix = phase.Mix[k];
+
+                    if (mix == null || string.IsNullOrWhiteSpace(mix.BallId))
                         continue;
 
-                    if (!Enum.TryParse(m.BallId, true, out BallType t))
+                    BallDefinition definition = GetDefinition(mix.BallId);
+                    if (definition == null)
                         continue;
 
-                    float weight = Mathf.Max(0f, m.Poids);
+                    float weight = Mathf.Max(0f, mix.Poids);
                     if (weight <= 0f)
                         continue;
 
-                    list.Add(new MixEntry { t = t, w = weight });
+                    list.Add(new MixEntry
+                    {
+                        definition = definition,
+                        weight = weight
+                    });
+
                     total += weight;
                 }
             }
 
             if (list.Count == 0)
             {
-                list.Add(new MixEntry { t = BallType.White, w = 1f });
-                total = 1f;
+                BallDefinition fallback = DefaultDefinition();
+                if (fallback != null)
+                {
+                    list.Add(new MixEntry
+                    {
+                        definition = fallback,
+                        weight = 1f
+                    });
+
+                    total = 1f;
+                }
             }
 
             mixes.Add(list);
@@ -241,9 +259,9 @@ public class BallSpawner : MonoBehaviour
         return Mathf.Max(0, Mathf.FloorToInt((durationSec - 0.0001f) / intervalSec));
     }
 
-    private void BuildTypeQueues()
+    private void BuildDefinitionQueues()
     {
-        typeQueues.Clear();
+        definitionQueues.Clear();
 
         plannedTotal = 0;
         PlannedNonBlackSpawnCount = 0;
@@ -256,25 +274,25 @@ public class BallSpawner : MonoBehaviour
 
         for (int i = 0; i < plans.Count; i++)
         {
-            PhasePlan p = plans[i];
-            p.Interval = Mathf.Max(0.0001f, GetDesignIntervalForPhase(i));
-            p.Quota = ComputePhaseQuota(p.DurationSec, p.Interval);
-            plans[i] = p;
+            PhasePlan plan = plans[i];
+            plan.Interval = Mathf.Max(0.0001f, GetDesignIntervalForPhase(i));
+            plan.Quota = ComputePhaseQuota(plan.DurationSec, plan.Interval);
+            plans[i] = plan;
 
-            plannedTotal += p.Quota;
+            plannedTotal += plan.Quota;
         }
 
         for (int i = 0; i < plans.Count; i++)
         {
             int count = plans[i].Quota;
             List<MixEntry> mix = mixes[i];
-            float totalW = mixTotals[i];
+            float totalWeight = mixTotals[i];
 
-            Queue<BallType> queue = new(count);
+            Queue<BallDefinition> queue = new Queue<BallDefinition>(count);
 
             if (count <= 0)
             {
-                typeQueues.Add(queue);
+                definitionQueues.Add(queue);
                 continue;
             }
 
@@ -285,51 +303,53 @@ public class BallSpawner : MonoBehaviour
 
             int remaining = Mathf.Max(0, count - forced.Count);
 
-            List<BallType> baseList = BuildBaseListFromMix(mix, totalW, remaining);
-            List<BallType> finalTypes = BuildFinalListWithForced(baseList, forced, count);
+            List<BallDefinition> baseList = BuildBaseListFromMix(mix, totalWeight, remaining);
+            List<BallDefinition> finalDefinitions = BuildFinalListWithForced(baseList, forced, count);
 
-            for (int k = 0; k < finalTypes.Count; k++)
+            for (int k = 0; k < finalDefinitions.Count; k++)
             {
-                BallType t = finalTypes[k];
+                BallDefinition definition = finalDefinitions[k];
 
-                RegisterPlannedType(t);
-                AddPhaseCount(phaseCounts[i], t);
+                RegisterPlannedDefinition(definition);
+                AddPhaseCount(phaseCounts[i], definition);
 
-                queue.Enqueue(t);
+                queue.Enqueue(definition);
             }
 
-            typeQueues.Add(queue);
+            definitionQueues.Add(queue);
         }
 
         publicPhasePlans = new PhasePlanInfo[plans.Count];
 
         for (int i = 0; i < plans.Count; i++)
         {
-            PhasePlan p = plans[i];
+            PhasePlan plan = plans[i];
 
             publicPhasePlans[i] = new PhasePlanInfo
             {
-                Index = p.Index,
-                Name = p.Name,
-                DurationSec = p.DurationSec,
-                IntervalSec = p.Interval,
-                Quota = p.Quota,
+                Index = plan.Index,
+                Name = plan.Name,
+                DurationSec = plan.DurationSec,
+                IntervalSec = plan.Interval,
+                Quota = plan.Quota,
                 Counts = BuildBallPlanCounts(phaseCounts[i])
             };
         }
     }
 
-    private List<BallType> BuildBaseListFromMix(List<MixEntry> mix, float totalW, int count)
+    private List<BallDefinition> BuildBaseListFromMix(List<MixEntry> mix, float totalWeight, int count)
     {
-        List<BallType> result = new(count);
+        List<BallDefinition> result = new List<BallDefinition>(count);
 
         if (count <= 0)
             return result;
 
-        if (mix == null || mix.Count == 0 || totalW <= 0f)
+        if (mix == null || mix.Count == 0 || totalWeight <= 0f)
         {
+            BallDefinition fallback = DefaultDefinition();
+
             for (int i = 0; i < count; i++)
-                result.Add(DefaultType());
+                result.Add(fallback);
 
             return result;
         }
@@ -342,7 +362,7 @@ public class BallSpawner : MonoBehaviour
 
         for (int i = 0; i < n; i++)
         {
-            float target = (mix[i].w / totalW) * count;
+            float target = (mix[i].weight / totalWeight) * count;
             int baseInt = Mathf.FloorToInt(target);
 
             alloc[i] = baseInt;
@@ -354,7 +374,7 @@ public class BallSpawner : MonoBehaviour
 
         if (remaining > 0)
         {
-            List<int> indexes = new(n);
+            List<int> indexes = new List<int>(n);
 
             for (int i = 0; i < n; i++)
                 indexes.Add(i);
@@ -381,52 +401,149 @@ public class BallSpawner : MonoBehaviour
             if (tries >= n)
                 break;
 
-            result.Add(mix[cursor].t);
+            result.Add(mix[cursor].definition);
             alloc[cursor]--;
             leftTotal--;
 
             cursor = (cursor + 1) % n;
         }
 
+        BallDefinition fallbackDefinition = DefaultDefinition();
+
         while (result.Count < count)
-            result.Add(DefaultType());
+            result.Add(fallbackDefinition);
 
         return result;
     }
 
-    private void RegisterPlannedType(BallType type)
+    private List<ForcedInsertion> BuildForcedInsertionsForPhase(int phaseIndex, int count)
     {
-        BallDefinition def = GetDefinition(type);
+        List<ForcedInsertion> list = new List<ForcedInsertion>();
 
-        if (def != null)
+        if (data == null || data.Phases == null || phaseIndex < 0 || phaseIndex >= data.Phases.Length)
+            return list;
+
+        PhaseData phase = data.Phases[phaseIndex];
+
+        if (phase == null || phase.ForcedSpawns == null)
+            return list;
+
+        for (int i = 0; i < phase.ForcedSpawns.Length; i++)
         {
-            if (def.IsDanger)
-                PlannedBlackSpawnCount++;
+            ForcedSpawnEntry forced = phase.ForcedSpawns[i];
 
-            if (def.CountsForProgress)
-                PlannedNonBlackSpawnCount++;
+            if (forced == null || string.IsNullOrWhiteSpace(forced.BallId))
+                continue;
 
-            return;
+            BallDefinition definition = GetDefinition(forced.BallId);
+            if (definition == null)
+                continue;
+
+            int forcedCount = Mathf.Max(0, forced.Count);
+            if (forcedCount == 0)
+                continue;
+
+            int baseIndex;
+
+            if (forced.AtPercent >= 0f && forced.AtPercent <= 1f)
+                baseIndex = Mathf.Clamp(Mathf.RoundToInt(forced.AtPercent * (count - 1)), 0, Mathf.Max(0, count - 1));
+            else
+                baseIndex = Mathf.Clamp(count / 2, 0, Mathf.Max(0, count - 1));
+
+            for (int k = 0; k < forcedCount; k++)
+            {
+                int offset = k == 0 ? 0 : (k % 2 == 1 ? (k + 1) / 2 : -k / 2);
+                int index = Mathf.Clamp(baseIndex + offset, 0, Mathf.Max(0, count - 1));
+
+                list.Add(new ForcedInsertion
+                {
+                    index = index,
+                    definition = definition
+                });
+            }
         }
 
-        // fallback legacy
-        if (type == BallType.Black)
+        list.Sort((a, b) => a.index.CompareTo(b.index));
+        return list;
+    }
+
+    private List<BallDefinition> BuildFinalListWithForced(
+        List<BallDefinition> baseList,
+        List<ForcedInsertion> forced,
+        int finalCount)
+    {
+        List<BallDefinition> result = new List<BallDefinition>(finalCount);
+
+        int baseCursor = 0;
+        int forcedCursor = 0;
+
+        for (int outIndex = 0; outIndex < finalCount; outIndex++)
+        {
+            bool inserted = false;
+
+            if (forced != null)
+            {
+                while (forcedCursor < forced.Count && forced[forcedCursor].index == outIndex)
+                {
+                    result.Add(forced[forcedCursor].definition);
+                    forcedCursor++;
+                    inserted = true;
+
+                    if (result.Count >= finalCount)
+                        return result;
+                }
+            }
+
+            if (inserted)
+                continue;
+
+            if (baseList != null && baseCursor < baseList.Count)
+            {
+                result.Add(baseList[baseCursor]);
+                baseCursor++;
+            }
+            else
+            {
+                result.Add(DefaultDefinition());
+            }
+        }
+
+        if (forced != null)
+        {
+            while (result.Count < finalCount && forcedCursor < forced.Count)
+            {
+                result.Add(forced[forcedCursor].definition);
+                forcedCursor++;
+            }
+        }
+
+        if (result.Count > finalCount)
+            result.RemoveRange(finalCount, result.Count - finalCount);
+
+        return result;
+    }
+
+    private void RegisterPlannedDefinition(BallDefinition definition)
+    {
+        if (definition == null)
+            return;
+
+        if (definition.IsDanger)
             PlannedBlackSpawnCount++;
-        else
+
+        if (definition.CountsForProgress)
             PlannedNonBlackSpawnCount++;
     }
 
-    private void AddPhaseCount(Dictionary<string, int> counts, BallType type)
+    private void AddPhaseCount(Dictionary<string, int> counts, BallDefinition definition)
     {
-        if (counts == null)
+        if (counts == null || definition == null || string.IsNullOrWhiteSpace(definition.Id))
             return;
 
-        string id = type.ToString().ToLower();
+        if (!counts.ContainsKey(definition.Id))
+            counts[definition.Id] = 0;
 
-        if (!counts.ContainsKey(id))
-            counts[id] = 0;
-
-        counts[id]++;
+        counts[definition.Id]++;
     }
 
     private BallPlanCount[] BuildBallPlanCounts(Dictionary<string, int> counts)
@@ -452,115 +569,37 @@ public class BallSpawner : MonoBehaviour
         return result;
     }
 
-    private List<ForcedInsertion> BuildForcedInsertionsForPhase(int phaseIndex, int count)
+    private BallDefinition NextDefinitionForPhase(int phaseIdx)
     {
-        List<ForcedInsertion> list = new();
+        if (phaseIdx < 0 || phaseIdx >= definitionQueues.Count)
+            return DefaultDefinition();
 
-        if (data == null || data.Phases == null || phaseIndex < 0 || phaseIndex >= data.Phases.Length)
-            return list;
+        Queue<BallDefinition> queue = definitionQueues[phaseIdx];
 
-        PhaseData ph = data.Phases[phaseIndex];
+        if (queue == null || queue.Count == 0)
+            return DefaultDefinition();
 
-        if (ph == null || ph.ForcedSpawns == null)
-            return list;
-
-        for (int i = 0; i < ph.ForcedSpawns.Length; i++)
-        {
-            ForcedSpawnEntry f = ph.ForcedSpawns[i];
-
-            if (f == null || string.IsNullOrWhiteSpace(f.BallId))
-                continue;
-
-            if (!Enum.TryParse(f.BallId, true, out BallType t))
-                continue;
-
-            int forcedCount = Mathf.Max(0, f.Count);
-            if (forcedCount == 0)
-                continue;
-
-            int baseIndex;
-
-            if (f.AtPercent >= 0f && f.AtPercent <= 1f)
-                baseIndex = Mathf.Clamp(Mathf.RoundToInt(f.AtPercent * (count - 1)), 0, Mathf.Max(0, count - 1));
-            else
-                baseIndex = Mathf.Clamp(count / 2, 0, Mathf.Max(0, count - 1));
-
-            for (int k = 0; k < forcedCount; k++)
-            {
-                int offset = k == 0 ? 0 : (k % 2 == 1 ? (k + 1) / 2 : -k / 2);
-                int index = Mathf.Clamp(baseIndex + offset, 0, Mathf.Max(0, count - 1));
-
-                list.Add(new ForcedInsertion
-                {
-                    index = index,
-                    type = t
-                });
-            }
-        }
-
-        list.Sort((a, b) => a.index.CompareTo(b.index));
-        return list;
+        return queue.Dequeue();
     }
 
-    private List<BallType> BuildFinalListWithForced(List<BallType> baseList, List<ForcedInsertion> forced, int finalCount)
-    {
-        List<BallType> result = new(finalCount);
-
-        int baseCursor = 0;
-        int forcedCursor = 0;
-
-        for (int outIndex = 0; outIndex < finalCount; outIndex++)
-        {
-            bool inserted = false;
-
-            if (forced != null)
-            {
-                while (forcedCursor < forced.Count && forced[forcedCursor].index == outIndex)
-                {
-                    result.Add(forced[forcedCursor].type);
-                    forcedCursor++;
-                    inserted = true;
-
-                    if (result.Count >= finalCount)
-                        return result;
-                }
-            }
-
-            if (inserted)
-                continue;
-
-            if (baseList != null && baseCursor < baseList.Count)
-            {
-                result.Add(baseList[baseCursor]);
-                baseCursor++;
-            }
-            else
-            {
-                result.Add(DefaultType());
-            }
-        }
-
-        if (forced != null)
-        {
-            while (result.Count < finalCount && forcedCursor < forced.Count)
-            {
-                result.Add(forced[forcedCursor].type);
-                forcedCursor++;
-            }
-        }
-
-        if (result.Count > finalCount)
-            result.RemoveRange(finalCount, result.Count - finalCount);
-
-        return result;
-    }
-
-    private BallType DefaultType()
+    private BallDefinition DefaultDefinition()
     {
         if (ballCatalog != null && ballCatalog.DefaultBall != null)
-            return ballCatalog.DefaultBall.LegacyType;
+            return ballCatalog.DefaultBall;
 
-        return BallType.White;
+        return null;
+    }
+
+    private BallDefinition GetDefinition(string ballId)
+    {
+        if (ballCatalog == null)
+            return null;
+
+        if (string.IsNullOrWhiteSpace(ballId))
+            return null;
+
+        ballCatalog.TryGet(ballId, out BallDefinition definition);
+        return definition;
     }
 
     public void StartPrewarm(int budgetPerFrame = 256)
@@ -580,7 +619,7 @@ public class BallSpawner : MonoBehaviour
         }
 
         int toCreate = PlannedSpawnCount;
-        WaitForEndOfFrame wait = new();
+        WaitForEndOfFrame wait = new WaitForEndOfFrame();
 
         while (toCreate > 0)
         {
@@ -640,16 +679,16 @@ public class BallSpawner : MonoBehaviour
             if (!running)
                 break;
 
-            PhasePlan p = plans[phase];
-            CurrentPhaseIndex = p.Index;
+            PhasePlan plan = plans[phase];
+            CurrentPhaseIndex = plan.Index;
 
-            OnPhaseChanged?.Invoke(CurrentPhaseIndex, p.Name);
+            OnPhaseChanged?.Invoke(CurrentPhaseIndex, plan.Name);
 
-            int toSpawn = Mathf.Max(0, p.Quota);
+            int toSpawn = Mathf.Max(0, plan.Quota);
 
             for (int s = 0; s < toSpawn && running; s++)
             {
-                yield return WaitSecondsAccurate(p.Interval);
+                yield return WaitSecondsAccurate(plan.Interval);
 
                 if (!running)
                     break;
@@ -708,9 +747,7 @@ public class BallSpawner : MonoBehaviour
             grace.StartGrace();
         }
 
-        BallType type = NextTypeForPhase(phaseIdx);
-        BallDefinition def = GetDefinition(type);
-        int points = def != null ? def.BasePoints : 0;
+        BallDefinition definition = NextDefinitionForPhase(phaseIdx);
 
         if (go.TryGetComponent(out BallState st))
         {
@@ -719,8 +756,7 @@ public class BallSpawner : MonoBehaviour
             st.currentSide = Side.None;
             st.isTutorialBall = false;
 
-            st.Initialize(type, points);
-            st.SetDefinition(def);
+            st.Initialize(definition);
         }
 
         activatedCount++;
@@ -728,23 +764,15 @@ public class BallSpawner : MonoBehaviour
         scoreManager?.RegisterRealSpawn();
     }
 
-    private BallType NextTypeForPhase(int phaseIdx)
-    {
-        if (phaseIdx < 0 || phaseIdx >= typeQueues.Count)
-            return DefaultType();
-
-        Queue<BallType> queue = typeQueues[phaseIdx];
-
-        if (queue == null || queue.Count == 0)
-            return DefaultType();
-
-        return queue.Dequeue();
-    }
-
-    public void Recycle(GameObject go, BallType type, bool collected = false)
+    public void Recycle(GameObject go, bool collected = false)
     {
         if (go == null)
             return;
+
+        string ballId = "unknown";
+
+        if (go.TryGetComponent(out BallState st))
+            ballId = st.BallId;
 
         if (go.TryGetComponent(out Rigidbody rb))
         {
@@ -758,8 +786,6 @@ public class BallSpawner : MonoBehaviour
 
         go.SetActive(false);
         pool.Push(go);
-
-        string ballId = GetBallId(type);
 
         Dictionary<string, int> target = collected
             ? recycledCollectedByBallId
@@ -776,20 +802,10 @@ public class BallSpawner : MonoBehaviour
             recycledLost++;
     }
 
-    public void Recycle(GameObject go, bool collected = false)
-    {
-        BallType type = DefaultType();
-
-        if (go != null && go.TryGetComponent(out BallState st))
-            type = st.type;
-
-        Recycle(go, type, collected);
-    }
-
     public GameObject SpawnTutorialBall(
         Vector3 position,
         Vector3 velocity,
-        BallType type,
+        BallDefinition definition,
         bool releasePhysics = true,
         bool applyInitialVelocity = true)
     {
@@ -841,9 +857,6 @@ public class BallSpawner : MonoBehaviour
                 grace.StartGrace();
         }
 
-        BallDefinition def = GetDefinition(type);
-        int points = def != null ? def.BasePoints : 0;
-
         if (go.TryGetComponent(out BallState st))
         {
             st.inBin = false;
@@ -851,15 +864,14 @@ public class BallSpawner : MonoBehaviour
             st.currentSide = Side.None;
             st.isTutorialBall = true;
 
-            st.Initialize(type, points);
-            st.SetDefinition(def);
+            st.Initialize(definition);
         }
 
         if (releasePhysics && tutorialReleasePhysicsNextFrame)
             StartCoroutine(ReleaseTutorialBallNextFrame(go, velocity, applyInitialVelocity));
 
         if (logTutorialSpawn)
-            StartCoroutine(LogTutorialSpawnNextFrame(go, type));
+            StartCoroutine(LogTutorialSpawnNextFrame(go, definition));
 
         return go;
     }
@@ -888,7 +900,7 @@ public class BallSpawner : MonoBehaviour
             grace.StartGrace();
     }
 
-    private IEnumerator LogTutorialSpawnNextFrame(GameObject go, BallType type)
+    private IEnumerator LogTutorialSpawnNextFrame(GameObject go, BallDefinition definition)
     {
         yield return null;
     }
@@ -912,27 +924,6 @@ public class BallSpawner : MonoBehaviour
         return copy;
     }
 
-    private BallDefinition GetDefinition(BallType type)
-    {
-        if (ballCatalog == null)
-            return null;
-
-        string id = type.ToString().ToLower();
-        ballCatalog.TryGet(id, out BallDefinition def);
-
-        return def;
-    }
-
-    private string GetBallId(BallType type)
-    {
-        BallDefinition def = GetDefinition(type);
-
-        if (def != null && !string.IsNullOrWhiteSpace(def.Id))
-            return def.Id;
-
-        return type.ToString().ToLower();
-    }
-
     private string BuildStatsString(Dictionary<string, int> stats)
     {
         if (stats == null || stats.Count == 0)
@@ -940,7 +931,7 @@ public class BallSpawner : MonoBehaviour
 
         string result = "";
 
-        foreach (var kv in stats)
+        foreach (KeyValuePair<string, int> kv in stats)
         {
             if (kv.Value > 0)
                 result += kv.Key + ":" + kv.Value + " ";

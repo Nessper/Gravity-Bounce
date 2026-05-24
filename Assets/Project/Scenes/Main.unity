@@ -1922,6 +1922,7 @@ MonoBehaviour:
   leftBin: {fileID: 2142159875}
   rightBin: {fileID: 627939179}
   spawner: {fileID: 1342328577}
+  ballCatalog: {fileID: 11400000, guid: f331750a1fa32a4438c5e6eed8a14a4d, type: 2}
   hullSystem: {fileID: 428569276}
   leftFlushFx: {fileID: 2142159877}
   rightFlushFx: {fileID: 627939181}
@@ -3791,6 +3792,7 @@ MonoBehaviour:
   scoreManager: {fileID: 975156268}
   hullSystem: {fileID: 428569276}
   flushResolutionEngine: {fileID: 1968101438}
+  ballCatalog: {fileID: 11400000, guid: f331750a1fa32a4438c5e6eed8a14a4d, type: 2}
   mainUIController: {fileID: 855623659}
   hullUI: {fileID: 6918410642100143045}
   tutorialLevelId: W1-L1
@@ -16384,6 +16386,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11c6008194ee65642a2a752895731cb4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlackFilterRuntimeController
+  blackDefinition: {fileID: 11400000, guid: 643b27834f5c0c24fbcef8030f3e690c, type: 2}
+  whiteDefinition: {fileID: 11400000, guid: aa9550b0401405347859fc659f73450f, type: 2}
   maxChargesThisMission: 0
   consumedCharges: 0
 --- !u!1 &597808800
@@ -17498,6 +17502,22 @@ PrefabInstance:
       propertyPath: collector
       value: 
       objectReference: {fileID: 111438863}
+    - target: {fileID: 997271299018042297, guid: 52fdfefd56c1fde49af92b30fb01fb1a, type: 3}
+      propertyPath: redDefinition
+      value: 
+      objectReference: {fileID: 11400000, guid: 5e99a4a399dc3744585f3d9dd45612e0, type: 2}
+    - target: {fileID: 997271299018042297, guid: 52fdfefd56c1fde49af92b30fb01fb1a, type: 3}
+      propertyPath: blueDefinition
+      value: 
+      objectReference: {fileID: 11400000, guid: 77a47ec23d74a69439f2755777955134, type: 2}
+    - target: {fileID: 997271299018042297, guid: 52fdfefd56c1fde49af92b30fb01fb1a, type: 3}
+      propertyPath: blackDefinition
+      value: 
+      objectReference: {fileID: 11400000, guid: 643b27834f5c0c24fbcef8030f3e690c, type: 2}
+    - target: {fileID: 997271299018042297, guid: 52fdfefd56c1fde49af92b30fb01fb1a, type: 3}
+      propertyPath: whiteDefinition
+      value: 
+      objectReference: {fileID: 11400000, guid: aa9550b0401405347859fc659f73450f, type: 2}
     - target: {fileID: 1855799276664364608, guid: 52fdfefd56c1fde49af92b30fb01fb1a, type: 3}
       propertyPath: m_IsActive
       value: 1
@@ -27292,8 +27312,8 @@ MonoBehaviour:
   ballScorePrefab: {fileID: 2015517569157001901, guid: 8d013e3bee73c244899b6a81a81886e7, type: 3}
   leftBinScoreRoot: {fileID: 524422197}
   rightBinScoreRoot: {fileID: 1447788620}
-  baseItemDelay: 0.05
-  scatterRadius: 10
+  baseItemDelay: 0.08
+  scatterRadius: 20
 --- !u!4 &842148821
 Transform:
   m_ObjectHideFlags: 0
@@ -57035,6 +57055,22 @@ PrefabInstance:
       propertyPath: collector
       value: 
       objectReference: {fileID: 111438863}
+    - target: {fileID: 997271299018042297, guid: 52fdfefd56c1fde49af92b30fb01fb1a, type: 3}
+      propertyPath: redDefinition
+      value: 
+      objectReference: {fileID: 11400000, guid: 5e99a4a399dc3744585f3d9dd45612e0, type: 2}
+    - target: {fileID: 997271299018042297, guid: 52fdfefd56c1fde49af92b30fb01fb1a, type: 3}
+      propertyPath: blueDefinition
+      value: 
+      objectReference: {fileID: 11400000, guid: 77a47ec23d74a69439f2755777955134, type: 2}
+    - target: {fileID: 997271299018042297, guid: 52fdfefd56c1fde49af92b30fb01fb1a, type: 3}
+      propertyPath: blackDefinition
+      value: 
+      objectReference: {fileID: 11400000, guid: 643b27834f5c0c24fbcef8030f3e690c, type: 2}
+    - target: {fileID: 997271299018042297, guid: 52fdfefd56c1fde49af92b30fb01fb1a, type: 3}
+      propertyPath: whiteDefinition
+      value: 
+      objectReference: {fileID: 11400000, guid: aa9550b0401405347859fc659f73450f, type: 2}
     - target: {fileID: 2263998048431534036, guid: 52fdfefd56c1fde49af92b30fb01fb1a, type: 3}
       propertyPath: m_IsActive
       value: 0

@@ -22,12 +22,12 @@ public enum ComboIntensity
 [Serializable]
 public struct BaseScoreItem
 {
-    public string BallType;
+    public string BallId;
     public int Points;
 
-    public BaseScoreItem(string ballType, int points)
+    public BaseScoreItem(string ballId, int points)
     {
-        BallType = ballType;
+        BallId = ballId;
         Points = points;
     }
 }
@@ -76,9 +76,9 @@ public class FlushResolution
 
     public bool HasCombos => ComboEvents != null && ComboEvents.Count > 0;
 
-    public void AddBaseItem(string ballType, int points)
+    public void AddBaseItem(string ballId, int points)
     {
-        BaseItems.Add(new BaseScoreItem(ballType, points));
+        BaseItems.Add(new BaseScoreItem(ballId, points));
         BaseTotal += points;
     }
 

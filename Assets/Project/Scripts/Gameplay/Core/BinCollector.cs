@@ -27,6 +27,9 @@ public class BinCollector : MonoBehaviour
     [SerializeField] private BinTrigger rightBin;
     [SerializeField] private BallSpawner spawner;
 
+    [Header("Ball Definitions")]
+    [SerializeField] private BallDefinitionCatalog ballCatalog;
+
     [Header("Hull / Coque")]
     [Tooltip("Système de gestion de la coque du vaisseau (Hull).")]
     [SerializeField] private HullSystem hullSystem;
@@ -242,7 +245,7 @@ public class BinCollector : MonoBehaviour
                 }
                 else
                 {
-                    spawner.Recycle(st.gameObject, st.type, collected: true);
+                    spawner.Recycle(st.gameObject, collected: true);
                 }
             }
         }
@@ -305,29 +308,32 @@ public class BinCollector : MonoBehaviour
             if (st == null)
                 continue;
 
-            BallType resolvedType = ResolveTypeForFlushFamilyA(st);
+            BallDefinition resolvedDefinition = ResolveDefinitionForFlushFamilyA(st);
 
-            if (resolvedType == BallType.White && whiteToRedLeft > 0)
+            if (IsBallId(resolvedDefinition, "white") && whiteToRedLeft > 0)
             {
-                resolvedType = BallType.Red;
+                resolvedDefinition = GetDefinition("red");
                 whiteToRedLeft--;
             }
-            else if (resolvedType == BallType.White && whiteToBlueLeft > 0)
+            else if (IsBallId(resolvedDefinition, "white") && whiteToBlueLeft > 0)
             {
-                resolvedType = BallType.Blue;
+                resolvedDefinition = GetDefinition("blue");
                 whiteToBlueLeft--;
             }
 
-            if (resolvedType == BallType.Black)
+            if (resolvedDefinition != null && resolvedDefinition.IsDanger)
                 blackCount++;
 
             int resolvedPoints =
-                GetPointsForResolvedType(st, resolvedType);
+                resolvedDefinition != null ? resolvedDefinition.BasePoints : st.points;
 
             totalPoints += resolvedPoints;
             snapshot.nombreDeBilles++;
 
-            string ballId = GetBallIdForResolvedType(st, resolvedType);
+            string ballId =
+                resolvedDefinition != null && !string.IsNullOrWhiteSpace(resolvedDefinition.Id)
+                    ? resolvedDefinition.Id
+                    : st.BallId;
 
             int count;
             if (!snapshot.parBallId.TryGetValue(ballId, out count))
@@ -346,47 +352,6 @@ public class BinCollector : MonoBehaviour
 
         return snapshot;
     }
-
-    /// <summary>
-    /// Applique uniquement la famille A au type logique d'une bille.
-    ///
-    /// La famille B est appliquée dans BuildSnapshot car elle dépend
-    /// de compteurs par flush.
-    /// </summary>
-    private BallType ResolveTypeForFlushFamilyA(BallState st)
-    {
-        if (st == null)
-            return BallType.White;
-
-        if (BlackFilterRuntimeController.Instance != null)
-        {
-            bool consumed =
-                BlackFilterRuntimeController.Instance.ConsumeReservation(st);
-
-            if (consumed)
-                return BallType.White;
-        }
-
-        return st.type;
-    }
-
-
-    /// <summary>
-    /// Retourne les points associés au type logique final.
-    /// </summary>
-    private int GetPointsForResolvedType(
-    BallState source,
-    BallType resolvedType)
-    {
-        if (source == null)
-            return 0;
-
-        if (source.TryGetDefinitionForType(resolvedType, out BallDefinition def))
-            return def.BasePoints;
-
-        return source.points;
-    }
-
    
 
     private void TriggerFlushFx(Side side, int flushScore, bool hasBlack)
@@ -456,20 +421,43 @@ public class BinCollector : MonoBehaviour
         return Mathf.Max(1, baseThreshold + bonus);
     }
 
-    private string GetBallIdForResolvedType(
-    BallState source,
-    BallType resolvedType)
+    private BallDefinition ResolveDefinitionForFlushFamilyA(BallState st)
     {
-        if (source != null &&
-            source.Definition != null)
-        {
-            string sourceId = source.Definition.Id;
-            string resolvedId = resolvedType.ToString().ToLower();
+        if (st == null)
+            return null;
 
-            if (sourceId == resolvedId)
-                return sourceId;
+        if (BlackFilterRuntimeController.Instance != null)
+        {
+            bool consumed =
+                BlackFilterRuntimeController.Instance.ConsumeReservation(st);
+
+            if (consumed)
+                return GetDefinition("white");
         }
 
-        return resolvedType.ToString().ToLower();
+        return st.Definition;
+    }
+
+    private BallDefinition GetDefinition(string ballId)
+    {
+        if (ballCatalog == null)
+            return null;
+
+        if (string.IsNullOrWhiteSpace(ballId))
+            return null;
+
+        ballCatalog.TryGet(ballId, out BallDefinition def);
+        return def;
+    }
+
+    private bool IsBallId(BallDefinition def, string ballId)
+    {
+        if (def == null)
+            return false;
+
+        return string.Equals(
+            def.Id,
+            ballId,
+            StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -1,13 +1,5 @@
 using UnityEngine;
 
-public enum BallType
-{
-    White,
-    Blue,
-    Red,
-    Black
-}
-
 public class BallState : MonoBehaviour
 {
     [SerializeField] private Vector3 scale = Vector3.one;
@@ -15,76 +7,86 @@ public class BallState : MonoBehaviour
 
     [Header("Definition")]
     [SerializeField] private BallDefinition definition;
-
     public BallDefinition Definition => definition;
 
-    [Header("Type & score (set au spawn)")]
-    public BallType type = BallType.White;
+    [Header("Runtime Score")]
     public int points = 0;
 
-    [Header("Etat de jeu")]
+    [Header("Runtime State")]
     public bool inBin = false;
     public bool collected = false;
     public Side currentSide = Side.None;
 
-    [Header("Tutoriel")]
+    [Header("Tutorial")]
     public bool isTutorialBall = false;
 
-    [Header("Référence visuelle")]
+    [Header("Visual")]
     [SerializeField] private Renderer visualRenderer;
 
-    [Header("Physique")]
+    [Header("Physics")]
     [SerializeField] private Rigidbody rb;
 
-    [Header("Black Trail Speed Filter")]
-    [SerializeField] private float blackTrailStartSpeed = 4f;
-    [SerializeField] private float blackTrailStopSpeed = 2f;
-    [SerializeField] private float blackTrailStopDelay = 0.18f;
-
-    [Header("Matériaux par type")]
-    [SerializeField] private Material whiteMaterial;
-    [SerializeField] private Material blueMaterial;
-    [SerializeField] private Material redMaterial;
-    [SerializeField] private Material blackMaterial;
-
-    [Header("Trails par type")]
+    [Header("Trails by BallId")]
     [SerializeField] private TrailRenderer trailWhite;
     [SerializeField] private TrailRenderer trailBlue;
     [SerializeField] private TrailRenderer trailRed;
     [SerializeField] private TrailRenderer trailBlack;
 
-    [Header("FX noirs")]
-    [SerializeField] private ParticleSystem blackCrackleFX;
+    [Header("Danger Trail Speed Filter")]
+    [SerializeField] private float dangerTrailStartSpeed = 4f;
+    [SerializeField] private float dangerTrailStopSpeed = 2f;
+    [SerializeField] private float dangerTrailStopDelay = 0.18f;
 
-    [Header("Layers visuels")]
+    [Header("Danger FX")]
+    [SerializeField] private ParticleSystem dangerCrackleFX;
+
+    [Header("Visual Layers")]
     [SerializeField] private string defaultLayerName = "Gameplay";
-    [SerializeField] private string cleanGameplayLayerName = "CleanGameplay";
+    [SerializeField] private string dangerLayerName = "CleanGameplay";
 
-    public string TypeName => type.ToString();
+    public string BallId =>
+        definition != null && !string.IsNullOrWhiteSpace(definition.Id)
+            ? definition.Id
+            : "unknown";
+
+    public string TypeName => BallId;
+
+    public Color ScoreColor =>
+        definition != null ? definition.ScoreColor : Color.white;
+
+    public bool IsDanger =>
+        definition != null && definition.IsDanger;
+
+    public bool CountsForProgress =>
+        definition != null && definition.CountsForProgress;
 
     private bool initialized;
-    private bool registeredAsBlackThreat;
+    private bool registeredAsDangerThreat;
 
     private int defaultLayer = -1;
-    private int blackBallLayer = -1;
+    private int dangerLayer = -1;
 
     private TrailRenderer activeTrail;
 
-    private bool blackTrailAllowed;
-    private float blackTrailStopTimer;
+    private bool dangerTrailAllowed;
+    private float dangerTrailStopTimer;
 
-    private bool hasModuleVisualPreview;
-    private BallType moduleVisualPreviewType;
+    private BallDefinition visualPreviewDefinition;
+
+    private bool HasVisualPreview =>
+        visualPreviewDefinition != null;
+
+    private BallDefinition CurrentVisualDefinition =>
+        HasVisualPreview ? visualPreviewDefinition : definition;
 
     private void Awake()
     {
         defaultLayer = LayerMask.NameToLayer(defaultLayerName);
-        blackBallLayer = LayerMask.NameToLayer(cleanGameplayLayerName);
+        dangerLayer = LayerMask.NameToLayer(dangerLayerName);
 
         if (visualRenderer == null)
         {
             Transform visual = transform.Find("Visual");
-
             if (visual != null)
                 visualRenderer = visual.GetComponent<Renderer>();
         }
@@ -96,14 +98,9 @@ public class BallState : MonoBehaviour
     private void Start()
     {
         if (!initialized)
-            ApplyVisuals(type);
+            RefreshAllVisualState();
 
         transform.localScale = scale;
-
-        ApplyLayerForType(type);
-        UpdateTrails();
-        UpdateBlackFX();
-        UpdateBlackThreatRegistration();
     }
 
     private void Update()
@@ -111,119 +108,75 @@ public class BallState : MonoBehaviour
         UpdateTrailEmission();
     }
 
-    public void Initialize(BallType newType, int newPoints)
+    public void Initialize(BallDefinition newDefinition)
     {
-        UnregisterBlackThreatIfNeeded();
+        UnregisterDangerThreatIfNeeded();
 
-        type = newType;
-        points = newPoints;
+        definition = newDefinition;
+        visualPreviewDefinition = null;
         initialized = true;
+
+        points = definition != null ? definition.BasePoints : 0;
 
         transform.localScale = scale;
 
-        blackTrailAllowed = false;
-        blackTrailStopTimer = 0f;
+        dangerTrailAllowed = false;
+        dangerTrailStopTimer = 0f;
 
-        hasModuleVisualPreview = false;
-        moduleVisualPreviewType = type;
-
-        ApplyVisuals(type);
-        ApplyLayerForType(type);
-        UpdateTrails();
-        UpdateBlackFX();
-        UpdateBlackThreatRegistration();
+        RefreshAllVisualState();
     }
 
-    public void SetModuleVisualPreview(BallType? previewType)
+    public void SetDefinition(BallDefinition newDefinition)
     {
-        if (previewType.HasValue)
-        {
-            hasModuleVisualPreview = true;
-            moduleVisualPreviewType = previewType.Value;
+        Initialize(newDefinition);
+    }
 
-            ApplyVisuals(moduleVisualPreviewType);
-            ApplyPreviewTrail(moduleVisualPreviewType);
+    public void SetModuleVisualPreview(BallDefinition previewDefinition)
+    {
+        visualPreviewDefinition = previewDefinition;
+
+        ApplyCurrentVisuals();
+        ApplyCurrentLayer();
+        UpdateTrails();
+        UpdateDangerFX();
+        UpdateDangerThreatRegistration();
+    }
+
+    public void ClearModuleVisualPreview()
+    {
+        SetModuleVisualPreview(null);
+    }
+
+    private void RefreshAllVisualState()
+    {
+        ApplyCurrentVisuals();
+        ApplyCurrentLayer();
+        UpdateTrails();
+        UpdateDangerFX();
+        UpdateDangerThreatRegistration();
+    }
+
+    private void ApplyCurrentVisuals()
+    {
+        BallDefinition visualDefinition = CurrentVisualDefinition;
+
+        if (visualDefinition == null || visualDefinition.Material == null)
             return;
-        }
 
-        hasModuleVisualPreview = false;
-        moduleVisualPreviewType = type;
-
-        ApplyVisuals(type);
-        UpdateTrails();
-    }
-
-    private void ApplyPreviewTrail(BallType previewType)
-    {
-        SetTrail(trailWhite, previewType == BallType.White);
-        SetTrail(trailBlue, previewType == BallType.Blue);
-        SetTrail(trailRed, previewType == BallType.Red);
-        SetTrail(trailBlack, previewType == BallType.Black);
-
-        switch (previewType)
-        {
-            case BallType.White:
-                activeTrail = trailWhite;
-                break;
-
-            case BallType.Blue:
-                activeTrail = trailBlue;
-                break;
-
-            case BallType.Red:
-                activeTrail = trailRed;
-                break;
-
-            case BallType.Black:
-                activeTrail = trailBlack;
-                break;
-        }
-    }
-
-    private void ApplyVisuals(BallType t)
-    {
         if (visualRenderer == null)
             return;
 
-        Material targetMaterial = null;
-        string requestedId = t.ToString().ToLower();
-
-        if (definition != null && definition.Id == requestedId)
-        {
-            targetMaterial = definition.Material;
-        }
-        else
-        {
-            switch (t)
-            {
-                case BallType.White:
-                    targetMaterial = whiteMaterial;
-                    break;
-                case BallType.Blue:
-                    targetMaterial = blueMaterial;
-                    break;
-                case BallType.Red:
-                    targetMaterial = redMaterial;
-                    break;
-                case BallType.Black:
-                    targetMaterial = blackMaterial;
-                    break;
-            }
-        }
-
-        if (targetMaterial != null)
-            visualRenderer.material = targetMaterial;
+        visualRenderer.material = visualDefinition.Material;
     }
 
-    private void ApplyLayerForType(BallType t)
+    private void ApplyCurrentLayer()
     {
-        if (defaultLayer < 0 || blackBallLayer < 0)
+        if (defaultLayer < 0 || dangerLayer < 0)
             return;
 
-        int visualLayer =
-            t == BallType.Black
-                ? blackBallLayer
-                : defaultLayer;
+        int visualLayer = IsCurrentVisualDanger()
+            ? dangerLayer
+            : defaultLayer;
 
         gameObject.layer = defaultLayer;
 
@@ -234,6 +187,12 @@ public class BallState : MonoBehaviour
         SetTrailLayer(trailBlue, defaultLayer);
         SetTrailLayer(trailRed, defaultLayer);
         SetTrailLayer(trailBlack, visualLayer);
+    }
+
+    private bool IsCurrentVisualDanger()
+    {
+        BallDefinition visualDefinition = CurrentVisualDefinition;
+        return visualDefinition != null && visualDefinition.IsDanger;
     }
 
     private void SetTrailLayer(TrailRenderer trail, int layer)
@@ -251,31 +210,39 @@ public class BallState : MonoBehaviour
         SetTrail(trailRed, false);
         SetTrail(trailBlack, false);
 
-        activeTrail = null;
+        activeTrail = GetTrailForCurrentVisualBall();
 
-        switch (type)
+        if (activeTrail == null)
+            return;
+
+        activeTrail.Clear();
+        activeTrail.emitting = !IsCurrentVisualDanger();
+    }
+
+    private TrailRenderer GetTrailForCurrentVisualBall()
+    {
+        BallDefinition visualDefinition = CurrentVisualDefinition;
+        string id =
+            visualDefinition != null && !string.IsNullOrWhiteSpace(visualDefinition.Id)
+                ? visualDefinition.Id
+                : BallId;
+
+        switch (id)
         {
-            case BallType.White:
-                activeTrail = trailWhite;
-                break;
+            case "white":
+                return trailWhite;
 
-            case BallType.Blue:
-                activeTrail = trailBlue;
-                break;
+            case "blue":
+                return trailBlue;
 
-            case BallType.Red:
-                activeTrail = trailRed;
-                break;
+            case "red":
+                return trailRed;
 
-            case BallType.Black:
-                activeTrail = trailBlack;
-                break;
-        }
+            case "black":
+                return trailBlack;
 
-        if (activeTrail != null)
-        {
-            activeTrail.Clear();
-            activeTrail.emitting = type != BallType.Black;
+            default:
+                return trailWhite;
         }
     }
 
@@ -284,13 +251,13 @@ public class BallState : MonoBehaviour
         if (activeTrail == null)
             return;
 
-        if (hasModuleVisualPreview)
+        if (HasVisualPreview)
         {
             activeTrail.emitting = true;
             return;
         }
 
-        if (type != BallType.Black)
+        if (!IsDanger)
         {
             activeTrail.emitting = true;
             return;
@@ -304,74 +271,72 @@ public class BallState : MonoBehaviour
 
         float speed = rb.linearVelocity.magnitude;
 
-        if (speed >= blackTrailStartSpeed)
+        if (speed >= dangerTrailStartSpeed)
         {
-            blackTrailAllowed = true;
-            blackTrailStopTimer = 0f;
+            dangerTrailAllowed = true;
+            dangerTrailStopTimer = 0f;
         }
-        else if (speed <= blackTrailStopSpeed)
+        else if (speed <= dangerTrailStopSpeed)
         {
-            blackTrailStopTimer += Time.deltaTime;
+            dangerTrailStopTimer += Time.deltaTime;
 
-            if (blackTrailStopTimer >= blackTrailStopDelay)
-                blackTrailAllowed = false;
+            if (dangerTrailStopTimer >= dangerTrailStopDelay)
+                dangerTrailAllowed = false;
         }
         else
         {
-            blackTrailStopTimer = 0f;
+            dangerTrailStopTimer = 0f;
         }
 
-        activeTrail.emitting = blackTrailAllowed;
+        activeTrail.emitting = dangerTrailAllowed;
     }
 
-    private void SetTrail(TrailRenderer tr, bool emitting)
+    private void SetTrail(TrailRenderer trail, bool emitting)
     {
-        if (tr == null)
+        if (trail == null)
             return;
 
-        tr.emitting = emitting;
+        trail.emitting = emitting;
 
         if (!emitting)
-            tr.Clear();
+            trail.Clear();
     }
 
-    private void UpdateBlackThreatRegistration()
+    private void UpdateDangerThreatRegistration()
     {
         bool shouldBeRegistered =
             gameObject.activeInHierarchy &&
-            type == BallType.Black;
+            IsDanger;
 
-        if (shouldBeRegistered && !registeredAsBlackThreat)
+        if (shouldBeRegistered && !registeredAsDangerThreat)
         {
             if (BlackThreatTracker.Instance != null)
             {
                 BlackThreatTracker.Instance.RegisterBlackBall();
-                registeredAsBlackThreat = true;
+                registeredAsDangerThreat = true;
             }
 
             return;
         }
 
-        if (!shouldBeRegistered && registeredAsBlackThreat)
-            UnregisterBlackThreatIfNeeded();
+        if (!shouldBeRegistered && registeredAsDangerThreat)
+            UnregisterDangerThreatIfNeeded();
     }
 
-    private void UnregisterBlackThreatIfNeeded()
+    private void UnregisterDangerThreatIfNeeded()
     {
-        if (!registeredAsBlackThreat)
+        if (!registeredAsDangerThreat)
             return;
 
         if (BlackThreatTracker.Instance != null)
             BlackThreatTracker.Instance.UnregisterBlackBall();
 
-        registeredAsBlackThreat = false;
+        registeredAsDangerThreat = false;
     }
 
-    private void UpdateBlackFX()
+    private void UpdateDangerFX()
     {
-        bool shouldPlay = type == BallType.Black;
-
-        UpdateParticleFx(blackCrackleFX, shouldPlay);
+        UpdateParticleFx(dangerCrackleFX, IsDanger);
     }
 
     private void UpdateParticleFx(ParticleSystem ps, bool shouldPlay)
@@ -393,64 +358,15 @@ public class BallState : MonoBehaviour
         }
     }
 
-    public void SetDefinition(BallDefinition newDefinition)
-    {
-        definition = newDefinition;
-
-        if (definition != null)
-            points = definition.BasePoints;
-
-        if (hasModuleVisualPreview)
-            ApplyVisuals(moduleVisualPreviewType);
-        else
-            ApplyVisuals(type);
-
-        ApplyLayerForType(type);
-        UpdateTrails();
-        UpdateBlackFX();
-        UpdateBlackThreatRegistration();
-    }
-
-    public bool TryGetDefinitionForType(
-    BallType targetType,
-    out BallDefinition result)
-    {
-        result = null;
-
-        if (definition == null)
-            return false;
-
-        string targetId = targetType.ToString().ToLower();
-
-        if (definition.Id == targetId)
-        {
-            result = definition;
-            return true;
-        }
-
-        return false;
-    }
-
-    public string BallId =>
-    definition != null ? definition.Id : type.ToString();
-
-    public Color ScoreColor =>
-        definition != null ? definition.ScoreColor : Color.white;
-
-    public bool IsDanger =>
-        definition != null
-            ? definition.IsDanger
-            : type == BallType.Black;
-
     private void OnDisable()
     {
-        hasModuleVisualPreview = false;
-        UnregisterBlackThreatIfNeeded();
+        visualPreviewDefinition = null;
+        UnregisterDangerThreatIfNeeded();
     }
 
     private void OnDestroy()
     {
-        hasModuleVisualPreview = false;
-        UnregisterBlackThreatIfNeeded();
+        visualPreviewDefinition = null;
+        UnregisterDangerThreatIfNeeded();
     }
 }

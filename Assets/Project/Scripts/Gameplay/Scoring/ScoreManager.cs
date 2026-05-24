@@ -6,65 +6,81 @@ using UnityEngine.Events;
 public class ScoreManager : MonoBehaviour
 {
     [Header("Planned Target")]
-    [SerializeField] private int totalBillesPrevues;
-    public int TotalBillesPrevues => totalBillesPrevues;
+    [SerializeField] private int plannedProgressBalls;
+    public int TotalBillesPrevues => plannedProgressBalls;
 
     [Header("Main Objective")]
     [SerializeField] private int objectiveThreshold;
     public int ObjectiveThreshold => objectiveThreshold;
 
-    private bool goalReached = false;
-
     [Serializable]
     public class SimpleEvent : UnityEvent { }
-
-    public SimpleEvent onGoalReached = new SimpleEvent();
-
-    private int totalBilles;
-    private int totalBillesNonNoires;
-    private int totalPertes;
-    private int currentScore;
-    private int realSpawned;
-
-    private int mainGoalReachedTimeSec = -1;
-    public int MainGoalReachedTimeSec => mainGoalReachedTimeSec;
-    public bool MainGoalAchieved => goalReached;
-
-    private bool goalReachedInFinalFlush = false;
-    public bool GoalReachedInFinalFlush => goalReachedInFinalFlush;
-
-    public int TotalBilles => totalBilles;
-    public int TotalNonBlackBilles => totalBillesNonNoires;
-    public int TotalPertes => totalPertes;
-    public int CurrentScore => currentScore;
-    public int GetRealSpawned() => realSpawned;
-
-    private readonly Dictionary<string, int> totauxParType = new Dictionary<string, int>();
-    private readonly Dictionary<string, int> pertesParType = new Dictionary<string, int>();
-    private readonly List<BinSnapshot> historique = new List<BinSnapshot>();
-    private readonly HashSet<string> combosTriggered = new HashSet<string>();
 
     [Serializable]
     public class IntEvent : UnityEvent<int> { }
 
+    public SimpleEvent onGoalReached = new SimpleEvent();
+
     [HideInInspector]
     public IntEvent onScoreChanged = new IntEvent();
+
+    private int totalBallsCollected;
+    private int totalProgressBallsCollected;
+    private int totalBallsLost;
+    private int currentScore;
+    private int realSpawned;
+
+    private bool goalReached;
+    private bool goalReachedInFinalFlush;
+
+    private int mainGoalReachedTimeSec = -1;
+
+    private readonly Dictionary<string, int> collectedByBallId =
+        new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+    private readonly Dictionary<string, int> lostByBallId =
+        new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+    private readonly List<BinSnapshot> historique =
+        new List<BinSnapshot>();
+
+    private readonly HashSet<string> combosTriggered =
+        new HashSet<string>();
+
+    public int TotalBilles => totalBallsCollected;
+    public int TotalNonBlackBilles => totalProgressBallsCollected;
+    public int TotalPertes => totalBallsLost;
+    public int CurrentScore => currentScore;
+    public int MainGoalReachedTimeSec => mainGoalReachedTimeSec;
+    public bool MainGoalAchieved => goalReached;
+    public bool GoalReachedInFinalFlush => goalReachedInFinalFlush;
+
+    public int GetRealSpawned()
+    {
+        return realSpawned;
+    }
 
     public event Action<string> OnBallLost;
     public event Action<BinSnapshot> OnFlushSnapshotRegistered;
 
     public IReadOnlyDictionary<string, int> GetTotalsByTypeSnapshot()
-        => new Dictionary<string, int>(totauxParType);
+    {
+        return new Dictionary<string, int>(collectedByBallId);
+    }
 
     public IReadOnlyDictionary<string, int> GetLossesByTypeSnapshot()
-        => new Dictionary<string, int>(pertesParType);
+    {
+        return new Dictionary<string, int>(lostByBallId);
+    }
 
     public List<BinSnapshot> GetHistoriqueSnapshot()
-        => new List<BinSnapshot>(historique);
+    {
+        return new List<BinSnapshot>(historique);
+    }
 
     public void SetPlannedBalls(int count)
     {
-        totalBillesPrevues = Mathf.Max(0, count);
+        plannedProgressBalls = Mathf.Max(0, count);
     }
 
     public void SetObjectiveThreshold(int threshold)
@@ -76,25 +92,24 @@ public class ScoreManager : MonoBehaviour
     public void ResetScore(int start = 0)
     {
         currentScore = start;
-        totalBilles = 0;
-        totalBillesNonNoires = 0;
-        totalPertes = 0;
+
+        totalBallsCollected = 0;
+        totalProgressBallsCollected = 0;
+        totalBallsLost = 0;
         realSpawned = 0;
+
         goalReached = false;
         goalReachedInFinalFlush = false;
         mainGoalReachedTimeSec = -1;
 
-        totauxParType.Clear();
-        pertesParType.Clear();
+        collectedByBallId.Clear();
+        lostByBallId.Clear();
         historique.Clear();
         combosTriggered.Clear();
 
         onScoreChanged?.Invoke(currentScore);
     }
 
-    /// <summary>
-    /// Reset explicite pour debut de niveau / reset post-tuto.
-    /// </summary>
     public void ResetForLevelStart(int startScore = 0)
     {
         ResetScore(startScore);
@@ -105,7 +120,7 @@ public class ScoreManager : MonoBehaviour
         realSpawned++;
     }
 
-    public void AddPoints(int amount, string _ = null)
+    public void AddPoints(int amount, string sourceId = null)
     {
         currentScore += amount;
         onScoreChanged?.Invoke(currentScore);
@@ -117,48 +132,72 @@ public class ScoreManager : MonoBehaviour
             return;
 
         historique.Add(snapshot);
-        totalBilles += snapshot.nombreDeBilles;
 
-        int nonBlackThisFlush = 0;
+        totalBallsCollected += snapshot.nombreDeBilles;
 
-        if (snapshot.parBallId != null)
-        {
-            foreach (var kv in snapshot.parBallId)
-            {
-                string typeKey = kv.Key;
-                int count = kv.Value;
+        int progressBallsThisFlush =
+            CountProgressBalls(snapshot);
 
-                if (!totauxParType.ContainsKey(typeKey))
-                    totauxParType[typeKey] = 0;
+        totalProgressBallsCollected += progressBallsThisFlush;
 
-                totauxParType[typeKey] += count;
-
-                if (!IsBlackType(typeKey))
-                    nonBlackThisFlush += count;
-            }
-        }
-
-        totalBillesNonNoires += nonBlackThisFlush;
+        AddCollectedTotals(snapshot);
 
         if (!goalReached &&
             snapshot.isFinalFlush &&
             objectiveThreshold > 0 &&
-            totalBillesNonNoires >= objectiveThreshold)
+            totalProgressBallsCollected >= objectiveThreshold)
         {
             goalReachedInFinalFlush = true;
         }
 
         AddPoints(snapshot.totalPointsDuLot);
+
         CheckGoalReached();
+
         OnFlushSnapshotRegistered?.Invoke(snapshot);
     }
 
-    private bool IsBlackType(string typeKey)
+    private int CountProgressBalls(BinSnapshot snapshot)
     {
-        if (string.IsNullOrEmpty(typeKey))
+        if (snapshot == null || snapshot.parBallId == null)
+            return 0;
+
+        int count = 0;
+
+        foreach (KeyValuePair<string, int> kv in snapshot.parBallId)
+        {
+            if (IsDangerBallId(kv.Key))
+                continue;
+
+            count += kv.Value;
+        }
+
+        return count;
+    }
+
+    private void AddCollectedTotals(BinSnapshot snapshot)
+    {
+        if (snapshot == null || snapshot.parBallId == null)
+            return;
+
+        foreach (KeyValuePair<string, int> kv in snapshot.parBallId)
+        {
+            AddToDictionary(
+                collectedByBallId,
+                kv.Key,
+                kv.Value);
+        }
+    }
+
+    private bool IsDangerBallId(string ballId)
+    {
+        if (string.IsNullOrWhiteSpace(ballId))
             return false;
 
-        return string.Equals(typeKey, "black", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(
+            ballId,
+            "black",
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private void CheckGoalReached()
@@ -169,10 +208,10 @@ public class ScoreManager : MonoBehaviour
         if (objectiveThreshold <= 0)
             return;
 
-        if (totalBillesNonNoires >= objectiveThreshold)
+        if (totalProgressBallsCollected >= objectiveThreshold)
         {
             goalReached = true;
-            Debug.Log("Goal reached (non-black threshold) !");
+            Debug.Log("Goal reached!");
             onGoalReached?.Invoke();
         }
     }
@@ -190,18 +229,19 @@ public class ScoreManager : MonoBehaviour
         return new List<string>(combosTriggered);
     }
 
-    public void RegisterLost(string ballType)
+    public void RegisterLost(string ballId)
     {
-        if (string.IsNullOrEmpty(ballType))
-            ballType = "Unknown";
+        if (string.IsNullOrWhiteSpace(ballId))
+            ballId = "unknown";
 
-        if (!pertesParType.ContainsKey(ballType))
-            pertesParType[ballType] = 0;
+        AddToDictionary(
+            lostByBallId,
+            ballId,
+            1);
 
-        pertesParType[ballType]++;
-        totalPertes++;
+        totalBallsLost++;
 
-        OnBallLost?.Invoke(ballType);
+        OnBallLost?.Invoke(ballId);
     }
 
     public EndLevelStats BuildEndLevelStats(int timeElapsedSec)
@@ -209,8 +249,8 @@ public class ScoreManager : MonoBehaviour
         return new EndLevelStats
         {
             TimeElapsedSec = Mathf.Max(0, timeElapsedSec),
-            BallsCollected = totalBilles,
-            BallsLost = totalPertes,
+            BallsCollected = totalBallsCollected,
+            BallsLost = totalBallsLost,
             RawScore = currentScore,
             FinalScore = currentScore
         };
@@ -227,6 +267,20 @@ public class ScoreManager : MonoBehaviour
 
     public void Debug_SetPlannedNonBlack(int count)
     {
-        totalBillesPrevues = count;
+        plannedProgressBalls = Mathf.Max(0, count);
+    }
+
+    private void AddToDictionary(
+        Dictionary<string, int> dict,
+        string key,
+        int amount)
+    {
+        if (dict == null || string.IsNullOrWhiteSpace(key))
+            return;
+
+        if (!dict.TryGetValue(key, out int current))
+            dict[key] = amount;
+        else
+            dict[key] = current + amount;
     }
 }

@@ -1,21 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// BlackFilterRuntimeController
-/// ------------------------------------------------------------
-/// Gère l'état vivant du module A pendant UNE mission.
-///
-/// Règle :
-/// - ModuleRuntimeStats dit combien de charges sont disponibles par mission.
-/// - Ce controller réserve une charge sur des billes noires présentes dans les bins.
-/// - Si la bille sort avant flush, la charge est rendue.
-/// - Si la bille est flush, la charge est consommée.
-/// - Le BallType réel ne change pas ici.
-/// </summary>
 public class BlackFilterRuntimeController : MonoBehaviour
 {
     public static BlackFilterRuntimeController Instance { get; private set; }
+
+    [Header("Ball Definitions")]
+    [SerializeField] private BallDefinition blackDefinition;
+    [SerializeField] private BallDefinition whiteDefinition;
 
     [Header("Debug / Lecture seule")]
     [SerializeField] private int maxChargesThisMission;
@@ -74,15 +66,14 @@ public class BlackFilterRuntimeController : MonoBehaviour
         maxChargesThisMission = 0;
 
         if (ModuleRuntimeStats.Instance != null)
-            maxChargesThisMission = Mathf.Max(0, ModuleRuntimeStats.Instance.BlackFilterChargesPerMission);
+            maxChargesThisMission = Mathf.Max(
+                0,
+                ModuleRuntimeStats.Instance.BlackFilterChargesPerMission);
     }
 
     public bool IsReserved(BallState ball)
     {
-        if (ball == null)
-            return false;
-
-        return reservedBalls.Contains(ball);
+        return ball != null && reservedBalls.Contains(ball);
     }
 
     public bool TryReserve(BallState ball)
@@ -90,7 +81,7 @@ public class BlackFilterRuntimeController : MonoBehaviour
         if (ball == null)
             return false;
 
-        if (ball.type != BallType.Black)
+        if (!IsBall(ball, blackDefinition))
             return false;
 
         if (ball.collected)
@@ -103,7 +94,8 @@ public class BlackFilterRuntimeController : MonoBehaviour
             return false;
 
         reservedBalls.Add(ball);
-        ball.SetModuleVisualPreview(BallType.White);
+        ball.SetModuleVisualPreview(whiteDefinition);
+
         return true;
     }
 
@@ -113,7 +105,7 @@ public class BlackFilterRuntimeController : MonoBehaviour
             return;
 
         if (reservedBalls.Remove(ball))
-            ball.SetModuleVisualPreview(null);
+            ball.ClearModuleVisualPreview();
     }
 
     public bool ConsumeReservation(BallState ball)
@@ -124,13 +116,12 @@ public class BlackFilterRuntimeController : MonoBehaviour
         if (!reservedBalls.Remove(ball))
             return false;
 
-        ball.SetModuleVisualPreview(null);
+        ball.ClearModuleVisualPreview();
 
         consumedCharges = Mathf.Clamp(
             consumedCharges + 1,
             0,
-            maxChargesThisMission
-        );
+            maxChargesThisMission);
 
         return true;
     }
@@ -145,11 +136,20 @@ public class BlackFilterRuntimeController : MonoBehaviour
         foreach (BallState ball in reservedBalls)
         {
             if (ball != null)
-                ball.SetModuleVisualPreview(null);
+                ball.ClearModuleVisualPreview();
         }
 
         reservedBalls.Clear();
     }
 
+    private bool IsBall(BallState ball, BallDefinition definition)
+    {
+        if (ball == null || definition == null)
+            return false;
 
+        return string.Equals(
+            ball.BallId,
+            definition.Id,
+            System.StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -10,6 +10,12 @@ public class BinTrigger : MonoBehaviour
     [Header("Wiring")]
     [SerializeField] private BinCollector collector;
 
+    [Header("Ball Definitions")]
+    [SerializeField] private BallDefinition whiteDefinition;
+    [SerializeField] private BallDefinition blueDefinition;
+    [SerializeField] private BallDefinition redDefinition;
+    [SerializeField] private BallDefinition blackDefinition;
+
     [Header("Rules")]
     [SerializeField] public int flushThreshold = 5;
     [SerializeField] private bool autoFlushOnThreshold = true;
@@ -17,8 +23,11 @@ public class BinTrigger : MonoBehaviour
     public event Action<BallState, Side> OnBallEnteredBin;
     public event Action OnContentChanged;
 
-    private readonly HashSet<BallState> present = new HashSet<BallState>();
-    private readonly List<BallState> presentOrdered = new List<BallState>();
+    private readonly HashSet<BallState> present =
+        new HashSet<BallState>();
+
+    private readonly List<BallState> presentOrdered =
+        new List<BallState>();
 
     private bool autoFlushEnabled = true;
 
@@ -33,10 +42,11 @@ public class BinTrigger : MonoBehaviour
             for (int i = 0; i < presentOrdered.Count; i++)
             {
                 BallState st = presentOrdered[i];
+
                 if (st == null)
                     continue;
 
-                if (st.type == BallType.Black)
+                if (st.IsDanger)
                     count++;
             }
 
@@ -56,6 +66,7 @@ public class BinTrigger : MonoBehaviour
         for (int i = 0; i < presentOrdered.Count; i++)
         {
             BallState st = presentOrdered[i];
+
             if (st == null)
                 continue;
 
@@ -70,10 +81,11 @@ public class BinTrigger : MonoBehaviour
         for (int i = 0; i < presentOrdered.Count; i++)
         {
             BallState st = presentOrdered[i];
+
             if (st == null)
                 continue;
 
-            if (st.type == BallType.Black)
+            if (st.IsDanger)
                 return true;
         }
 
@@ -82,11 +94,13 @@ public class BinTrigger : MonoBehaviour
 
     public List<BallState> TakeSnapshotAndClear()
     {
-        List<BallState> snapshot = new List<BallState>(presentOrdered.Count);
+        List<BallState> snapshot =
+            new List<BallState>(presentOrdered.Count);
 
         for (int i = 0; i < presentOrdered.Count; i++)
         {
             BallState st = presentOrdered[i];
+
             if (st == null)
                 continue;
 
@@ -147,7 +161,8 @@ public class BinTrigger : MonoBehaviour
             return;
 
         presentOrdered.Remove(state);
-        state.SetModuleVisualPreview(null);
+
+        state.ClearModuleVisualPreview();
 
         if (BlackFilterRuntimeController.Instance != null)
             BlackFilterRuntimeController.Instance.ReleaseReservation(state);
@@ -163,41 +178,28 @@ public class BinTrigger : MonoBehaviour
         RefreshModuleVisualPreviews();
     }
 
-    /// <summary>
-    /// Recalcule les previews visuels des modules A + B pour le contenu actuel du bin.
-    ///
-    /// IMPORTANT :
-    /// - On repart de zéro à chaque changement de contenu.
-    /// - A réserve les noires via BlackFilterRuntimeController.
-    /// - B simule les upgrades par flush.
-    /// - Le BallType réel des billes ne change jamais ici.
-    /// </summary>
     private void RefreshModuleVisualPreviews()
     {
-        // ------------------------------------------------------------
-        // 1) Reset visuel des billes présentes
-        // ------------------------------------------------------------
         for (int i = 0; i < presentOrdered.Count; i++)
         {
             BallState st = presentOrdered[i];
+
             if (st == null)
                 continue;
 
-            st.SetModuleVisualPreview(null);
+            st.ClearModuleVisualPreview();
         }
 
-        // ------------------------------------------------------------
-        // 2) Famille A : réserve les noires filtrables
-        // ------------------------------------------------------------
         if (BlackFilterRuntimeController.Instance != null)
         {
             for (int i = 0; i < presentOrdered.Count; i++)
             {
                 BallState st = presentOrdered[i];
+
                 if (st == null)
                     continue;
 
-                if (st.type != BallType.Black)
+                if (!IsBall(st, blackDefinition))
                     continue;
 
                 if (!BlackFilterRuntimeController.Instance.IsReserved(st))
@@ -205,16 +207,16 @@ public class BinTrigger : MonoBehaviour
             }
         }
 
-        // ------------------------------------------------------------
-        // 3) Famille B : preview White -> Red puis White -> Blue
-        // ------------------------------------------------------------
         int whiteToRedLeft = 0;
         int whiteToBlueLeft = 0;
 
         if (ModuleRuntimeStats.Instance != null)
         {
-            whiteToRedLeft = Mathf.Max(0, ModuleRuntimeStats.Instance.FlushWhiteToRedCount);
-            whiteToBlueLeft = Mathf.Max(0, ModuleRuntimeStats.Instance.FlushWhiteToBlueCount);
+            whiteToRedLeft =
+                Mathf.Max(0, ModuleRuntimeStats.Instance.FlushWhiteToRedCount);
+
+            whiteToBlueLeft =
+                Mathf.Max(0, ModuleRuntimeStats.Instance.FlushWhiteToBlueCount);
         }
 
         if (whiteToRedLeft <= 0 && whiteToBlueLeft <= 0)
@@ -223,29 +225,30 @@ public class BinTrigger : MonoBehaviour
         for (int i = 0; i < presentOrdered.Count; i++)
         {
             BallState st = presentOrdered[i];
+
             if (st == null)
                 continue;
 
-            BallType previewBaseType = st.type;
+            BallDefinition previewBaseDefinition =
+                st.Definition;
 
-            // Une noire réservée par A est considérée comme White pour B.
             if (BlackFilterRuntimeController.Instance != null &&
                 BlackFilterRuntimeController.Instance.IsReserved(st))
             {
-                previewBaseType = BallType.White;
+                previewBaseDefinition = whiteDefinition;
             }
 
-            if (previewBaseType != BallType.White)
+            if (!IsDefinition(previewBaseDefinition, whiteDefinition))
                 continue;
 
             if (whiteToRedLeft > 0)
             {
-                st.SetModuleVisualPreview(BallType.Red);
+                st.SetModuleVisualPreview(redDefinition);
                 whiteToRedLeft--;
             }
             else if (whiteToBlueLeft > 0)
             {
-                st.SetModuleVisualPreview(BallType.Blue);
+                st.SetModuleVisualPreview(blueDefinition);
                 whiteToBlueLeft--;
             }
         }
@@ -262,7 +265,8 @@ public class BinTrigger : MonoBehaviour
         if (collector == null)
             return;
 
-        int effectiveThreshold = collector.GetEffectiveFlushThresholdFor(this);
+        int effectiveThreshold =
+            collector.GetEffectiveFlushThresholdFor(this);
 
         if (present.Count < effectiveThreshold)
             return;
@@ -274,5 +278,29 @@ public class BinTrigger : MonoBehaviour
 
         if (!sideBusy)
             collector.CollectFromBin(side);
+    }
+
+    private bool IsBall(BallState st, BallDefinition def)
+    {
+        if (st == null || def == null)
+            return false;
+
+        return string.Equals(
+            st.BallId,
+            def.Id,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsDefinition(
+        BallDefinition a,
+        BallDefinition b)
+    {
+        if (a == null || b == null)
+            return false;
+
+        return string.Equals(
+            a.Id,
+            b.Id,
+            StringComparison.OrdinalIgnoreCase);
     }
 }

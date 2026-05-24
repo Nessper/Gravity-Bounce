@@ -78,7 +78,7 @@ TrailRenderer:
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -998618169
-  m_SortingLayer: 5
+  m_SortingLayer: 6
   m_SortingOrder: 5
   m_Time: 0.3
   m_PreviewTimeScale: 1
@@ -269,6 +269,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BallState
   scale: {x: 0.5, y: 0.5, z: 0.5}
+  definition: {fileID: 0}
   type: 0
   points: 1
   inBin: 0
@@ -277,20 +278,16 @@ MonoBehaviour:
   isTutorialBall: 0
   visualRenderer: {fileID: 8445337311549257028}
   rb: {fileID: 2800654046810924822}
-  blackTrailStartSpeed: 4
-  blackTrailStopSpeed: 3
-  blackTrailStopDelay: 0.22
-  whiteMaterial: {fileID: 2100000, guid: 0ebe5e74f2a9fbc43918b4337993cc0f, type: 2}
-  blueMaterial: {fileID: 2100000, guid: dab2c005a9cb7ef4db4ec323e0dfc61c, type: 2}
-  redMaterial: {fileID: 2100000, guid: 95c26cc09a862644483150275375879f, type: 2}
-  blackMaterial: {fileID: 2100000, guid: 51e86c8e2d150bf4aa76a4c1ada83cd7, type: 2}
   trailWhite: {fileID: 7425899445157111799}
   trailBlue: {fileID: 1606990272816242424}
   trailRed: {fileID: 1224462945529839406}
   trailBlack: {fileID: 1587599913418180451}
-  blackCrackleFX: {fileID: 4436635971491011960}
+  dangerTrailStartSpeed: 4
+  dangerTrailStopSpeed: 2
+  dangerTrailStopDelay: 0.18
+  dangerCrackleFX: {fileID: 4436635971491011960}
   defaultLayerName: Gameplay
-  cleanGameplayLayerName: CleanGameplay
+  dangerLayerName: CleanGameplay
 --- !u!114 &8706953805894826079
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -399,7 +396,7 @@ TrailRenderer:
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -998618169
-  m_SortingLayer: 5
+  m_SortingLayer: 6
   m_SortingOrder: 5
   m_Time: 0.09
   m_PreviewTimeScale: 1
@@ -5568,7 +5565,7 @@ TrailRenderer:
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -998618169
-  m_SortingLayer: 5
+  m_SortingLayer: 6
   m_SortingOrder: 5
   m_Time: 0.18
   m_PreviewTimeScale: 1
@@ -5719,7 +5716,7 @@ TrailRenderer:
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -998618169
-  m_SortingLayer: 5
+  m_SortingLayer: 6
   m_SortingOrder: 5
   m_Time: 0.14
   m_PreviewTimeScale: 1
