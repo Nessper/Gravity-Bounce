@@ -13,6 +13,11 @@ public class BallState : MonoBehaviour
     [SerializeField] private Vector3 scale = Vector3.one;
     public Vector3 Scale => scale;
 
+    [Header("Definition")]
+    [SerializeField] private BallDefinition definition;
+
+    public BallDefinition Definition => definition;
+
     [Header("Type & score (set au spawn)")]
     public BallType type = BallType.White;
     public int points = 0;
@@ -181,24 +186,29 @@ public class BallState : MonoBehaviour
             return;
 
         Material targetMaterial = null;
+        string requestedId = t.ToString().ToLower();
 
-        switch (t)
+        if (definition != null && definition.Id == requestedId)
         {
-            case BallType.White:
-                targetMaterial = whiteMaterial;
-                break;
-
-            case BallType.Blue:
-                targetMaterial = blueMaterial;
-                break;
-
-            case BallType.Red:
-                targetMaterial = redMaterial;
-                break;
-
-            case BallType.Black:
-                targetMaterial = blackMaterial;
-                break;
+            targetMaterial = definition.Material;
+        }
+        else
+        {
+            switch (t)
+            {
+                case BallType.White:
+                    targetMaterial = whiteMaterial;
+                    break;
+                case BallType.Blue:
+                    targetMaterial = blueMaterial;
+                    break;
+                case BallType.Red:
+                    targetMaterial = redMaterial;
+                    break;
+                case BallType.Black:
+                    targetMaterial = blackMaterial;
+                    break;
+            }
         }
 
         if (targetMaterial != null)
@@ -382,6 +392,55 @@ public class BallState : MonoBehaviour
             );
         }
     }
+
+    public void SetDefinition(BallDefinition newDefinition)
+    {
+        definition = newDefinition;
+
+        if (definition != null)
+            points = definition.BasePoints;
+
+        if (hasModuleVisualPreview)
+            ApplyVisuals(moduleVisualPreviewType);
+        else
+            ApplyVisuals(type);
+
+        ApplyLayerForType(type);
+        UpdateTrails();
+        UpdateBlackFX();
+        UpdateBlackThreatRegistration();
+    }
+
+    public bool TryGetDefinitionForType(
+    BallType targetType,
+    out BallDefinition result)
+    {
+        result = null;
+
+        if (definition == null)
+            return false;
+
+        string targetId = targetType.ToString().ToLower();
+
+        if (definition.Id == targetId)
+        {
+            result = definition;
+            return true;
+        }
+
+        return false;
+    }
+
+    public string BallId =>
+    definition != null ? definition.Id : type.ToString();
+
+    public Color ScoreColor =>
+        definition != null ? definition.ScoreColor : Color.white;
+
+    public bool IsDanger =>
+        definition != null
+            ? definition.IsDanger
+            : type == BallType.Black;
 
     private void OnDisable()
     {

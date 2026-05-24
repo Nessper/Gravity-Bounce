@@ -37,6 +37,8 @@ public class BallSpawner : MonoBehaviour
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private GameObject ballPrefab;
     [SerializeField] private Transform ballsParent;
+    [Header("Ball Definitions")]
+    [SerializeField] private BallDefinitionCatalog ballCatalog;
 
     [Header("Camera / Ceiling")]
     [SerializeField] private Camera gameplayCamera;
@@ -134,23 +136,7 @@ public class BallSpawner : MonoBehaviour
     {
         pointsByType.Clear();
 
-        if (data != null && data.Balls != null)
-        {
-            for (int i = 0; i < data.Balls.Length; i++)
-            {
-                var b = data.Balls[i];
-                if (b == null || string.IsNullOrWhiteSpace(b.Type))
-                    continue;
-
-                if (!Enum.TryParse(b.Type, true, out BallType t))
-                    continue;
-
-                pointsByType[t] = b.Points;
-            }
-        }
-
-        if (pointsByType.Count == 0)
-            pointsByType[BallType.White] = 100;
+        pointsByType[BallType.White] = 0;
     }
 
     private float GetGlobalSpawnInterval()
@@ -718,7 +704,8 @@ public class BallSpawner : MonoBehaviour
         }
 
         BallType type = NextTypeForPhase(phaseIdx);
-        int pts = pointsByType.TryGetValue(type, out int p) ? p : 0;
+        BallDefinition def = GetDefinition(type);
+        int pts = def != null ? def.BasePoints : 0;
 
         if (go.TryGetComponent(out BallState st))
         {
@@ -726,7 +713,9 @@ public class BallSpawner : MonoBehaviour
             st.collected = false;
             st.currentSide = Side.None;
             st.isTutorialBall = false;
+
             st.Initialize(type, pts);
+            st.SetDefinition(def);
         }
 
         activatedCount++;
@@ -860,7 +849,8 @@ public class BallSpawner : MonoBehaviour
                 grace.StartGrace();
         }
 
-        int pts = pointsByType.TryGetValue(type, out int p) ? p : 0;
+        BallDefinition def = GetDefinition(type);
+        int pts = def != null ? def.BasePoints : 0;
 
         if (go.TryGetComponent(out BallState st))
         {
@@ -868,7 +858,9 @@ public class BallSpawner : MonoBehaviour
             st.collected = false;
             st.currentSide = Side.None;
             st.isTutorialBall = true;
+
             st.Initialize(type, pts);
+            st.SetDefinition(def);
         }
 
         if (releasePhysics && tutorialReleasePhysicsNextFrame)
@@ -930,6 +922,18 @@ public class BallSpawner : MonoBehaviour
         return copy;
     }
 
+    private BallDefinition GetDefinition(BallType type)
+    {
+        if (ballCatalog == null)
+            return null;
+
+        string id = type.ToString().ToLower();
+
+        ballCatalog.TryGet(id, out BallDefinition def);
+
+        return def;
+    }
+
     public void LogStats()
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -960,4 +964,5 @@ public class BallSpawner : MonoBehaviour
         );
 #endif
     }
+
 }

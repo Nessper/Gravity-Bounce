@@ -375,31 +375,19 @@ public class BinCollector : MonoBehaviour
     /// Retourne les points associés au type logique final.
     /// </summary>
     private int GetPointsForResolvedType(
-        BallState source,
-        BallType resolvedType)
+    BallState source,
+    BallType resolvedType)
     {
-        switch (resolvedType)
-        {
-            case BallType.White:
-                return 100;
+        if (source == null)
+            return 0;
 
-            case BallType.Blue:
-                return 150;
+        if (source.TryGetDefinitionForType(resolvedType, out BallDefinition def))
+            return def.BasePoints;
 
-            case BallType.Red:
-                return 200;
-
-            case BallType.Black:
-                return source != null
-                    ? source.points
-                    : -120;
-
-            default:
-                return source != null
-                    ? source.points
-                    : 0;
-        }
+        return source.points;
     }
+
+   
 
     private void TriggerFlushFx(Side side, int flushScore, bool hasBlack)
     {

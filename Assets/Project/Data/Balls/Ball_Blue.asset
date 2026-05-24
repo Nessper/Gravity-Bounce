@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15885de4e39f12942a2560ae27474f5e, type: 3}
+  m_Name: Ball_Blue
+  m_EditorClassIdentifier: Assembly-CSharp::BallDefinition
+  id: blue
+  displayNameLocKey: blue
+  basePoints: 150
+  isDanger: 0
+  countsForProgress: 1
+  material: {fileID: 2100000, guid: dab2c005a9cb7ef4db4ec323e0dfc61c, type: 2}
+  scoreColor: {r: 0.16660735, g: 0.45224246, b: 0.9056604, a: 1}

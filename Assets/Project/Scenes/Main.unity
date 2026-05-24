@@ -40783,6 +40783,7 @@ MonoBehaviour:
   scoreManager: {fileID: 975156268}
   ballPrefab: {fileID: 478708050936076225, guid: fa94708173a9c054da13b3603d21619d, type: 3}
   ballsParent: {fileID: 1646786765}
+  ballCatalog: {fileID: 11400000, guid: f331750a1fa32a4438c5e6eed8a14a4d, type: 2}
   gameplayCamera: {fileID: 442265202}
   ceilingCollider: {fileID: 1815791473}
   spawnOffsetAboveScreen: 0.3
