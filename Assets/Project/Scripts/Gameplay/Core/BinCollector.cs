@@ -318,7 +318,7 @@ public class BinCollector : MonoBehaviour
                 whiteToBlueLeft--;
             }
 
-            if (st.type == BallType.Black)
+            if (resolvedType == BallType.Black)
                 blackCount++;
 
             int resolvedPoints =

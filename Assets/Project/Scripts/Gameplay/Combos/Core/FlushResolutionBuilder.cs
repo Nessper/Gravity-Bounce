@@ -10,6 +10,7 @@ public static class FlushResolutionBuilder
             return resolution;
 
         resolution.BinSource = snapshot.binSource;
+        resolution.BinSide = snapshot.binSide;
         resolution.IsFinalFlush = snapshot.isFinalFlush;
 
         AddBalls(

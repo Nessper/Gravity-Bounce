@@ -1,78 +1,86 @@
+using System.Collections;
 using UnityEngine;
 
 public class FlushComboOverlayController : MonoBehaviour
 {
     [Header("Debug")]
-    [SerializeField] private bool verboseLogs = true;
+    [SerializeField] private bool verboseLogs = false;
+
+    [Header("Base Score UI")]
+    [SerializeField] private BallScoreUI ballScorePrefab;
+    [SerializeField] private RectTransform leftBinScoreRoot;
+    [SerializeField] private RectTransform rightBinScoreRoot;
+
+    [Header("Base Score Timing")]
+    [SerializeField] private float baseItemDelay = 0.04f;
+
+    [Header("Base Score Scatter")]
+    [SerializeField] private float scatterRadius = 10f;
+
+    private Coroutine playRoutine;
 
     public void Play(FlushResolution resolution)
     {
         if (resolution == null)
             return;
 
+        if (playRoutine != null)
+            StopCoroutine(playRoutine);
+
+        playRoutine = StartCoroutine(PlayRoutine(resolution));
+    }
+
+    private IEnumerator PlayRoutine(FlushResolution resolution)
+    {
         if (verboseLogs)
         {
             Debug.Log(
-                $"[FlushComboOverlay] " +
-                $"Base={resolution.BaseTotal} " +
-                $"Combo={resolution.ComboTotal} " +
-                $"Final={resolution.FinalTotal}");
+                $"[FlushComboOverlay] Base={resolution.BaseTotal} " +
+                $"Combo={resolution.ComboTotal} Final={resolution.FinalTotal}");
         }
 
-        PlayBaseLayer(resolution);
+        yield return PlayBaseLayer(resolution);
 
-        PlayComboLayers(resolution);
-
-        PlayFinalTransfer(resolution);
+        playRoutine = null;
     }
 
-    // =========================================================
-    // BASE LAYER
-    // =========================================================
-
-    private void PlayBaseLayer(FlushResolution resolution)
+    private IEnumerator PlayBaseLayer(FlushResolution resolution)
     {
         if (resolution.BaseItems == null)
-            return;
+            yield break;
+
+        RectTransform root = GetScoreRoot(resolution);
 
         for (int i = 0; i < resolution.BaseItems.Count; i++)
         {
-            BaseScoreItem item = resolution.BaseItems[i];
+            SpawnBallScore(resolution.BaseItems[i], root);
 
-            Debug.Log(
-                $"[BaseScoreLayer] " +
-                $"{item.BallType} +{item.Points}");
+            yield return new WaitForSeconds(baseItemDelay);
         }
     }
 
-    // =========================================================
-    // COMBO LAYERS
-    // =========================================================
-
-    private void PlayComboLayers(FlushResolution resolution)
+    private void SpawnBallScore(BaseScoreItem item, RectTransform root)
     {
-        if (resolution.ComboEvents == null)
+        if (ballScorePrefab == null || root == null)
             return;
 
-        for (int i = 0; i < resolution.ComboEvents.Count; i++)
-        {
-            ComboEvent combo = resolution.ComboEvents[i];
+        BallScoreUI scoreUI = Instantiate(ballScorePrefab, root);
 
-            Debug.Log(
-                $"[ComboLayer] " +
-                $"{combo.Id} " +
-                $"+{combo.Points} " +
-                $"({combo.Family})");
-        }
+        Vector2 offset = Random.insideUnitCircle * scatterRadius;
+
+        Color color = item.Points >= 0 ? Color.white : Color.red;
+
+        scoreUI.Play(item.Points, color, offset);
     }
 
-    // =========================================================
-    // FINAL TRANSFER
-    // =========================================================
-
-    private void PlayFinalTransfer(FlushResolution resolution)
+    private RectTransform GetScoreRoot(FlushResolution resolution)
     {
-        Debug.Log(
-            $"[FinalTransfer] +{resolution.FinalTotal}");
+        if (resolution.BinSide == BinSide.Left)
+            return leftBinScoreRoot;
+
+        if (resolution.BinSide == BinSide.Right)
+            return rightBinScoreRoot;
+
+        return leftBinScoreRoot;
     }
 }

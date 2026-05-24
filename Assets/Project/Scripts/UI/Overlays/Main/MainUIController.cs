@@ -41,6 +41,7 @@ public class MainUIController : MonoBehaviour
 
     [Header("Gameplay Overlays")]
     [SerializeField] private FlushComboOverlayController flushComboOverlayController;
+    [SerializeField] private RuntimeComboOverlayController runtimeComboOverlayController;
 
     [Header("Timings")]
     [SerializeField] private float briefingFadeDuration = 0.25f;
@@ -92,6 +93,8 @@ public class MainUIController : MonoBehaviour
         SetCanvasGroup(gameplayHudGroup, 1f, true, true);
         SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, false, false);
         SetCanvasGroup(endResultOverlayGroup, 0f, false, false);
+
+        runtimeComboOverlayController?.RefreshAll();
     }
 
     public void InitializePauseOverlay(

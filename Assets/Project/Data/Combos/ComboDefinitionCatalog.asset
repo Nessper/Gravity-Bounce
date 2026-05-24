@@ -59,7 +59,7 @@ MonoBehaviour:
     DescriptionLocKey: combo.fast_flush.description
     BonusMode: 0
     BonusValue: 100
-    UiColor: {r: 0.07450979, g: 0.90588236, b: 0.90588236, a: 1}
+    UiColor: {r: 0.59474015, g: 0.9339623, b: 0.84237957, a: 1}
     OverlayStyle: 2
     TimingWindowSec: 3
     Threshold: 0
@@ -72,7 +72,7 @@ MonoBehaviour:
     DescriptionLocKey: combo.white_chain.description
     BonusMode: 1
     BonusValue: 0.15
-    UiColor: {r: 0.48126557, g: 0.94770235, b: 0.9716981, a: 1}
+    UiColor: {r: 0.7609469, g: 0.9346386, b: 0.9433962, a: 1}
     OverlayStyle: 1
     TimingWindowSec: 0
     Threshold: 10

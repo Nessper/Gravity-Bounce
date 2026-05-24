@@ -51,6 +51,9 @@ TagManager:
   - name: BG_Near
     uniqueID: 1724162911
     locked: 0
+  - name: ComboOverlay
+    uniqueID: 3587796743
+    locked: 0
   - name: Bg_Ship
     uniqueID: 2811398615
     locked: 0

@@ -63,6 +63,7 @@ public struct ComboEvent
 public class FlushResolution
 {
     public string BinSource;
+    public BinSide BinSide;
     public bool IsFinalFlush;
 
     public List<BaseScoreItem> BaseItems = new();
