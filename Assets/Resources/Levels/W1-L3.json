@@ -30,12 +30,6 @@
     "T3": "Attention, jusqu’à un tiers des billes seront noires en fin de mission. Profitez de la première moitié pour sécuriser vos prises : chaque erreur se paie immédiatement."
   },
 
-  "Balls": [
-    { "Type": "White", "Points": 100 },
-    { "Type": "Blue", "Points": 150 },
-    { "Type": "Red", "Points": 200 },
-    { "Type": "Black", "Points": -120 }
-  ],
 
   "Phases": [
     {
@@ -45,9 +39,9 @@
       "AngleMin": -8,
       "AngleMax": 8,
       "Mix": [
-        { "Type": "White", "Poids": 0.76 },
-        { "Type": "Blue",  "Poids": 0.15 },
-        { "Type": "Black", "Poids": 0.09 }
+        { "BallId": "white", "Poids": 0.76 },
+        { "BallId": "blue",  "Poids": 0.15 },
+        { "BallId": "black", "Poids": 0.09 }
       ]
     },
     {
@@ -57,9 +51,9 @@
       "AngleMin": -10,
       "AngleMax": 10,
       "Mix": [
-        { "Type": "White", "Poids": 0.62 },
-        { "Type": "Blue",  "Poids": 0.17 },
-        { "Type": "Black", "Poids": 0.21 }
+        { "BallId": "white", "Poids": 0.62 },
+        { "BallId": "blue",  "Poids": 0.17 },
+        { "BallId": "black", "Poids": 0.21 }
       ]
     },
     {
@@ -69,13 +63,12 @@
       "AngleMin": -12,
       "AngleMax": 12,
       "Mix": [
-        { "Type": "White", "Poids": 0.52 },
-        { "Type": "Blue",  "Poids": 0.15 },
-        { "Type": "Black", "Poids": 0.33 }
+        { "BallId": "white", "Poids": 0.52 },
+        { "BallId": "blue",  "Poids": 0.15 },
+        { "BallId": "black", "Poids": 0.33 }
       ]
     }
   ],
-
   "Evacuation": {
     "Name": "Evacuation",
     "DurationSec": 10

@@ -39,12 +39,7 @@
     "T3": "Fin de mission composée uniquement de bleues et de noires. Accumuler des bleues avant la fin permet d’arriver à un bac presque prêt, à compléter avec une seule bille."
   },
 
-  "Balls": [
-    { "Type": "White", "Points": 100 },
-    { "Type": "Blue", "Points": 150 },
-    { "Type": "Red", "Points": 200 },
-    { "Type": "Black", "Points": -120 }
-  ],
+
 
   "Phases": [
     {
@@ -54,9 +49,9 @@
       "AngleMin": -9,
       "AngleMax": 9,
       "Mix": [
-        { "Type": "White", "Poids": 0.74 },
-        { "Type": "Blue",  "Poids": 0.18 },
-        { "Type": "Black", "Poids": 0.08 }
+        { "BallId": "white", "Poids": 0.74 },
+        { "BallId": "blue",  "Poids": 0.18 },
+        { "BallId": "black", "Poids": 0.08 }
       ]
     },
     {
@@ -66,9 +61,9 @@
       "AngleMin": -11,
       "AngleMax": 11,
       "Mix": [
-        { "Type": "White", "Poids": 0.60 },
-        { "Type": "Blue",  "Poids": 0.20 },
-        { "Type": "Black", "Poids": 0.20 }
+        { "BallId": "white", "Poids": 0.60 },
+        { "BallId": "blue",  "Poids": 0.20 },
+        { "BallId": "black", "Poids": 0.20 }
       ]
     },
     {
@@ -78,8 +73,8 @@
       "AngleMin": -15,
       "AngleMax": 15,
       "Mix": [
-        { "Type": "Blue",  "Poids": 0.50 },
-        { "Type": "Black", "Poids": 0.50 }
+        { "BallId": "blue",  "Poids": 0.50 },
+        { "BallId": "black", "Poids": 0.50 }
       ]
     }
   ],

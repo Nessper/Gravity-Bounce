@@ -33,4 +33,15 @@ public class BallDefinitionCatalog : ScriptableObject
 
         return byId.TryGetValue(id, out definition);
     }
+
+    public BallDefinition DefaultBall
+    {
+        get
+        {
+            if (balls != null && balls.Length > 0)
+                return balls[0];
+
+            return null;
+        }
+    }
 }

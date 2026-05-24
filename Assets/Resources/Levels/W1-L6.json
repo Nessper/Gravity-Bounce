@@ -38,13 +38,6 @@
     "T3": "Le milieu de la mission est votre meilleure phase pour collecter. Une bille rouge y apparaît.\n Le début et la fin du niveau sont dominés par les noires (≈85 %)."
   },
 
-  "Balls": [
-    { "Type": "White", "Points": 100 },
-    { "Type": "Blue",  "Points": 150 },
-    { "Type": "Red",   "Points": 200 },
-    { "Type": "Black", "Points": -120 }
-  ],
-
   "Phases": [
     {
       "Name": "PHASE 1",
@@ -53,9 +46,9 @@
       "AngleMin": -10,
       "AngleMax": 10,
       "Mix": [
-        { "Type": "Black", "Poids": 0.85 },
-        { "Type": "Blue",  "Poids": 0.10 },
-        { "Type": "White", "Poids": 0.05 }
+        { "BallId": "black", "Poids": 0.85 },
+        { "BallId": "blue",  "Poids": 0.10 },
+        { "BallId": "white", "Poids": 0.05 }
       ]
     },
     {
@@ -66,13 +59,13 @@
       "AngleMax": 12,
 
       "ForcedSpawns": [
-        { "Type": "Red", "Count": 1, "AtPercent": 0.55 }
+        { "BallId": "red", "Count": 1, "AtPercent": 0.55 }
       ],
 
       "Mix": [
-        { "Type": "Black", "Poids": 0.50 },
-        { "Type": "Blue",  "Poids": 0.35 },
-        { "Type": "White", "Poids": 0.15 }
+        { "BallId": "black", "Poids": 0.50 },
+        { "BallId": "blue",  "Poids": 0.35 },
+        { "BallId": "white", "Poids": 0.15 }
       ]
     },
     {
@@ -82,9 +75,9 @@
       "AngleMin": -16,
       "AngleMax": 16,
       "Mix": [
-        { "Type": "Black", "Poids": 0.85 },
-        { "Type": "Blue",  "Poids": 0.12 },
-        { "Type": "White", "Poids": 0.03 }
+        { "BallId": "black", "Poids": 0.85 },
+        { "BallId": "blue",  "Poids": 0.12 },
+        { "BallId": "white", "Poids": 0.03 }
       ]
     }
   ],

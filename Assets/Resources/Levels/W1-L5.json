@@ -38,13 +38,6 @@
     "T3": "Les obstacles, placés bas à l’écran, perturbent les trajectoires au dernier moment.\n En fin de niveau, la bille rouge apparaît dans une phase majoritairement composée de bleues (60 %) et de noires (35 %)."
   },
 
-  "Balls": [
-    { "Type": "White", "Points": 100 },
-    { "Type": "Blue",  "Points": 150 },
-    { "Type": "Red",   "Points": 200 },
-    { "Type": "Black", "Points": -120 }
-  ],
-
   "Phases": [
     {
       "Name": "PHASE 1",
@@ -53,9 +46,9 @@
       "AngleMin": -10,
       "AngleMax": 10,
       "Mix": [
-        { "Type": "White", "Poids": 0.68 },
-        { "Type": "Blue",  "Poids": 0.22 },
-        { "Type": "Black", "Poids": 0.10 }
+        { "BallId": "white", "Poids": 0.68 },
+        { "BallId": "blue",  "Poids": 0.22 },
+        { "BallId": "black", "Poids": 0.10 }
       ]
     },
     {
@@ -65,9 +58,9 @@
       "AngleMin": -12,
       "AngleMax": 12,
       "Mix": [
-        { "Type": "White", "Poids": 0.48 },
-        { "Type": "Blue",  "Poids": 0.27 },
-        { "Type": "Black", "Poids": 0.25 }
+        { "BallId": "white", "Poids": 0.48 },
+        { "BallId": "blue",  "Poids": 0.27 },
+        { "BallId": "black", "Poids": 0.25 }
       ]
     },
     {
@@ -78,13 +71,13 @@
       "AngleMax": 16,
 
       "ForcedSpawns": [
-        { "Type": "Red", "Count": 1, "AtPercent": 0.6 }
+        { "BallId": "red", "Count": 1, "AtPercent": 0.6 }
       ],
 
       "Mix": [
-        { "Type": "Black", "Poids": 0.35 },
-        { "Type": "Blue",  "Poids": 0.60 },
-        { "Type": "White", "Poids": 0.05 }
+        { "BallId": "black", "Poids": 0.35 },
+        { "BallId": "blue",  "Poids": 0.60 },
+        { "BallId": "white", "Poids": 0.05 }
       ]
     }
   ],

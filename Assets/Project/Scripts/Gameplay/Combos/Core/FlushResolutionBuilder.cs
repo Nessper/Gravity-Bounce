@@ -13,25 +13,17 @@ public static class FlushResolutionBuilder
         resolution.BinSide = snapshot.binSide;
         resolution.IsFinalFlush = snapshot.isFinalFlush;
 
-        AddBalls(
-            resolution,
-            snapshot,
-            "White");
+        if (snapshot.parBallId == null || snapshot.pointsParBallId == null)
+            return resolution;
 
-        AddBalls(
-            resolution,
-            snapshot,
-            "Blue");
-
-        AddBalls(
-            resolution,
-            snapshot,
-            "Red");
-
-        AddBalls(
-            resolution,
-            snapshot,
-            "Black");
+        foreach (var kv in snapshot.parBallId)
+        {
+            AddBalls(
+                resolution,
+                snapshot,
+                kv.Key
+            );
+        }
 
         return resolution;
     }
@@ -39,30 +31,22 @@ public static class FlushResolutionBuilder
     private static void AddBalls(
         FlushResolution resolution,
         BinSnapshot snapshot,
-        string type)
+        string ballId)
     {
-        if (snapshot.parType == null)
+        if (string.IsNullOrWhiteSpace(ballId))
             return;
 
-        if (snapshot.pointsParType == null)
-            return;
-
-        if (!snapshot.parType.TryGetValue(type, out int count))
+        if (!snapshot.parBallId.TryGetValue(ballId, out int count))
             return;
 
         if (count <= 0)
             return;
 
-        snapshot.pointsParType.TryGetValue(type, out int totalPoints);
+        snapshot.pointsParBallId.TryGetValue(ballId, out int totalPoints);
 
-        int perBall = 0;
-
-        if (count > 0)
-            perBall = Mathf.RoundToInt((float)totalPoints / count);
+        int perBall = Mathf.RoundToInt((float)totalPoints / count);
 
         for (int i = 0; i < count; i++)
-        {
-            resolution.AddBaseItem(type, perBall);
-        }
+            resolution.AddBaseItem(ballId, perBall);
     }
 }

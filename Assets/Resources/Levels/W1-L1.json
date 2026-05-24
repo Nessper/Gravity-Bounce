@@ -27,12 +27,6 @@
       "T3": "Un White Streak se déclenche avec 5 blanches dans un bac. C’est facile à réaliser ici."
   },
 
-  "Balls": [
-    { "Type": "White", "Points": 100 },
-    { "Type": "Blue", "Points": 150 },
-    { "Type": "Red", "Points": 200 },
-    { "Type": "Black", "Points": -120 }
-  ],
   "Phases": [
     {
       "Name": "PHASE 1",
@@ -41,9 +35,9 @@
       "AngleMin": -6,
       "AngleMax": 6,
       "Mix": [
-        { "Type": "White", "Poids": 0.90 },
-        { "Type": "Blue", "Poids": 0.10 },
-        { "Type": "Black", "Poids": 0.00 }
+        { "BallId": "white", "Poids": 0.90 },
+        { "BallId": "blue", "Poids": 0.10 },
+        { "BallId": "black", "Poids": 0.00 }
       ]
     },
     {
@@ -53,9 +47,9 @@
       "AngleMin": -8,
       "AngleMax": 8,
       "Mix": [
-        { "Type": "White", "Poids": 0.82 },
-        { "Type": "Blue", "Poids": 0.15 },
-        { "Type": "Black", "Poids": 0.03 }
+        { "BallId": "white", "Poids": 0.82 },
+        { "BallId": "blue", "Poids": 0.15 },
+        { "BallId": "black", "Poids": 0.03 }
       ]
     },
     {
@@ -65,9 +59,9 @@
       "AngleMin": -10,
       "AngleMax": 10,
       "Mix": [
-        { "Type": "White", "Poids": 0.78 },
-        { "Type": "Blue", "Poids": 0.15 },
-        { "Type": "Black", "Poids": 0.07 }
+        { "BallId": "white", "Poids": 0.78 },
+        { "BallId": "blue", "Poids": 0.15 },
+        { "BallId": "black", "Poids": 0.07 }
       ]
     }
   ],

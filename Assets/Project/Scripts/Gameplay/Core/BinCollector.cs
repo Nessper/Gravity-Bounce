@@ -280,8 +280,8 @@ public class BinCollector : MonoBehaviour
         {
             binSide = (side == Side.Right) ? BinSide.Right : BinSide.Left,
             timestamp = Time.time,
-            parType = new Dictionary<string, int>(),
-            pointsParType = new Dictionary<string, int>(),
+            parBallId = new Dictionary<string, int>(),
+            pointsParBallId = new Dictionary<string, int>(),
             nombreDeBilles = 0,
             totalPointsDuLot = 0
         };
@@ -327,19 +327,19 @@ public class BinCollector : MonoBehaviour
             totalPoints += resolvedPoints;
             snapshot.nombreDeBilles++;
 
-            string typeName = resolvedType.ToString();
+            string ballId = GetBallIdForResolvedType(st, resolvedType);
 
             int count;
-            if (!snapshot.parType.TryGetValue(typeName, out count))
-                snapshot.parType[typeName] = 1;
+            if (!snapshot.parBallId.TryGetValue(ballId, out count))
+                snapshot.parBallId[ballId] = 1;
             else
-                snapshot.parType[typeName] = count + 1;
+                snapshot.parBallId[ballId] = count + 1;
 
             int pts;
-            if (!snapshot.pointsParType.TryGetValue(typeName, out pts))
-                snapshot.pointsParType[typeName] = resolvedPoints;
+            if (!snapshot.pointsParBallId.TryGetValue(ballId, out pts))
+                snapshot.pointsParBallId[ballId] = resolvedPoints;
             else
-                snapshot.pointsParType[typeName] = pts + resolvedPoints;
+                snapshot.pointsParBallId[ballId] = pts + resolvedPoints;
         }
 
         snapshot.totalPointsDuLot = totalPoints;
@@ -454,5 +454,22 @@ public class BinCollector : MonoBehaviour
             bonus = Mathf.Max(0, ModuleRuntimeStats.Instance.FlushMinBallsAdd);
 
         return Mathf.Max(1, baseThreshold + bonus);
+    }
+
+    private string GetBallIdForResolvedType(
+    BallState source,
+    BallType resolvedType)
+    {
+        if (source != null &&
+            source.Definition != null)
+        {
+            string sourceId = source.Definition.Id;
+            string resolvedId = resolvedType.ToString().ToLower();
+
+            if (sourceId == resolvedId)
+                return sourceId;
+        }
+
+        return resolvedType.ToString().ToLower();
     }
 }

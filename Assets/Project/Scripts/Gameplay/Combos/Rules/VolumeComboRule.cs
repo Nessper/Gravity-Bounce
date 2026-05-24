@@ -86,13 +86,14 @@ public class VolumeComboRule : IComboRule
     {
         int total = 0;
 
-        snapshot.pointsParType.TryGetValue("White", out int w);
-        snapshot.pointsParType.TryGetValue("Blue", out int b);
-        snapshot.pointsParType.TryGetValue("Red", out int r);
+        if (snapshot.pointsParBallId == null)
+            return total;
 
-        if (w > 0) total += w;
-        if (b > 0) total += b;
-        if (r > 0) total += r;
+        foreach (var kv in snapshot.pointsParBallId)
+        {
+            if (kv.Value > 0)
+                total += kv.Value;
+        }
 
         return total;
     }

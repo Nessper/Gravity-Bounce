@@ -41,7 +41,8 @@ public class ComboSessionTester : MonoBehaviour
     public bool resetScoreAtStart = true;
     public bool resetCombosAtStart = true;
 
-    private readonly Dictionary<string, int> comboCounts = new Dictionary<string, int>();
+    private readonly Dictionary<string, int> comboCounts =
+        new Dictionary<string, int>();
 
     private int totalCombos;
     private int totalComboPoints;
@@ -114,7 +115,7 @@ public class ComboSessionTester : MonoBehaviour
         if (scoreManager == null || flushResolutionEngine == null)
         {
             Debug.LogWarning(
-                "[ComboSessionTester] Missing references. Assign ScoreManager and FlushResolutionEngine in Inspector.");
+                "[ComboSessionTester] Missing references.");
 
             yield break;
         }
@@ -127,7 +128,8 @@ public class ComboSessionTester : MonoBehaviour
 
         ClearResults();
 
-        Debug.Log($"[ComboSessionTester] Starting session with {actions.Count} steps.");
+        Debug.Log(
+            $"[ComboSessionTester] Starting session with {actions.Count} steps.");
 
         for (int i = 0; i < actions.Count; i++)
         {
@@ -137,13 +139,9 @@ public class ComboSessionTester : MonoBehaviour
                 continue;
 
             if (act.registerLoss)
-            {
                 RegisterLoss(act);
-            }
             else
-            {
                 RunFlush(act);
-            }
 
             if (act.delayAfter > 0f)
                 yield return new WaitForSeconds(act.delayAfter);
@@ -174,7 +172,7 @@ public class ComboSessionTester : MonoBehaviour
         if (scoreManager == null)
             return;
 
-        scoreManager.RegisterLost("White");
+        scoreManager.RegisterLost("white");
 
         if (logEachStep)
             Debug.Log($"[ComboSessionTester] Loss: {act.label}");
@@ -219,28 +217,33 @@ public class ComboSessionTester : MonoBehaviour
         {
             binSide = act.binSide,
             timestamp = Time.time,
-            parType = new Dictionary<string, int>(),
-            pointsParType = new Dictionary<string, int>(),
-            nombreDeBilles = act.white + act.blue + act.red + act.black,
+
+            parBallId = new Dictionary<string, int>(),
+            pointsParBallId = new Dictionary<string, int>(),
+
+            nombreDeBilles =
+                act.white + act.blue + act.red + act.black,
+
             totalPointsDuLot =
                 (act.white * ptsWhite) +
                 (act.blue * ptsBlue) +
                 (act.red * ptsRed) +
                 (act.black * ptsBlack),
+
             isFinalFlush = false
         };
 
-        AddType(s, "White", act.white, ptsWhite);
-        AddType(s, "Blue", act.blue, ptsBlue);
-        AddType(s, "Red", act.red, ptsRed);
-        AddType(s, "Black", act.black, ptsBlack);
+        AddBall(s, "white", act.white, ptsWhite);
+        AddBall(s, "blue", act.blue, ptsBlue);
+        AddBall(s, "red", act.red, ptsRed);
+        AddBall(s, "black", act.black, ptsBlack);
 
         return s;
     }
 
-    private void AddType(
+    private void AddBall(
         BinSnapshot snapshot,
-        string type,
+        string ballId,
         int count,
         int pointsPerBall)
     {
@@ -250,7 +253,8 @@ public class ComboSessionTester : MonoBehaviour
         if (count <= 0)
             return;
 
-        snapshot.parType[type] = count;
-        snapshot.pointsParType[type] = count * pointsPerBall;
+        snapshot.parBallId[ballId] = count;
+        snapshot.pointsParBallId[ballId] =
+            count * pointsPerBall;
     }
 }

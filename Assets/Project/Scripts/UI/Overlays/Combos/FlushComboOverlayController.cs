@@ -8,6 +8,7 @@ public class FlushComboOverlayController : MonoBehaviour
 
     [Header("Base Score UI")]
     [SerializeField] private BallScoreUI ballScorePrefab;
+
     [SerializeField] private RectTransform leftBinScoreRoot;
     [SerializeField] private RectTransform rightBinScoreRoot;
 
@@ -27,16 +28,20 @@ public class FlushComboOverlayController : MonoBehaviour
         if (playRoutine != null)
             StopCoroutine(playRoutine);
 
-        playRoutine = StartCoroutine(PlayRoutine(resolution));
+        playRoutine = StartCoroutine(
+            PlayRoutine(resolution));
     }
 
-    private IEnumerator PlayRoutine(FlushResolution resolution)
+    private IEnumerator PlayRoutine(
+        FlushResolution resolution)
     {
         if (verboseLogs)
         {
             Debug.Log(
-                $"[FlushComboOverlay] Base={resolution.BaseTotal} " +
-                $"Combo={resolution.ComboTotal} Final={resolution.FinalTotal}");
+                $"[FlushComboOverlay] " +
+                $"Base={resolution.BaseTotal} " +
+                $"Combo={resolution.ComboTotal} " +
+                $"Final={resolution.FinalTotal}");
         }
 
         yield return PlayBaseLayer(resolution);
@@ -44,37 +49,76 @@ public class FlushComboOverlayController : MonoBehaviour
         playRoutine = null;
     }
 
-    private IEnumerator PlayBaseLayer(FlushResolution resolution)
+    private IEnumerator PlayBaseLayer(
+        FlushResolution resolution)
     {
         if (resolution.BaseItems == null)
             yield break;
 
-        RectTransform root = GetScoreRoot(resolution);
+        RectTransform root =
+            GetScoreRoot(resolution);
+
+        if (root == null)
+        {
+            Debug.LogWarning(
+                "[FlushComboOverlay] Missing score root.");
+            yield break;
+        }
+
+        if (ballScorePrefab == null)
+        {
+            Debug.LogWarning(
+                "[FlushComboOverlay] Missing BallScore prefab.");
+            yield break;
+        }
 
         for (int i = 0; i < resolution.BaseItems.Count; i++)
         {
-            SpawnBallScore(resolution.BaseItems[i], root);
+            SpawnBallScore(
+                resolution.BaseItems[i],
+                root);
 
-            yield return new WaitForSeconds(baseItemDelay);
+            yield return new WaitForSeconds(
+                baseItemDelay);
         }
     }
 
-    private void SpawnBallScore(BaseScoreItem item, RectTransform root)
+    private void SpawnBallScore(
+        BaseScoreItem item,
+        RectTransform root)
     {
-        if (ballScorePrefab == null || root == null)
+
+        if (ballScorePrefab == null)
             return;
 
-        BallScoreUI scoreUI = Instantiate(ballScorePrefab, root);
+        if (root == null)
+            return;
 
-        Vector2 offset = Random.insideUnitCircle * scatterRadius;
+        BallScoreUI scoreUI =
+            Instantiate(ballScorePrefab, root);
 
-        Color color = item.Points >= 0 ? Color.white : Color.red;
+        scoreUI.gameObject.SetActive(true);
 
-        scoreUI.Play(item.Points, color, offset);
+        Vector2 offset =
+            Random.insideUnitCircle * scatterRadius;
+
+        Color color =
+            item.Points >= 0
+                ? Color.white
+                : Color.red;
+
+        scoreUI.Play(
+            item.Points,
+            color,
+            offset);
     }
 
-    private RectTransform GetScoreRoot(FlushResolution resolution)
+    private RectTransform GetScoreRoot(
+        FlushResolution resolution)
     {
+        if (resolution == null)
+            return null;
+
         if (resolution.BinSide == BinSide.Left)
             return leftBinScoreRoot;
 

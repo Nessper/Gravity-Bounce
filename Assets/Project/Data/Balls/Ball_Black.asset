@@ -17,5 +17,5 @@ MonoBehaviour:
   basePoints: -120
   isDanger: 1
   countsForProgress: 0
-  material: {fileID: 2100000, guid: 2ff8d6692c8494644893d64a0f9ac52c, type: 2}
+  material: {fileID: 2100000, guid: 51e86c8e2d150bf4aa76a4c1ada83cd7, type: 2}
   scoreColor: {r: 0.6224954, g: 0.08904416, b: 0.8207547, a: 1}

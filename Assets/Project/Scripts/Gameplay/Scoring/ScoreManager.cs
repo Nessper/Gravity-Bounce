@@ -121,9 +121,9 @@ public class ScoreManager : MonoBehaviour
 
         int nonBlackThisFlush = 0;
 
-        if (snapshot.parType != null)
+        if (snapshot.parBallId != null)
         {
-            foreach (var kv in snapshot.parType)
+            foreach (var kv in snapshot.parBallId)
             {
                 string typeKey = kv.Key;
                 int count = kv.Value;
@@ -158,7 +158,7 @@ public class ScoreManager : MonoBehaviour
         if (string.IsNullOrEmpty(typeKey))
             return false;
 
-        return string.Equals(typeKey, "Black", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(typeKey, "black", StringComparison.OrdinalIgnoreCase);
     }
 
     private void CheckGoalReached()

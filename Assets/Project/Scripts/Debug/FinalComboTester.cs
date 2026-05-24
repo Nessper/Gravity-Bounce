@@ -163,7 +163,7 @@ public class FinalComboSessionTester : MonoBehaviour
 
     private void RegisterLoss(TestAction act)
     {
-        scoreManager.RegisterLost("Black");
+        scoreManager.RegisterLost("black");
 
         if (logEachStep)
             Debug.Log("[FinalComboSessionTester] Loss: " + act.label);
@@ -175,8 +175,8 @@ public class FinalComboSessionTester : MonoBehaviour
         {
             binSide = act.binSide,
             timestamp = Time.time,
-            parType = new Dictionary<string, int>(),
-            pointsParType = new Dictionary<string, int>(),
+            parBallId = new Dictionary<string, int>(),
+            pointsParBallId = new Dictionary<string, int>(),
             nombreDeBilles = act.white + act.blue + act.red + act.black,
             totalPointsDuLot =
                 (act.white * ptsWhite) +
@@ -185,17 +185,17 @@ public class FinalComboSessionTester : MonoBehaviour
                 (act.black * ptsBlack)
         };
 
-        AddType(s, "White", act.white, ptsWhite);
-        AddType(s, "Blue", act.blue, ptsBlue);
-        AddType(s, "Red", act.red, ptsRed);
-        AddType(s, "Black", act.black, ptsBlack);
+        AddBall(s, "white", act.white, ptsWhite);
+        AddBall(s, "blue", act.blue, ptsBlue);
+        AddBall(s, "red", act.red, ptsRed);
+        AddBall(s, "black", act.black, ptsBlack);
 
         return s;
     }
 
-    private void AddType(
+    private void AddBall(
         BinSnapshot snapshot,
-        string type,
+        string ballId,
         int count,
         int pointsPerBall)
     {
@@ -205,7 +205,8 @@ public class FinalComboSessionTester : MonoBehaviour
         if (count <= 0)
             return;
 
-        snapshot.parType[type] = count;
-        snapshot.pointsParType[type] = count * pointsPerBall;
+        snapshot.parBallId[ballId] = count;
+        snapshot.pointsParBallId[ballId] =
+            count * pointsPerBall;
     }
 }

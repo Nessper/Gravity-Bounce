@@ -22,14 +22,14 @@ public class ColorComboRule : IComboRule
         if (definitionProvider == null)
             return;
 
-        snapshot.parType.TryGetValue("White", out int whiteCount);
-        snapshot.pointsParType.TryGetValue("White", out int whitePoints);
+        snapshot.parBallId.TryGetValue("white", out int whiteCount);
+        snapshot.pointsParBallId.TryGetValue("white", out int whitePoints);
 
-        snapshot.parType.TryGetValue("Blue", out int blueCount);
-        snapshot.pointsParType.TryGetValue("Blue", out int bluePoints);
+        snapshot.parBallId.TryGetValue("blue", out int blueCount);
+        snapshot.pointsParBallId.TryGetValue("blue", out int bluePoints);
 
-        snapshot.parType.TryGetValue("Red", out int redCount);
-        snapshot.pointsParType.TryGetValue("Red", out int redPoints);
+        snapshot.parBallId.TryGetValue("red", out int redCount);
+        snapshot.pointsParBallId.TryGetValue("red", out int redPoints);
 
         if (whiteCount >= WHITE_STREAK_THRESHOLD)
         {

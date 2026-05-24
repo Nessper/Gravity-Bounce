@@ -10,16 +10,36 @@ public enum BinSide
 [System.Serializable]
 public class BinSnapshot
 {
-    public BinSide binSide = BinSide.None;  // << plus sûr que du texte libre
-    public string binSource => binSide.ToString();  // compatibilité avec l’ancien code
+    // Compat UI / logs
+    public BinSide binSide = BinSide.None;
 
+    // Legacy compat
+    public string binSource => binSide.ToString();
+
+    // Runtime
     public float timestamp;
+
+    // Global flush stats
     public int nombreDeBilles;
     public int totalPointsDuLot;
 
-    public Dictionary<string, int> parType = new Dictionary<string, int>();
-    public Dictionary<string, int> pointsParType = new Dictionary<string, int>();
+    // BallId -> count
+    // ex:
+    // "white" => 12
+    // "black" => 3
+    public Dictionary<string, int> parBallId =
+        new Dictionary<string, int>();
+
+    // BallId -> total points
+    // ex:
+    // "white" => 1200
+    // "black" => -360
+    public Dictionary<string, int> pointsParBallId =
+        new Dictionary<string, int>();
+
+    // Phase info
     public int phaseIndex1Based = 0;
 
-    public bool isFinalFlush; // flag pour signaler que c'est le flush de fin
+    // EndLevel special flush
+    public bool isFinalFlush;
 }

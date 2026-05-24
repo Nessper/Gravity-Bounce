@@ -17,7 +17,7 @@ public class BallData
 [System.Serializable]
 public class PhaseMixEntry
 {
-    public string Type;
+    public string BallId;
     public float Poids;
 }
 
@@ -25,7 +25,7 @@ public class PhaseMixEntry
 [System.Serializable]
 public class ForcedSpawnEntry
 {
-    public string Type;
+    public string BallId;
     public int Count = 1;
     public float AtPercent;
 }

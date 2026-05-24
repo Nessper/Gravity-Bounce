@@ -187,9 +187,9 @@ public class SecondaryObjectivesManager
 
         int phase = Mathf.Max(0, snapshot.phaseIndex1Based);
 
-        if (snapshot.parType != null)
+        if (snapshot.parBallId != null)
         {
-            foreach (var kv in snapshot.parType)
+            foreach (var kv in snapshot.parBallId)
             {
                 string type = kv.Key;
                 int count = kv.Value;
@@ -447,7 +447,7 @@ public class SecondaryObjectivesManager
 
     private static bool IsBlackType(string typeKey)
     {
-        return string.Equals(typeKey, "Black", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(typeKey, "black", StringComparison.OrdinalIgnoreCase);
     }
 
     private static int GetPhaseIndex1Based(SecondaryObjectiveData def)

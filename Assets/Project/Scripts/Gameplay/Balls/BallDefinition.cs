@@ -16,6 +16,9 @@ public class BallDefinition : ScriptableObject
     [SerializeField] private Material material;
     [SerializeField] private Color scoreColor = Color.white;
 
+    [SerializeField] private BallType legacyType;
+    public BallType LegacyType => legacyType;
+
     public string Id => id;
     public string DisplayNameLocKey => displayNameLocKey;
 

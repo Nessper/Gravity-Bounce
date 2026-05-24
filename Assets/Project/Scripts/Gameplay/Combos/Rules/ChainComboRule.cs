@@ -21,7 +21,7 @@ public class ChainComboRule : IComboRule
         if (state == null || definitionProvider == null)
             return;
 
-        snapshot.parType.TryGetValue("Black", out int blackCount);
+        snapshot.parBallId.TryGetValue("black", out int blackCount);
 
         if (blackCount > 0)
         {
@@ -34,21 +34,21 @@ public class ChainComboRule : IComboRule
             ComboIds.WhiteChain,
             snapshot,
             resolution,
-            "White");
+            "white");
 
         ProcessChain(
             ChainColor.Blue,
             ComboIds.BlueChain,
             snapshot,
             resolution,
-            "Blue");
+            "blue");
 
         ProcessChain(
             ChainColor.Red,
             ComboIds.RedChain,
             snapshot,
             resolution,
-            "Red");
+            "red");
     }
 
     private void ProcessChain(
@@ -56,7 +56,7 @@ public class ChainComboRule : IComboRule
         string comboId,
         BinSnapshot snapshot,
         FlushResolution resolution,
-        string snapshotKey)
+        string ballId)
     {
         ComboDefinition definition =
             definitionProvider.Get(comboId);
@@ -64,8 +64,8 @@ public class ChainComboRule : IComboRule
         if (definition == null)
             return;
 
-        snapshot.parType.TryGetValue(snapshotKey, out int count);
-        snapshot.pointsParType.TryGetValue(snapshotKey, out int pointsSum);
+        snapshot.parBallId.TryGetValue(ballId, out int count);
+        snapshot.pointsParBallId.TryGetValue(ballId, out int pointsSum);
 
         if (count <= 0)
             return;
