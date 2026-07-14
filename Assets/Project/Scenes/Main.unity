@@ -4738,7 +4738,6 @@ Transform:
   - {fileID: 838164063}
   - {fileID: 190427245}
   - {fileID: 1324165584}
-  - {fileID: 1955269963}
   - {fileID: 730246087}
   - {fileID: 2003993417}
   - {fileID: 411064515}
@@ -9424,52 +9423,6 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!1 &457077326
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 457077327}
-  - component: {fileID: 457077328}
-  m_Layer: 0
-  m_Name: ScoreBinder
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!4 &457077327
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 457077326}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 874433117}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &457077328
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 457077326}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: edefbe421b695de47bd817161b5ab9be, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ScoreBinder
-  scoreManager: {fileID: 975156268}
-  scoreUI: {fileID: 1955269962}
 --- !u!1 &457132248
 GameObject:
   m_ObjectHideFlags: 0
@@ -27758,7 +27711,7 @@ MonoBehaviour:
   delayBeforeCombos: 0.4
   comboItemDelay: 0.4
   floatDuration: 0.35
-  finalFlushMaxVisualDelay: 2.2
+  finalFlushMaxVisualDelay: 3.5
   baseScatterRadius: 10
   baseImpulseMin: 35
   baseImpulseMax: 70
@@ -28514,7 +28467,6 @@ Transform:
   - {fileID: 1106222931}
   - {fileID: 648814748}
   - {fileID: 807205217}
-  - {fileID: 457077327}
   - {fileID: 1476787074}
   - {fileID: 142716335}
   - {fileID: 597210948}
@@ -35496,19 +35448,7 @@ MonoBehaviour:
       m_Calls: []
   onScoreChanged:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: ScoreUI, Assembly-CSharp
-        m_MethodName: 
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!1 &975944640
 GameObject:
   m_ObjectHideFlags: 0
@@ -55252,51 +55192,6 @@ MonoBehaviour:
   runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
   shipStatusController: {fileID: 1221134186}
   levelPanel: {fileID: 1387839356}
---- !u!1 &1955269961
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1955269963}
-  - component: {fileID: 1955269962}
-  m_Layer: 0
-  m_Name: ScoreUI
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1955269962
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1955269961}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fccf82c40aee54142b692f0dfb65aacd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ScoreUI
-  animatedScore: {fileID: 0}
---- !u!4 &1955269963
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1955269961}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 207393966}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1955805940
 GameObject:
   m_ObjectHideFlags: 0
@@ -56811,7 +56706,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShipRuntimeSetup
   runSession: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
   scoreManager: {fileID: 975156268}
-  scoreUI: {fileID: 1955269962}
   gameplayScoreImpactUI: {fileID: 613787800}
   shipBackgroundController: {fileID: 1646446896}
 --- !u!1 &2040707191

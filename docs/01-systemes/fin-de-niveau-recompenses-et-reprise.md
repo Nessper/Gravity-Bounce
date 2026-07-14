@@ -7,7 +7,7 @@
 
 ## Déclencheurs
 
-Une fin peut résulter du timer, de l’accomplissement/échec déterminé par le niveau, de l’épuisement de coque ou d’un abandon. Les contrôles et le spawn sont arrêtés avant la consolidation. La séquence d’évacuation laisse traiter les balles présentes, force un flush final et nettoie ce qui reste.
+Une fin peut résulter du timer, de l’accomplissement/échec déterminé par le niveau, de l’épuisement de coque ou d’un abandon. Les contrôles et le spawn sont arrêtés avant la consolidation. La séquence d’évacuation laisse traiter les balles présentes, force un flush final et nettoie ce qui reste. Sur le chemin normal, elle attend aussi la fin des arrivées visuelles du score et l’animation du total cumulé avant l’outro du plateau et le masquage du HUD. Un délai maximal de sécurité empêche cette présentation de retenir indéfiniment la suite du flux.
 
 ## Construction du résultat
 

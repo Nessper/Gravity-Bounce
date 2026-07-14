@@ -526,4 +526,12 @@ public class MainUIController : MonoBehaviour
 
         flushComboOverlayController.Play(resolution);
     }
+
+    public IEnumerator WaitForFinalScorePresentation()
+    {
+        if (flushComboOverlayController == null)
+            yield break;
+
+        yield return flushComboOverlayController.WaitForFinalPresentationComplete();
+    }
 }

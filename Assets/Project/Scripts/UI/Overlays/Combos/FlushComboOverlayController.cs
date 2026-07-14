@@ -44,7 +44,7 @@ public class FlushComboOverlayController : MonoBehaviour
     [SerializeField] private float floatDuration = 0.35f;
 
     [Header("Final Flush Guard")]
-    [SerializeField] private float finalFlushMaxVisualDelay = 2.2f;
+    [SerializeField] private float finalFlushMaxVisualDelay = 3.5f;
 
     [Header("Base Score Expulsion")]
     [SerializeField] private float baseScatterRadius = 10f;
@@ -83,9 +83,42 @@ public class FlushComboOverlayController : MonoBehaviour
         gameplayScoreImpactUI?.BeginVisualSequence();
 
         StartCoroutine(PlayRoutine(resolution, sequenceId));
+    }
 
-        if (resolution.IsFinalFlush)
-            StartCoroutine(FinalFlushDeadlineRoutine(sequenceId));
+    public IEnumerator WaitForFinalPresentationComplete()
+    {
+        float deadline = finalFlushMaxVisualDelay > 0f
+            ? Time.realtimeSinceStartup + finalFlushMaxVisualDelay
+            : float.PositiveInfinity;
+
+        while (activeSequenceIds.Count > 0 &&
+               Time.realtimeSinceStartup < deadline)
+        {
+            yield return null;
+        }
+
+        if (activeSequenceIds.Count == 0)
+            gameplayScoreImpactUI?.FinalizeImpactSessionForEndSequence();
+
+        while (gameplayScoreImpactUI != null &&
+               gameplayScoreImpactUI.HasPendingImpactSessionPresentation &&
+               Time.realtimeSinceStartup < deadline)
+        {
+            yield return null;
+        }
+
+        bool timedOut =
+            activeSequenceIds.Count > 0 ||
+            (gameplayScoreImpactUI != null &&
+             gameplayScoreImpactUI.HasPendingImpactSessionPresentation);
+
+        if (timedOut)
+        {
+            CancelAllAndSync();
+            yield break;
+        }
+
+        gameplayScoreImpactUI?.ForceResync();
     }
 
     public void CancelAllAndSync()
@@ -345,19 +378,6 @@ public class FlushComboOverlayController : MonoBehaviour
 
         activeComboScores.Add(scoreUI);
         activePackets.Add(scoreUI.gameObject);
-    }
-
-    private IEnumerator FinalFlushDeadlineRoutine(int sequenceId)
-    {
-        if (finalFlushMaxVisualDelay > 0f)
-        {
-            yield return new WaitForSecondsRealtime(
-                finalFlushMaxVisualDelay
-            );
-        }
-
-        if (activeSequenceIds.Contains(sequenceId))
-            CancelAllAndSync();
     }
 
     private void CompleteSequence(int sequenceId)

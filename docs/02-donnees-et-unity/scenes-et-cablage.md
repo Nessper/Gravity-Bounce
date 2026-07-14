@@ -3,7 +3,7 @@
 > **Périmètre** : scènes du build, rôle de chacune, services persistants et scènes hors build.  
 > **Statut** : confirmé par `EditorBuildSettings` et sérialisation YAML ; aucun chargement exécuté.  
 > **Date de vérification** : 2026-07-14.  
-> **Principaux appuis** : `ProjectSettings/EditorBuildSettings.asset`, scènes sous `Assets/Project/Scenes`, `Assets/MainScene_tmp.unity`, `Assets/_Recovery/0.unity`.
+> **Principaux appuis** : `ProjectSettings/EditorBuildSettings.asset`, scènes sous `Assets/Project/Scenes`.
 
 ## Scènes du build
 
@@ -33,7 +33,7 @@ Des écrans de fin de générations différentes sont encore sérialisés. Le fa
 
 ## Hors build
 
-`Assets/MainScene_tmp.unity` et `Assets/_Recovery/0.unity` sont suivies mais absentes du build settings. Elles sont traitées comme scènes temporaires/de récupération, pas comme étapes runtime confirmées.
+Les anciennes copies `Assets/MainScene_tmp.unity` et `Assets/_Recovery/0.unity` ont été supprimées après vérification de leur absence des Build Settings et de toute référence runtime. Aucun parcours du jeu ne dépendait de ces archives.
 
 ## État de travail
 

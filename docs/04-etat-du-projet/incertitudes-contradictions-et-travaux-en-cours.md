@@ -29,7 +29,7 @@
 
 L’espace de travail comportait déjà des modifications de polices TMP, `ComboDefinitionCatalog.asset`, `BallScore_TMP.prefab`, scènes `Main`/`DebugLauncher`, `ShipRuntimeSetup`, scripts d’overlays combo et `ModuleCatalog.json`.
 
-Des fichiers non suivis ajoutaient : `CombosScoreRoot.prefab`, `ScoreImpactPacketUI.prefab`, `GameplayScoreImpactUI`, `ComboScoreUI`, `ScoreAttractorUI` et `ScoreFlushAbsorberUI`. Le chemin fondé sur ces composants est raccordé dans `Main` : source autoritaire `ScoreManager`, racine de transfert Screen Space Overlay, cible HUD, cadence d’absorption, impacts, odomètre mécanique et session visuelle d’accumulation. Le comportement a été validé en Play Mode pour les arrivées ordinaires, les rafales, les flushs rapprochés et le Fast Flush. `ScoreImpactPacketUI.prefab` ne participe pas à ce chemin. Les composants historiques ne sont pas encore retirés ; leur nettoyage reste une étape séparée.
+Le chemin V2 du score est raccordé dans `Main` : source autoritaire `ScoreManager`, racine de transfert Screen Space Overlay, cible HUD, cadence d’absorption, impacts, odomètre mécanique et session visuelle d’accumulation. Le comportement a été validé en Play Mode pour les arrivées ordinaires, les rafales, les flushs rapprochés et le Fast Flush. Après cette validation, `ScoreImpactPacketUI.prefab`, `ScoreBinder`, `ScoreUI` et leurs branchements sérialisés ont été retirés. Les anciennes scènes d’archive qui conservaient encore `ScoreUI` ont également été supprimées ; ce nettoyage n’est plus un travail en cours.
 
 ## Limites de l’analyse
 

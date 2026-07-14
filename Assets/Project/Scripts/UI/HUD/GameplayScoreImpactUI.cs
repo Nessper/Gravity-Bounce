@@ -81,6 +81,8 @@ public class GameplayScoreImpactUI : MonoBehaviour
 
     public int LatestAuthoritativeScore => latestAuthoritativeScore;
     public bool HasActiveVisualSequences => activeVisualSequences > 0;
+    public bool HasPendingImpactSessionPresentation =>
+        hasImpactSession || floatingSessionTotals.Count > 0;
 
     private void Awake()
     {
@@ -178,6 +180,14 @@ public class GameplayScoreImpactUI : MonoBehaviour
         ResyncDisplay(true);
         ResetReactionVisual();
         DiscardImpactSessionVisuals();
+    }
+
+    public void FinalizeImpactSessionForEndSequence()
+    {
+        if (activeVisualSequences > 0)
+            return;
+
+        FinalizeImpactSession();
     }
 
     public void PunctuateImpact(

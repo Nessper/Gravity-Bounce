@@ -1,7 +1,7 @@
 # Index des classes, dépendances et événements
 
 > **Périmètre** : points d’entrée C# et relations utiles pour retrouver rapidement une responsabilité.  
-> **Statut** : index sélectif et maintenable, non inventaire ligne à ligne des 259 scripts de jeu.  
+> **Statut** : index sélectif et maintenable, non inventaire ligne à ligne des 258 scripts de jeu.
 > **Date de vérification** : 2026-07-14.  
 > **Principaux appuis** : `Assets/Project/Scripts`, références sérialisées des scènes/prefabs.
 

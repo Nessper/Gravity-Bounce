@@ -86,7 +86,7 @@ public class LevelManager : MonoBehaviour
     private int maxHull;
     private float shieldSeconds; // shield runtime total en secondes
 
-    // Token de niveau scellé
+    // Token de niveau scellÃ©
     private EndLevelToken? endLevelToken;
 
 
@@ -275,17 +275,17 @@ public class LevelManager : MonoBehaviour
 
     /// <summary>
     /// Applique le profil de mission du vaisseau :
-    /// - résout la durée de la mission (runDurationSec)
-    /// - résout le "shield" affiché (alias UI de la durée)
-    /// - déclenche les initialisations liées au vaisseau
+    /// - rÃ©sout la durÃ©e de la mission (runDurationSec)
+    /// - rÃ©sout le "shield" affichÃ© (alias UI de la durÃ©e)
+    /// - dÃ©clenche les initialisations liÃ©es au vaisseau
     ///   (background, score reset/binding, etc.)
     ///
     /// IMPORTANT :
-    /// - Le Hull (current + max) n'est PAS géré ici.
-    /// - Source de vérité Hull = RunSessionState.
-    /// - Le HUD Hull est synchronisé via HullBinder.
+    /// - Le Hull (current + max) n'est PAS gÃ©rÃ© ici.
+    /// - Source de vÃ©ritÃ© Hull = RunSessionState.
+    /// - Le HUD Hull est synchronisÃ© via HullBinder.
     ///
-    /// Cette méthode configure l'environnement de mission,
+    /// Cette mÃ©thode configure l'environnement de mission,
     /// pas les ressources de survie.
     /// </summary>
     private bool ApplyShipMissionProfile()
@@ -296,14 +296,14 @@ public class LevelManager : MonoBehaviour
             return false;
         }
 
-        int unusedMaxHull; // conservé pour compat / debug éventuel
+        int unusedMaxHull; // conservÃ© pour compat / debug Ã©ventuel
         float resolvedDuration;
         float resolvedShieldSeconds;
 
         if (!shipRuntimeSetup.TryApply(out unusedMaxHull, out resolvedDuration, out resolvedShieldSeconds))
             return false;
 
-        // Durée / pression de mission
+        // DurÃ©e / pression de mission
         runDurationSec = resolvedDuration;
         shieldSeconds = resolvedShieldSeconds;
 
@@ -582,6 +582,9 @@ public class LevelManager : MonoBehaviour
 
     private IEnumerator PlayPreBoardOutroBonuses()
     {
+        if (mainUIController != null)
+            yield return StartCoroutine(mainUIController.WaitForFinalScorePresentation());
+
         if (endModuleBonusController == null)
             yield break;
 
@@ -632,7 +635,7 @@ public class LevelManager : MonoBehaviour
     // NEW (RESUME) :
     // Rejoue la revealRoutine depuis la save si un snapshot pending existe.
     // Important :
-    // - On ne démarre pas le gameplay.
+    // - On ne dÃ©marre pas le gameplay.
     // - Le commit se fera plus tard via LevelEndFlowController
     //   quand EndLevelUI.OnCeremonyFinished arrivera.
     // ============================================================

@@ -285,8 +285,8 @@ MonoBehaviour:
   debugRunScore: 10000
   debugEquippedModuleIds:
   - BLACK_FILTER_T2
-  - WHITE_UPGRADE_T3
-  - GREED_COIL_T2
+  - 
+  - 
 --- !u!4 &292011952
 Transform:
   m_ObjectHideFlags: 0

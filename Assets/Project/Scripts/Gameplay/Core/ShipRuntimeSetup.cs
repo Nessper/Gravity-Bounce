@@ -5,11 +5,11 @@ using UnityEngine;
 /// - resolve ship selection (RunSessionState -> ShipCatalog, fallback RunConfig)
 /// - fournit runDurationSec (+ shieldSeconds si tu gardes ce label UI)
 /// - initialise le background du vaisseau
-/// - initialise ScoreManager + binding ScoreUI (optionnel)
+/// - initialise ScoreManager
 ///
 /// IMPORTANT (nouvelle convention) :
-/// - Hull (current + max) n'est JAMAIS piloté ici.
-/// - Source de vérité Hull = RunSessionState.
+/// - Hull (current + max) n'est JAMAIS pilotÃ© ici.
+/// - Source de vÃ©ritÃ© Hull = RunSessionState.
 /// - L'initialisation/sync du HUD Hull est faite par HullBinder (RunSessionState-only).
 /// </summary>
 public class ShipRuntimeSetup : MonoBehaviour
@@ -19,7 +19,6 @@ public class ShipRuntimeSetup : MonoBehaviour
 
     [Header("Score")]
     [SerializeField] private ScoreManager scoreManager;
-    [SerializeField] private ScoreUI scoreUI;
     [SerializeField] private GameplayScoreImpactUI gameplayScoreImpactUI;
 
     [Header("Background")]
@@ -27,7 +26,7 @@ public class ShipRuntimeSetup : MonoBehaviour
 
     /// <summary>
     /// Applique le setup runtime.
-    /// maxHull est renvoyé uniquement pour debug/log/compat, mais sa source est RunSessionState.
+    /// maxHull est renvoyÃ© uniquement pour debug/log/compat, mais sa source est RunSessionState.
     /// </summary>
     public bool TryApply(out int maxHull, out float runDurationSec, out float shieldSeconds)
     {
@@ -41,7 +40,7 @@ public class ShipRuntimeSetup : MonoBehaviour
             return false;
         }
 
-        // La source de vérité Hull est la run (modules futurs, etc.)
+        // La source de vÃ©ritÃ© Hull est la run (modules futurs, etc.)
         maxHull = Mathf.Max(1, runSession.HullMax);
 
         // ------------------------------------------------------------
@@ -49,14 +48,6 @@ public class ShipRuntimeSetup : MonoBehaviour
         // ------------------------------------------------------------
         if (scoreManager != null)
         {
-            /*
-            if (scoreUI != null)
-            {
-                // Idempotent (utile en debug rerun)
-                scoreManager.onScoreChanged.RemoveListener(scoreUI.UpdateScoreText);
-                scoreManager.onScoreChanged.AddListener(scoreUI.UpdateScoreText);
-            }
-            */
             scoreManager.ResetScore(0);
             if (gameplayScoreImpactUI != null)
             {
@@ -65,7 +56,7 @@ public class ShipRuntimeSetup : MonoBehaviour
         }
 
         // ------------------------------------------------------------
-        // RESOLVE SHIP (pour durée + background)
+        // RESOLVE SHIP (pour durÃ©e + background)
         // ------------------------------------------------------------
         ShipDefinition ship;
         if (!TryResolveSelectedShip(out ship))

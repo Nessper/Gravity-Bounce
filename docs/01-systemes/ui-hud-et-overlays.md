@@ -1,7 +1,7 @@
 # UI, HUD et overlays
 
 > **Périmètre** : architecture des interfaces, écrans, HUD de mission, overlays, boutique et systèmes de vaisseau.  
-> **Statut** : inventaire confirmé par scripts/scènes ; rendu et animations non exécutés.  
+> **Statut** : inventaire confirmé par scripts/scènes ; chemin visuel du score validé en Play Mode, attente du flush final confirmée statiquement.
 > **Date de vérification** : 2026-07-14.  
 > **Principaux appuis** : scripts sous `Assets/Project/Scripts/UI`, scènes de build et prefabs sous `Assets/Project/Prefabs`.
 
@@ -16,7 +16,7 @@ Les contrôleurs de scène appellent le flux global ; les données métier reste
 
 ## HUD de mission
 
-Le HUD expose l’identifiant de niveau, timer, score, progression, objectif, coque, vies de contrat, guides de paddle/bac et notifications de statistiques. Les binders (`ScoreBinder`, `HullBinder`, `ContractLivesBinder`) relient les managers aux vues spécialisées. Plusieurs barres segmentées et groupes de taille TMP harmonisent la présentation.
+Le HUD expose l’identifiant de niveau, timer, score, progression, objectif, coque, vies de contrat, guides de paddle/bac et notifications de statistiques. `HullBinder` et `ContractLivesBinder` relient leurs états aux vues spécialisées. Pour le score, `GameplayScoreImpactUI` reçoit les impacts visuels, pilote l’affichage `AnimatedIntText` et se resynchronise sur la valeur autoritaire de `ScoreManager`. Plusieurs barres segmentées et groupes de taille TMP harmonisent la présentation.
 
 ## Overlays du chemin actif
 
@@ -34,13 +34,13 @@ Le chemin V2 est raccordé dans `Main` sans remplacer la chaîne métier. `Flush
 
 `ScoreAttractorUI` convertit la position issue du Canvas World Space vers `ScreenSpaceTransferRoot`, sous le Canvas Screen Space Overlay, puis anime une trajectoire accélérée et courbe. `ScoreFlushAbsorberUI` réserve les créneaux d’arrivée afin de produire une rafale lisible. `GameplayScoreImpactUI` joue le punch et le son. L'événement de `ScoreManager` mémorise immédiatement la dernière valeur autoritaire, tandis que chaque paquet effectivement arrivé avance la cible de présentation avec sa valeur numérique. Cette cible intermédiaire reste décorative, bornée vers la valeur autoritaire puis resynchronisée sur `ScoreManager` à la fin de la rafale, lors d’une fermeture du HUD ou à l’expiration du délai maximal du flush final.
 
-`GameplayScoreImpactUI` regroupe aussi les valeurs numériques des paquets effectivement arrivés dans une session visuelle indépendante des flushs. Chaque impact relance un délai d’inactivité en temps de jeu, réglé à `1,5 s` dans `Main` pour permettre aux flushs rapprochés, doubles bacs et Fast Flush d’alimenter le même total. À son expiration, une somme décorative non nulle se détache du score, monte avec ralentissement, flotte, puis disparaît. Sa taille et sa couleur utilisent deux progressions normalisées et plafonnées séparément : une `AnimationCurve` interpole les échelles minimale et maximale, tandis qu’un `Gradient` fournit directement la couleur positive ; la couleur négative reste un réglage dédié. Les durées de montée, flottement et fade ainsi que la distance sont sérialisées. Cette somme ne lit jamais le texte du HUD et n’alimente aucun calcul métier. Une fermeture du HUD ou un changement de scène supprime la session et les vues encore actives sans produire de total tardif.
+`GameplayScoreImpactUI` regroupe aussi les valeurs numériques des paquets effectivement arrivés dans une session visuelle indépendante des flushs. Chaque impact relance un délai d’inactivité en temps de jeu, réglé à `1,5 s` dans `Main` pour permettre aux flushs rapprochés, doubles bacs et Fast Flush d’alimenter le même total. À son expiration, une somme décorative non nulle se détache du score, monte avec ralentissement, flotte, puis disparaît. Sa taille et sa couleur utilisent deux progressions normalisées et plafonnées séparément : une `AnimationCurve` interpole les échelles minimale et maximale, tandis qu’un `Gradient` fournit directement la couleur positive ; la couleur négative reste un réglage dédié. Les durées de montée, flottement et fade ainsi que la distance sont sérialisées. Cette somme ne lit jamais le texte du HUD et n’alimente aucun calcul métier. Lors du flush final, la session est finalisée dès que toutes les arrivées sont terminées ; la séquence de fin attend ensuite la disparition du total flottant avant l’outro du plateau et le masquage du HUD. Un garde-fou non dépendant de `timeScale`, réglé à `3,5 s` dans `Main`, resynchronise et nettoie les vues si cette présentation reste bloquée. Une fermeture du HUD ou un changement de scène supprime la session et les vues encore actives sans produire de total tardif.
 
 Le nombre du score HUD utilise le mode optionnel `MechanicalOdometer` d'`AnimatedIntText`. L'événement autoritaire de `ScoreManager` mémorise la cible mais ne déclenche pas le roulement d'un flush : `GameplayScoreImpactUI` transmet les cibles intermédiaires à l'odomètre au contact effectif des paquets avec le HUD. Une mise à jour autoritaire sans séquence visuelle utilise une resynchronisation de secours différée. Les unités tournent avec la progression de la valeur, puis entraînent les dizaines et les centaines au passage de leurs retenues. Un nouvel impact pendant un roulement retargete immédiatement les roues depuis leur position visuelle courante ; les séquences qui se chevauchent, notamment le Fast Flush, restent donc ponctuées par leurs propres paquets sans constituer une longue file d'animations. Chaque roue défile verticalement dans un masque, avec durée, distance, courbe et fenêtre de prise de retenue réglables dans l'Inspector. Le mode historique `NumericLerp` reste la valeur par défaut des autres compteurs et écrans de fin. L'odomètre est une vue pure : il ne calcule, ne persiste et ne publie aucun score métier.
 
 La taille des paquets pendant leur transfert est ajustable séparément pour les billes et les combos dans `ScoreAttractorUI`, sans modifier leur valeur ni leur destination.
 
-La première itération visuelle de ce chemin est validée en Play Mode. Les composants historiques restent néanmoins présents : leur retrait est volontairement différé à une étape de nettoyage séparée, suivie dans [Travaux en cours](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md).
+La première itération visuelle de ce chemin est validée en Play Mode. L’ancien chemin `ScoreBinder`/`ScoreUI` et le prefab inutilisé `ScoreImpactPacketUI` ont été retirés après validation de la V2. `Main` ne conserve plus de référence sérialisée vers ces éléments.
 
 ## Frontière
 

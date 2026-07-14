@@ -33,7 +33,7 @@ Le format actuel est fondé sur phases, quotas et `BallId`, tandis que des champ
 
 L’ancien Input Manager fournit le chemin gameplay dominant, tandis que le nouveau Input System est installé et activé. Le détail des voies de contrôle appartient à [Tutoriel, pause, input et plateformes](../01-systemes/tutoriel-pause-input-et-plateformes.md), et leur interaction non établie au registre des [incertitudes](incertitudes-contradictions-et-travaux-en-cours.md).
 
-L’UI de score est en migration dans l’espace de travail : ancienne présentation de balles/combos et nouveaux composants d’attraction/absorption coexistent. `PlayerOld.prefab` reste présent sans usage courant retrouvé.
+L’UI de score utilise désormais le chemin V2 validé : paquets de balles/combos, attraction vers le HUD, absorption séquencée, impacts, odomètre mécanique et session visuelle d’accumulation. L’ancien chemin `ScoreBinder`/`ScoreUI` et son prefab inutilisé ont été retirés. `PlayerOld.prefab` reste présent sans usage courant retrouvé.
 
 ## Audio, localisation et debug
 
@@ -41,4 +41,4 @@ L’UI de score est en migration dans l’espace de travail : ancienne présenta
 
 ## Scènes auxiliaires
 
-`MainScene_tmp.unity` et `_Recovery/0.unity` sont suivies mais hors build. Elles ne sont pas classées comme scènes runtime actives.
+Les anciennes scènes d’archive `MainScene_tmp.unity` et `_Recovery/0.unity` ont été retirées après confirmation qu’elles étaient hors build et non référencées.

@@ -16,7 +16,7 @@ Boot → Title → ShipSelect → RunHub → Main
 DebugLauncher → Main  (chemin de test)
 ```
 
-Les sept scènes ci-dessus sont activées dans le build. `MainScene_tmp.unity` et `_Recovery/0.unity` existent hors build et ne font pas partie du parcours confirmé.
+Les sept scènes ci-dessus sont activées dans le build. Les anciennes copies `MainScene_tmp.unity` et `_Recovery/0.unity`, qui ne faisaient pas partie du parcours, ont été supprimées.
 
 ## Démarrage normal
 

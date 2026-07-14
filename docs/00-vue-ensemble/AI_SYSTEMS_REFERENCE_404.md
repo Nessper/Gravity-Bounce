@@ -1,6 +1,6 @@
 # Référence IA condensée des systèmes de 404
 
-> **Usage** : fiches autonomes pour raisonner sur les systèmes sans parcourir les 259 scripts de jeu.  
+> **Usage** : fiches autonomes pour raisonner sur les systèmes sans parcourir les 258 scripts de jeu.
 > **Statut** : synthèse statique de l’état observé, pas une spécification d’intention.  
 > **Dernière vérification** : 2026-07-14.  
 > **Compléments** : [contexte global](AI_CONTEXT_404.md) et [guide de travail](AI_WORKING_GUIDE_404.md).
@@ -190,7 +190,7 @@ Chaque domaine indique rôle, état, fonctionnement/cycle, données, persistance
 - **Rôle — état** : cumuler valeur de jeu et historique ; **actif**, calcul de base partiellement **incertain**.
 - **Fonctionnement — cycle** : chaque flush fournit valeurs/combos/modificateurs au `ScoreManager`, qui met à jour total, historique et notifications ; fin intègre le résultat au run.
 - **Données — persistance** : score/historique temporaires pendant le niveau ; score de run et snapshot persistés ; meilleur score permanent à la fin appropriée.
-- **Classes/assets** : `ScoreManager`, `ScoreBinder`, `FlushResolution`, `FlushResolutionEngine`.
+- **Classes/assets** : `ScoreManager`, `FlushResolution`, `FlushResolutionEngine`, `GameplayScoreImpactUI`, `ScoreAttractorUI`, `ScoreFlushAbsorberUI`.
 - **Entrantes → sortantes** : balles, combos, modules → HUD, objectifs, fin, analytics et meilleur score.
 - **Surface publique** : ajout/résolution, snapshot, événements de changement et historique de bacs.
 - **Cas limites/validation** : `GetSnapshot` et `FinalTotal` semblent tous deux intégrer le base score ; double comptage réel non affirmé.
@@ -286,13 +286,13 @@ Chaque domaine indique rôle, état, fonctionnement/cycle, données, persistance
 
 ## 26. HUD et overlays
 
-- **Rôle — état** : présenter états et séquences, recueillir commandes ; **actif**, UI de score **en cours**, écrans de fin **hybrides**.
+- **Rôle — état** : présenter états et séquences, recueillir commandes ; **actif**, UI de score V2 **validée**, écrans de fin **hybrides**.
 - **Fonctionnement — cycle** : binders/contrôleurs s’abonnent aux managers ; `MainUIController` orchestre briefing, countdown, pause, combos, dégâts, évacuation et résultats.
 - **Données — persistance** : état de vue temporaire ; aucune autorité métier, sauf commandes transmises aux systèmes.
-- **Classes/assets** : `MainUIController`, `ScoreBinder`, `HullBinder`, `ContractLivesBinder`, overlays `ResultsCeremony`/`EndResult`, prefabs UI.
+- **Classes/assets** : `MainUIController`, `GameplayScoreImpactUI`, `ScoreAttractorUI`, `ScoreFlushAbsorberUI`, `HullBinder`, `ContractLivesBinder`, overlays `ResultsCeremony`/`EndResult`, prefabs UI.
 - **Entrantes → sortantes** : run/score/coque/timer/bacs → vues ; boutons → flow, boutique, équipement, pause et fin.
 - **Surface publique** : show/hide/play/refresh, callbacks de boutons, abonnements aux événements.
-- **Cas limites/validation** : nouvelle chaîne score contient des références nulles observées ; anciennes UI de fin présentes ; rendu non testé.
+- **Cas limites/validation** : chaîne score V2 câblée et validée en Play Mode, ancien chemin retiré ; anciennes UI de fin présentes ; leurs rendus restent à distinguer du chemin orchestré.
 - **Canonique** : [`ui-hud-et-overlays.md`](../01-systemes/ui-hud-et-overlays.md), état [legacy/en cours](../04-etat-du-projet/systemes-actifs-legacy-et-hybrides.md).
 
 ## 27. Audio

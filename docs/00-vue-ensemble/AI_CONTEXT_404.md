@@ -64,7 +64,7 @@ DebugLauncher → Main  (chemin de test)
 8. La cérémonie et l’overlay final présentent ce snapshot. Le commit applique le résultat une seule fois au run.
 9. Le jeu revient au hub pour le nœud suivant, ou atteint la destination de fin de run.
 
-Sept scènes sont activées au build : `Boot`, `Title`, `ShipSelect`, `RunHub`, `Main`, `DebugLauncher`, `CreditsScene`. `MainScene_tmp.unity` et `_Recovery/0.unity` existent hors build.
+Sept scènes sont activées au build : `Boot`, `Title`, `ShipSelect`, `RunHub`, `Main`, `DebugLauncher`, `CreditsScene`. Les anciennes copies hors build `MainScene_tmp.unity` et `_Recovery/0.unity` ont été supprimées.
 
 ## 5. Boucle d’une run
 
@@ -249,10 +249,10 @@ Le protocole de travail recommandé est dans [AI_WORKING_GUIDE_404.md](AI_WORKIN
 
 Au moment de la vérification, l’espace de travail n’était pas propre. Étaient déjà modifiés : quatre assets de polices TMP, `ComboDefinitionCatalog.asset`, `BallScore_TMP.prefab`, `DebugLauncher.unity`, `Main.unity`, `ShipRuntimeSetup.cs`, quatre scripts d’overlay combo et `ModuleCatalog.json`.
 
-Étaient non suivis : deux nouveaux prefabs de score et leurs `.meta`, ainsi que `GameplayScoreImpactUI`, `ComboScoreUI`, `ScoreAttractorUI`, `ScoreFlushAbsorberUI` et leurs `.meta`. Le dossier `docs/` était également non suivi. Certaines références de la nouvelle chaîne de score étaient nulles dans le YAML de `Main` observé.
+Étaient non suivis : deux nouveaux prefabs de score et leurs `.meta`, ainsi que `GameplayScoreImpactUI`, `ComboScoreUI`, `ScoreAttractorUI`, `ScoreFlushAbsorberUI` et leurs `.meta`. Le dossier `docs/` était également non suivi. Certaines références de la nouvelle chaîne de score étaient nulles dans le YAML de `Main` observé. Depuis cet instantané, le chemin V2 a été câblé et validé en Play Mode ; l’ancien chemin `ScoreBinder`/`ScoreUI`, le prefab `ScoreImpactPacketUI` et les deux scènes d’archive ont été retirés.
 
 Cet état Git est un fait de l’instantané, pas une intention attribuée aux auteurs. Avant toute modification future, il faut relire l’état Git courant : cette liste peut être devenue obsolète.
 
 ## 16. Limites de cette synthèse
 
-Ce document résume le projet sans inventorier les 259 scripts de jeu ni toutes les valeurs d’équilibrage. Il ne remplace pas les documents canoniques lorsqu’un dépôt est accessible. Les comportements runtime, mobiles, audiovisuels et de désérialisation non exécutés restent à valider. Pour raisonner système par système sans dépôt, poursuivre avec [AI_SYSTEMS_REFERENCE_404.md](AI_SYSTEMS_REFERENCE_404.md) ; pour préparer un travail, utiliser [AI_WORKING_GUIDE_404.md](AI_WORKING_GUIDE_404.md).
+Ce document résume le projet sans inventorier les 258 scripts de jeu ni toutes les valeurs d’équilibrage. Il ne remplace pas les documents canoniques lorsqu’un dépôt est accessible. Les comportements runtime, mobiles, audiovisuels et de désérialisation non exécutés restent à valider. Pour raisonner système par système sans dépôt, poursuivre avec [AI_SYSTEMS_REFERENCE_404.md](AI_SYSTEMS_REFERENCE_404.md) ; pour préparer un travail, utiliser [AI_WORKING_GUIDE_404.md](AI_WORKING_GUIDE_404.md).

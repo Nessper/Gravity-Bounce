@@ -205,7 +205,7 @@ Lire :
 - [`fin-de-niveau-recompenses-et-reprise.md`](../01-systemes/fin-de-niveau-recompenses-et-reprise.md)
 - registre des [`incertitudes`](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md)
 
-Vérifier : `FlushResolutionEngine`, `ScoreManager`, états/règles de combo, objectifs, snapshot, HUD, cérémonie, analytics et meilleur score. Tenir compte de l’intégration UI de score en cours.
+Vérifier : `FlushResolutionEngine`, `ScoreManager`, états/règles de combo, objectifs, snapshot, HUD, cérémonie, analytics et meilleur score. Le chemin UI de score V2 est câblé et validé en Play Mode ; l’ancien chemin `ScoreBinder`/`ScoreUI` a été retiré.
 
 ### Sauvegarde, progression permanente ou reprise
 
