@@ -285,7 +285,7 @@ MonoBehaviour:
   debugRunScore: 10000
   debugEquippedModuleIds:
   - BLACK_FILTER_T2
-  - 
+  - WHITE_UPGRADE_T1
   - 
 --- !u!4 &292011952
 Transform:

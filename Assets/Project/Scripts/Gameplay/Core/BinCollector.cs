@@ -170,20 +170,7 @@ public class BinCollector : MonoBehaviour
             }
 
             // --------------------------------------------------------
-            // 1) Pré-calcul pour le feedback AVANT disparition des billes
-            // --------------------------------------------------------
-            int previewScore = trigger.PeekTotalPoints();
-            bool hasBlack = trigger.ContainsBlack();
-
-            TriggerFlushSfx(hasBlack);
-
-            if (flushSfxLeadTime > 0f)
-                yield return new WaitForSecondsRealtime(flushSfxLeadTime);
-
-            TriggerFlushFx(side, previewScore, hasBlack);
-
-            // --------------------------------------------------------
-            // 2) Snapshot logique + purge du bin
+            // 1) Résolution finale A puis B, source de vérité unique
             // --------------------------------------------------------
             List<BallState> lot = trigger.TakeSnapshotAndClear();
             if (lot == null || lot.Count == 0)
@@ -197,6 +184,19 @@ public class BinCollector : MonoBehaviour
 
             snapshot.isFinalFlush = isFinalFlush;
 
+            int previewScore = snapshot.totalPointsDuLot;
+            bool hasBlack = blackCount > 0;
+
+            TriggerFlushSfx(hasBlack);
+
+            if (flushSfxLeadTime > 0f)
+                yield return new WaitForSecondsRealtime(flushSfxLeadTime);
+
+            TriggerFlushFx(side, previewScore, hasBlack);
+
+            // --------------------------------------------------------
+            // 2) Application du résultat résolu
+            // --------------------------------------------------------
             OnBinFlushed?.Invoke(side, snapshot, blackCount);
 
             // Hull reste actif même en tuto

@@ -88,7 +88,10 @@ public class BlackFilterRuntimeController : MonoBehaviour
             return false;
 
         if (reservedBalls.Contains(ball))
+        {
+            ball.SetModuleVisualPreview(whiteDefinition);
             return true;
+        }
 
         if (FreeCharges <= 0)
             return false;
@@ -115,8 +118,6 @@ public class BlackFilterRuntimeController : MonoBehaviour
 
         if (!reservedBalls.Remove(ball))
             return false;
-
-        ball.ClearModuleVisualPreview();
 
         consumedCharges = Mathf.Clamp(
             consumedCharges + 1,

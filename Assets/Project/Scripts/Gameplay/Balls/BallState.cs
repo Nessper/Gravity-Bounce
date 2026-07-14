@@ -57,6 +57,9 @@ public class BallState : MonoBehaviour
     public bool IsDanger =>
         definition != null && definition.IsDanger;
 
+    public bool IsVisualDanger =>
+        IsCurrentVisualDanger();
+
     public bool CountsForProgress =>
         definition != null && definition.CountsForProgress;
 
@@ -257,7 +260,7 @@ public class BallState : MonoBehaviour
             return;
         }
 
-        if (!IsDanger)
+        if (!IsCurrentVisualDanger())
         {
             activeTrail.emitting = true;
             return;
@@ -306,7 +309,7 @@ public class BallState : MonoBehaviour
     {
         bool shouldBeRegistered =
             gameObject.activeInHierarchy &&
-            IsDanger;
+            IsCurrentVisualDanger();
 
         if (shouldBeRegistered && !registeredAsDangerThreat)
         {
@@ -336,7 +339,7 @@ public class BallState : MonoBehaviour
 
     private void UpdateDangerFX()
     {
-        UpdateParticleFx(dangerCrackleFX, IsDanger);
+        UpdateParticleFx(dangerCrackleFX, IsCurrentVisualDanger());
     }
 
     private void UpdateParticleFx(ParticleSystem ps, bool shouldPlay)

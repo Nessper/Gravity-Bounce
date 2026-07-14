@@ -46,7 +46,7 @@ public class BinTrigger : MonoBehaviour
                 if (st == null)
                     continue;
 
-                if (st.IsDanger)
+                if (st.IsVisualDanger)
                     count++;
             }
 
@@ -85,7 +85,7 @@ public class BinTrigger : MonoBehaviour
             if (st == null)
                 continue;
 
-            if (st.IsDanger)
+            if (st.IsVisualDanger)
                 return true;
         }
 
@@ -140,9 +140,9 @@ public class BinTrigger : MonoBehaviour
         state.currentSide = side;
 
         OnBallEnteredBin?.Invoke(state, side);
-        OnContentChanged?.Invoke();
 
         RefreshModuleVisualPreviews();
+        OnContentChanged?.Invoke();
 
         TryAutoFlush();
     }
@@ -173,23 +173,12 @@ public class BinTrigger : MonoBehaviour
             state.currentSide = Side.None;
         }
 
-        OnContentChanged?.Invoke();
-
         RefreshModuleVisualPreviews();
+        OnContentChanged?.Invoke();
     }
 
     private void RefreshModuleVisualPreviews()
     {
-        for (int i = 0; i < presentOrdered.Count; i++)
-        {
-            BallState st = presentOrdered[i];
-
-            if (st == null)
-                continue;
-
-            st.ClearModuleVisualPreview();
-        }
-
         if (BlackFilterRuntimeController.Instance != null)
         {
             for (int i = 0; i < presentOrdered.Count; i++)
@@ -202,8 +191,7 @@ public class BinTrigger : MonoBehaviour
                 if (!IsBall(st, blackDefinition))
                     continue;
 
-                if (!BlackFilterRuntimeController.Instance.IsReserved(st))
-                    BlackFilterRuntimeController.Instance.TryReserve(st);
+                BlackFilterRuntimeController.Instance.TryReserve(st);
             }
         }
 
@@ -219,9 +207,6 @@ public class BinTrigger : MonoBehaviour
                 Mathf.Max(0, ModuleRuntimeStats.Instance.FlushWhiteToBlueCount);
         }
 
-        if (whiteToRedLeft <= 0 && whiteToBlueLeft <= 0)
-            return;
-
         for (int i = 0; i < presentOrdered.Count; i++)
         {
             BallState st = presentOrdered[i];
@@ -232,25 +217,29 @@ public class BinTrigger : MonoBehaviour
             BallDefinition previewBaseDefinition =
                 st.Definition;
 
+            BallDefinition previewDefinition = null;
+
             if (BlackFilterRuntimeController.Instance != null &&
                 BlackFilterRuntimeController.Instance.IsReserved(st))
             {
                 previewBaseDefinition = whiteDefinition;
+                previewDefinition = whiteDefinition;
             }
 
-            if (!IsDefinition(previewBaseDefinition, whiteDefinition))
-                continue;
-
-            if (whiteToRedLeft > 0)
+            if (IsDefinition(previewBaseDefinition, whiteDefinition) &&
+                whiteToRedLeft > 0)
             {
-                st.SetModuleVisualPreview(redDefinition);
+                previewDefinition = redDefinition;
                 whiteToRedLeft--;
             }
-            else if (whiteToBlueLeft > 0)
+            else if (IsDefinition(previewBaseDefinition, whiteDefinition) &&
+                     whiteToBlueLeft > 0)
             {
-                st.SetModuleVisualPreview(blueDefinition);
+                previewDefinition = blueDefinition;
                 whiteToBlueLeft--;
             }
+
+            st.SetModuleVisualPreview(previewDefinition);
         }
     }
 
