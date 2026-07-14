@@ -27,7 +27,7 @@ Les slots proviennent de la définition du vaisseau. L’inventaire et l’équi
 
 ## Familles et effets observés
 
-Le catalogue comporte 24 modules répartis sur huit familles :
+Le catalogue comporte 27 modules répartis sur neuf familles :
 
 | Famille | Effet fonctionnel observé |
 |---|---|
@@ -35,10 +35,11 @@ Le catalogue comporte 24 modules répartis sur huit familles :
 | SCAN / S | Informations de briefing/scanner. |
 | GREED / G | Augmente le seuil de flush automatique. |
 | C | Effets conditionnés à une coque pleine, dont maximum de coque ou delta de score. |
-| A | Conversion de balles noires en blanches avec charges. |
+| A | Réserve une charge pour transformer provisoirement une noire dans un bac ; la charge est rendue si elle ressort, ou consommée au flush. La blanche obtenue peut ensuite être convertie par B. |
 | B | Conversion de blanches vers bleues ou rouges. |
 | E | Modification de durée de niveau. |
 | F | Gain d’argent lié aux médailles de fin. |
+| K1 | Drone anti-noire : recharge en 30/23/18 s selon le tier, vise la noire hors bac la plus proche et la neutralise au laser si le tir l’atteint avant qu’elle ne devienne invalide. |
 
 L’ordre fonctionnel des transformations de bac est décrit dans [Paddle, bacs et flush](paddle-bacs-et-flush.md). Les bonus de fin sont décrits dans [Fin de niveau](fin-de-niveau-recompenses-et-reprise.md).
 

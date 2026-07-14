@@ -26,6 +26,9 @@ public class BallState : MonoBehaviour
     [Header("Physics")]
     [SerializeField] private Rigidbody rb;
 
+    public Vector3 LinearVelocity =>
+        rb != null ? rb.linearVelocity : Vector3.zero;
+
     [Header("Trails by BallId")]
     [SerializeField] private TrailRenderer trailWhite;
     [SerializeField] private TrailRenderer trailBlue;

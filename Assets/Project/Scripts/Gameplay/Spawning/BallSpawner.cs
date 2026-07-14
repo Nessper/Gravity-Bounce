@@ -87,6 +87,7 @@ public class BallSpawner : MonoBehaviour
     private readonly List<float> mixTotals = new List<float>();
     private readonly List<Queue<BallDefinition>> definitionQueues = new List<Queue<BallDefinition>>();
     private readonly Stack<GameObject> pool = new Stack<GameObject>();
+    private readonly List<BallState> activeBalls = new List<BallState>();
 
     private Coroutine prewarmCoro;
     private Coroutine loop;
@@ -122,6 +123,7 @@ public class BallSpawner : MonoBehaviour
         recycledLost = 0;
 
         pool.Clear();
+        activeBalls.Clear();
 
         CurrentPhaseIndex = plans.Count > 0 ? 0 : -1;
 
@@ -757,6 +759,7 @@ public class BallSpawner : MonoBehaviour
             st.isTutorialBall = false;
 
             st.Initialize(definition);
+            activeBalls.Add(st);
         }
 
         activatedCount++;
@@ -766,13 +769,26 @@ public class BallSpawner : MonoBehaviour
 
     public void Recycle(GameObject go, bool collected = false)
     {
-        if (go == null)
-            return;
+        Recycle(
+            go,
+            collected
+                ? BallRecycleReason.Collected
+                : BallRecycleReason.Lost
+        );
+    }
+
+    public bool Recycle(GameObject go, BallRecycleReason reason)
+    {
+        if (go == null || !go.activeSelf)
+            return false;
 
         string ballId = "unknown";
 
         if (go.TryGetComponent(out BallState st))
+        {
             ballId = st.BallId;
+            activeBalls.Remove(st);
+        }
 
         if (go.TryGetComponent(out Rigidbody rb))
         {
@@ -787,6 +803,11 @@ public class BallSpawner : MonoBehaviour
         go.SetActive(false);
         pool.Push(go);
 
+        if (reason == BallRecycleReason.Neutralized)
+            return true;
+
+        bool collected = reason == BallRecycleReason.Collected;
+
         Dictionary<string, int> target = collected
             ? recycledCollectedByBallId
             : recycledLostByBallId;
@@ -800,6 +821,50 @@ public class BallSpawner : MonoBehaviour
             recycledCollected++;
         else
             recycledLost++;
+
+        return true;
+    }
+
+    public bool TryGetNearestActiveBall(
+        string ballId,
+        Vector3 origin,
+        out BallState nearest)
+    {
+        nearest = null;
+        float nearestSqrDistance = float.PositiveInfinity;
+
+        for (int i = activeBalls.Count - 1; i >= 0; i--)
+        {
+            BallState candidate = activeBalls[i];
+
+            if (candidate == null || !candidate.gameObject.activeInHierarchy)
+            {
+                activeBalls.RemoveAt(i);
+                continue;
+            }
+
+            if (candidate.collected || candidate.inBin)
+                continue;
+
+            if (!string.Equals(
+                    candidate.BallId,
+                    ballId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            float sqrDistance =
+                (candidate.transform.position - origin).sqrMagnitude;
+
+            if (sqrDistance >= nearestSqrDistance)
+                continue;
+
+            nearest = candidate;
+            nearestSqrDistance = sqrDistance;
+        }
+
+        return nearest != null;
     }
 
     public GameObject SpawnTutorialBall(

@@ -15,7 +15,7 @@ Certaines propriétés de `LevelData` appartiennent à des schémas antérieurs.
 
 Quatre `BallDefinition` sont actives : blanche, bleue, rouge et noire. Les trois couleurs positives contribuent à la progression et au score selon leur valeur ; la noire est négative/dangereuse et ne contribue pas à l’objectif de collecte. Les valeurs canoniques sont dans [Équilibrage](../02-donnees-et-unity/equilibrage-et-configuration-active.md).
 
-`BallState` porte l’identité/type courant, ce qui permet aux modules de transformer une balle avant la résolution finale. Les objets sont réutilisés par pooling et remis en circulation après collecte/nettoyage.
+`BallState` porte l’identité/type courant, ce qui permet aux modules de transformer une balle avant la résolution finale. Les objets sont réutilisés par pooling et remis en circulation après collecte/nettoyage. `BallSpawner` maintient aussi le registre des billes actives pour permettre un ciblage ponctuel sans recherche globale. Le recyclage distingue une collecte, une perte et une neutralisation par K1 ; cette dernière ne compte ni comme collecte ni comme perte.
 
 ## Génération
 

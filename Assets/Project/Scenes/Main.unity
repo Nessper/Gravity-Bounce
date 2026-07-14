@@ -28475,6 +28475,7 @@ Transform:
   - {fileID: 744218138}
   - {fileID: 1461528601}
   - {fileID: 248501698}
+  - {fileID: 2100000102}
   m_Father: {fileID: 1215621184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &874546551
@@ -37702,7 +37703,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc1bf79d8e340c945858a07ffe13ac6a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HullGameOverWatcher
-  runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
   runStateController: {fileID: 4523183}
   levelManager: {fileID: 326384405}
   endFlowController: {fileID: 970597010}
@@ -58900,6 +58900,64 @@ CanvasGroup:
   m_CorrespondingSourceObject: {fileID: -2884849672958341151, guid: eee3dfca91235a94bbd21f76da28bfc3, type: 3}
   m_PrefabInstance: {fileID: 8593108751565162680}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2100000101
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2100000102}
+  - component: {fileID: 2100000103}
+  m_Layer: 16
+  m_Name: K1 Anti-Black Drone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2100000102
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000101}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 874433117}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2100000103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8c1f615a1dd4a748c0cf04af31196b2, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::K1AntiBlackDroneController
+  runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
+  runStateController: {fileID: 4523183}
+  ballSpawner: {fileID: 1342328577}
+  droneSprite: {fileID: 21300000, guid: f08369255eb194f41bbee8ad6a8587d0, type: 3}
+  cooldownSprite: {fileID: 21300000, guid: 6e1d2c242e737da4b89cad8da691080f, type: 3}
+  ellipseCenter: {x: 0, y: 0, z: -0.15}
+  ellipseRadii: {x: 2.45, y: 4.1}
+  ellipseSpeed: 0.42
+  droneScale: 0.42
+  laserSpeed: 18
+  laserWidth: 0.055
+  maximumLaserTravelSec: 0.75
+  impactRadius: 0.38
+  retryDelaySec: 0.15
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

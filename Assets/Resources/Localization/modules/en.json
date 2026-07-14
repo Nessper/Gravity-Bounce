@@ -131,6 +131,22 @@
     {
       "key": "module.medal_cash.t3.description",
       "text": "Earn bonus credits from medals. Bronze +4 / Silver +7 / Gold +10."
+    },
+    {
+      "key": "module.k1.name",
+      "text": "K1 Anti-Black Drone"
+    },
+    {
+      "key": "module.k1.t1.description",
+      "text": "After a 30 sec recharge, uses its laser to neutralize the nearest black ball outside a bin."
+    },
+    {
+      "key": "module.k1.t2.description",
+      "text": "After a 23 sec recharge, uses its laser to neutralize the nearest black ball outside a bin."
+    },
+    {
+      "key": "module.k1.t3.description",
+      "text": "After an 18 sec recharge, uses its laser to neutralize the nearest black ball outside a bin."
     }
   ]
 }

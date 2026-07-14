@@ -24,8 +24,9 @@
 
 - Une balle ne doit être résolue qu’une fois par collecte/flush avant recyclage.
 - Le snapshot de bac est la frontière entre contenu physique et calcul de flush.
-- Les transformations de modules précèdent la conséquence finale des noires.
+- Les transformations A puis B produisent un snapshot de flush unique ; son, FX, score, combos et conséquence finale des noires doivent tous en dériver.
 - Une noire ne compte pas pour la progression principale.
+- Une noire neutralisée par K1 repasse par le pool exactement une fois, sans score, dégât, collecte ou perte enregistrée.
 - Le nettoyage final précède l’évaluation complète et le snapshot de fin.
 
 ## Transaction de fin

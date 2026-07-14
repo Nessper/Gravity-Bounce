@@ -133,6 +133,22 @@
     {
       "key": "module.medal_cash.t3.description",
       "text": "Gagnez des crédits bonus selon la médaille. Bronze +4 / Argent +7 / Or +10."
+    },
+    {
+      "key": "module.k1.name",
+      "text": "Drone anti-noire K1"
+    },
+    {
+      "key": "module.k1.t1.description",
+      "text": "Après 30 s de recharge, neutralise au laser la bille noire hors bac la plus proche."
+    },
+    {
+      "key": "module.k1.t2.description",
+      "text": "Après 23 s de recharge, neutralise au laser la bille noire hors bac la plus proche."
+    },
+    {
+      "key": "module.k1.t3.description",
+      "text": "Après 18 s de recharge, neutralise au laser la bille noire hors bac la plus proche."
     }
   ]
 }

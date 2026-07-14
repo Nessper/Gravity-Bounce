@@ -40,6 +40,9 @@ public class ModuleRuntimeStats : MonoBehaviour
     [SerializeField] private int medalSilverMoney = 0;
     [SerializeField] private int medalGoldMoney = 0;
 
+    [Header("Debug / Lecture seule - Famille K1")]
+    [SerializeField] private float k1CooldownSec = 0f;
+
     public UnityEvent OnStatsRebuilt = new UnityEvent();
 
     public int BriefingScanTier => briefingScanTier;
@@ -57,6 +60,7 @@ public class ModuleRuntimeStats : MonoBehaviour
     public int MedalBronzeMoney => medalBronzeMoney;
     public int MedalSilverMoney => medalSilverMoney;
     public int MedalGoldMoney => medalGoldMoney;
+    public float K1CooldownSec => k1CooldownSec;
 
     private void Awake()
     {
@@ -134,6 +138,7 @@ public class ModuleRuntimeStats : MonoBehaviour
         medalBronzeMoney = 0;
         medalSilverMoney = 0;
         medalGoldMoney = 0;
+        k1CooldownSec = 0f;
     }
 
     private void AggregateOneModule(ModuleDefinition mod)
@@ -161,6 +166,12 @@ public class ModuleRuntimeStats : MonoBehaviour
         medalBronzeMoney += Mathf.Max(0, mod.medalBronzeMoney);
         medalSilverMoney += Mathf.Max(0, mod.medalSilverMoney);
         medalGoldMoney += Mathf.Max(0, mod.medalGoldMoney);
+
+        if (mod.k1CooldownSec > 0f &&
+            (k1CooldownSec <= 0f || mod.k1CooldownSec < k1CooldownSec))
+        {
+            k1CooldownSec = mod.k1CooldownSec;
+        }
     }
 
     private void SubscribeToRunState()

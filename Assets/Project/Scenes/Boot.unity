@@ -845,6 +845,7 @@ MonoBehaviour:
   medalBronzeMoney: 0
   medalSilverMoney: 0
   medalGoldMoney: 0
+  k1CooldownSec: 0
   OnStatsRebuilt:
     m_PersistentCalls:
       m_Calls: []

@@ -1,7 +1,7 @@
 # Paddle, bacs et flush
 
 > **Périmètre** : contrôle du paddle, collecte dans les bacs, fermeture, seuil automatique et pipeline de résolution d’un flush.  
-> **Statut** : confirmé par analyse statique ; sensation et ordre de callbacks non testés.  
+> **Statut** : pipeline A/B et cohérence des conséquences confirmés par code ; validation Play Mode à conserver.
 > **Date de vérification** : 2026-07-14.  
 > **Principaux appuis** : `PlayerController.cs`, `BinCollector.cs`, `BinTrigger.cs`, `CloseBinController.cs`, `BlackFilterRuntimeController.cs`, `FlushResolutionEngine.cs`, services runtime de modules.
 
@@ -18,9 +18,9 @@ Un flush peut être demandé par le joueur/contrôle de fermeture, par le seuil 
 ## Pipeline canonique d’un flush
 
 1. Le bac fige son contenu dans un snapshot.
-2. Les effets de modules transforment les types admissibles : filtres A sur les noires, puis conversions B sur les blanches selon les services retrouvés.
-3. La résolution calcule valeurs de balles, règles de combos runtime et modificateurs applicables.
-4. Les balles noires restantes appliquent leur conséquence de coque.
+2. Les effets de modules résolvent les types admissibles dans un ordre unique : filtres A sur les noires, puis conversions B sur les blanches obtenues ou déjà présentes.
+3. Ce snapshot résolu est la source de vérité du son, des FX, du score, des combos et des conséquences de coque.
+4. Les billes noires restantes appliquent leur conséquence de coque.
 5. Le `ScoreManager` reçoit le résultat et met à jour score, progression, pertes, historique et compteurs.
 6. Les événements alimentent overlays, audio et feedbacks.
 7. Les objets balle sont recyclés et le bac revient à l’état vide.
@@ -29,7 +29,11 @@ L’évaluation détaillée du score et des combos est canonique dans [Score, ob
 
 ## Balles noires
 
-Une noire n’ajoute pas de progression. Si elle n’a pas été transformée/neutralisée par un effet équipé, elle contribue à la perte et au dommage de coque. `BlackFilterRuntimeController` gère les charges de conversion associées. Le feedback de menace est distinct de cette logique fonctionnelle.
+Une noire n’ajoute pas de progression. Si elle n’a pas été transformée/neutralisée par un effet équipé, elle contribue à la perte et au dommage de coque.
+
+La famille A réserve une charge lorsqu’une noire est dans un bac et lui applique un aperçu blanc. Cette réservation reste réversible : si la bille ressort avant le flush, elle redevient noire et la charge est rendue. Si elle reste jusqu’au flush, la charge est consommée et la bille est résolue comme blanche — puis éventuellement améliorée par la famille B. Pendant cette réservation, les FX de menace et la contamination du bac suivent également l’état visuel transformé.
+
+`BlackFilterRuntimeController` gère les charges de conversion associées.
 
 ## Incertitude de score
 

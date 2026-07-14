@@ -270,6 +270,37 @@
       "medalBronzeMoney": 4,
       "medalSilverMoney": 5,
       "medalGoldMoney": 6
+    },
+
+    {
+      "id": "K1_T1",
+      "familyId": "K1",
+      "displayNameLocKey": "module.k1.name",
+      "descriptionLocKey": "module.k1.t1.description",
+      "tier": 1,
+      "cost": 4,
+      "iconPath": "Modules/Icons/K",
+      "k1CooldownSec": 30
+    },
+    {
+      "id": "K1_T2",
+      "familyId": "K1",
+      "displayNameLocKey": "module.k1.name",
+      "descriptionLocKey": "module.k1.t2.description",
+      "tier": 2,
+      "cost": 10,
+      "iconPath": "Modules/Icons/K",
+      "k1CooldownSec": 23
+    },
+    {
+      "id": "K1_T3",
+      "familyId": "K1",
+      "displayNameLocKey": "module.k1.name",
+      "descriptionLocKey": "module.k1.t3.description",
+      "tier": 3,
+      "cost": 16,
+      "iconPath": "Modules/Icons/K",
+      "k1CooldownSec": 18
     }
   ]
 }
