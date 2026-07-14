@@ -59,7 +59,7 @@ MonoBehaviour:
     DescriptionLocKey: combo.fast_flush.description
     BonusMode: 0
     BonusValue: 100
-    UiColor: {r: 0.59474015, g: 0.9339623, b: 0.84237957, a: 1}
+    UiColor: {r: 0, g: 1, b: 0.73255825, a: 1}
     OverlayStyle: 2
     TimingWindowSec: 3
     Threshold: 0

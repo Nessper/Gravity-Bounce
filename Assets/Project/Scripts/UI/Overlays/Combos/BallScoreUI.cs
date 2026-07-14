@@ -8,53 +8,85 @@ public class BallScoreUI : MonoBehaviour
     [SerializeField] private TMP_Text label;
     [SerializeField] private CanvasGroup group;
 
-    [Header("Animation")]
-    [SerializeField] private float lifetime = 0.35f;
-    [SerializeField] private float riseDistance = 18f;
+    [Header("Motion")]
+    [SerializeField] private float damping = 1.6f;
 
     private RectTransform rect;
+    private Vector2 velocity;
+    private bool motionEnabled;
+
+    public int Points { get; private set; }
+    public Color CurrentColor { get; private set; }
 
     private void Awake()
     {
         rect = transform as RectTransform;
     }
 
+    private void Update()
+    {
+        if (rect == null || !motionEnabled)
+            return;
+
+        rect.anchoredPosition += velocity * Time.deltaTime;
+        velocity = Vector2.Lerp(
+            velocity,
+            Vector2.zero,
+            damping * Time.deltaTime
+        );
+    }
+
     public void Play(
         int points,
         Color color,
-        Vector2 offset)
+        Vector2 offset,
+        Vector2 initialVelocity)
     {
+        string sign = points >= 0 ? "+" : "";
+
+        Points = points;
+        CurrentColor = color;
+
         if (label != null)
         {
-            string sign = points >= 0 ? "+" : "";
             label.text = sign + points;
-            label.color = color;
+            label.color = CurrentColor;
         }
+
+        if (group != null)
+            group.alpha = 1f;
 
         if (rect != null)
             rect.anchoredPosition += offset;
 
-        StartCoroutine(PlayRoutine());
+        velocity = initialVelocity;
+        motionEnabled = true;
     }
 
-    private IEnumerator PlayRoutine()
+    public void StopMotion()
     {
-        Vector2 start = rect.anchoredPosition;
-        Vector2 end = start + Vector2.up * riseDistance;
+        motionEnabled = false;
+        velocity = Vector2.zero;
+    }
 
+    public void FadeAndDestroy(float duration)
+    {
+        StartCoroutine(FadeAndDestroyRoutine(duration));
+    }
+
+    private IEnumerator FadeAndDestroyRoutine(float duration)
+    {
         float elapsed = 0f;
+        float startAlpha = group != null ? group.alpha : 1f;
 
-        while (elapsed < lifetime)
+        while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
 
-            float t = Mathf.Clamp01(elapsed / lifetime);
-
-            rect.anchoredPosition =
-                Vector2.Lerp(start, end, t);
+            float t = Mathf.Clamp01(elapsed / duration);
 
             if (group != null)
-                group.alpha = 1f - t;
+                group.alpha = Mathf.Lerp(startAlpha, 0f, t);
 
             yield return null;
         }

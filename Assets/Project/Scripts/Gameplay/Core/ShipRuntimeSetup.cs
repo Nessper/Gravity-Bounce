@@ -20,6 +20,7 @@ public class ShipRuntimeSetup : MonoBehaviour
     [Header("Score")]
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private ScoreUI scoreUI;
+    [SerializeField] private GameplayScoreImpactUI gameplayScoreImpactUI;
 
     [Header("Background")]
     [SerializeField] private ShipBackgroundController shipBackgroundController;
@@ -48,14 +49,19 @@ public class ShipRuntimeSetup : MonoBehaviour
         // ------------------------------------------------------------
         if (scoreManager != null)
         {
+            /*
             if (scoreUI != null)
             {
                 // Idempotent (utile en debug rerun)
                 scoreManager.onScoreChanged.RemoveListener(scoreUI.UpdateScoreText);
                 scoreManager.onScoreChanged.AddListener(scoreUI.UpdateScoreText);
             }
-
+            */
             scoreManager.ResetScore(0);
+            if (gameplayScoreImpactUI != null)
+            {
+                gameplayScoreImpactUI.SetInstant(0);
+            }
         }
 
         // ------------------------------------------------------------

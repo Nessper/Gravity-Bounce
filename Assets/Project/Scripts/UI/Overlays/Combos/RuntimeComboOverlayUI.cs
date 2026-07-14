@@ -131,6 +131,17 @@ public class RuntimeComboOverlayUI : MonoBehaviour
         HideTiming();
     }
 
+    public RectTransform TimingSourceRoot
+    {
+        get
+        {
+            if (timingGroup == null)
+                return null;
+
+            return timingGroup.transform as RectTransform;
+        }
+    }
+
     private IEnumerator TimingSuccessRoutine()
     {
         timingGroup.alpha = 1f;

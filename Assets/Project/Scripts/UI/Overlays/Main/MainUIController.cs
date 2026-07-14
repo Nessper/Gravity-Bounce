@@ -79,11 +79,14 @@ public class MainUIController : MonoBehaviour
             pauseOverlayController.OnPauseOpened -= HandlePauseOpened;
             pauseOverlayController.OnPauseClosed -= HandlePauseClosed;
         }
+
+        flushComboOverlayController?.CancelAllAndSync();
     }
 
     public void SetInitialState()
     {
         StopRunningRoutine();
+        flushComboOverlayController?.CancelAllAndSync();
 
         SetCanvasGroup(backgroundGroup, 1f, false, false);
         SetCanvasGroup(dimmerGroup, 1f, false, false);
@@ -142,6 +145,7 @@ public class MainUIController : MonoBehaviour
 
     public void HideGameplayHud()
     {
+        flushComboOverlayController?.CancelAllAndSync();
         SetCanvasGroup(gameplayHudGroup, 0f, false, false);
     }
 

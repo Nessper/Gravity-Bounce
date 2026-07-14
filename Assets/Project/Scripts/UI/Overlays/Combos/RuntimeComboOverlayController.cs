@@ -13,6 +13,17 @@ public class RuntimeComboOverlayController : MonoBehaviour
     private ChainRuntimeState chainState;
     private TimingRuntimeState timingState;
 
+    public RectTransform TimingSourceRoot
+    {
+        get
+        {
+            if (overlayUI == null)
+                return null;
+
+            return overlayUI.TimingSourceRoot;
+        }
+    }
+
     private void Awake()
     {
         if (overlayUI != null)
@@ -50,6 +61,8 @@ public class RuntimeComboOverlayController : MonoBehaviour
             return;
         }
 
+        definitionProvider = ComboDefinitionProvider.Instance;
+
         chainState = flushResolutionEngine.GetChainState();
         timingState = flushResolutionEngine.GetTimingState();
 
@@ -68,7 +81,6 @@ public class RuntimeComboOverlayController : MonoBehaviour
             timingState.OnTimingWindowReset += HandleTimingWindowReset;
         }
 
-        definitionProvider = ComboDefinitionProvider.Instance;
         RefreshAll();
     }
 
@@ -132,10 +144,7 @@ public class RuntimeComboOverlayController : MonoBehaviour
         int stepBalls,
         int awardedLevel)
     {
-        ComboDefinition definition = null;
-
-        if (definitionProvider != null)
-            definition = definitionProvider.Get(comboId);
+        ComboDefinition definition = GetDefinition(comboId);
 
         string displayName = comboId;
         Color uiColor = Color.white;
@@ -167,10 +176,7 @@ public class RuntimeComboOverlayController : MonoBehaviour
             return;
         }
 
-        ComboDefinition definition = null;
-
-        if (definitionProvider != null)
-            definition = definitionProvider.Get(ComboIds.FastFlush);
+        ComboDefinition definition = GetDefinition(ComboIds.FastFlush);
 
         string displayName = ComboIds.FastFlush;
         Color uiColor = Color.white;
@@ -188,6 +194,17 @@ public class RuntimeComboOverlayController : MonoBehaviour
             timingState.WindowRemaining,
             timingState.WindowDuration
         );
+    }
+
+    private ComboDefinition GetDefinition(string comboId)
+    {
+        if (definitionProvider == null)
+            definitionProvider = ComboDefinitionProvider.Instance;
+
+        if (definitionProvider == null)
+            return null;
+
+        return definitionProvider.Get(comboId);
     }
 
     private void HandleChainProgressChanged(ChainProgress progress)

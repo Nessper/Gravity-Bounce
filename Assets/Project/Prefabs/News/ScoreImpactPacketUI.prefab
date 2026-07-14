@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 2312718594875965769}
   - component: {fileID: 858413112861381447}
   - component: {fileID: 6666437433733872555}
-  - component: {fileID: 2015517569157001901}
+  - component: {fileID: 7776488531322170641}
   m_Layer: 16
-  m_Name: BallScore_TMP
+  m_Name: ScoreImpactPacketUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -150,7 +150,7 @@ CanvasGroup:
   m_Interactable: 0
   m_BlocksRaycasts: 0
   m_IgnoreParentGroups: 0
---- !u!114 &2015517569157001901
+--- !u!114 &7776488531322170641
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -159,9 +159,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 6715607615613719705}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6da34f5e44a992141a6bc2a0c1c2efff, type: 3}
+  m_Script: {fileID: 11500000, guid: ac2df4d1d52fba743a6badf9cfa51148, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BallScoreUI
+  m_EditorClassIdentifier: Assembly-CSharp::ScoreImpactPacketUI
   label: {fileID: 858413112861381447}
   group: {fileID: 6666437433733872555}
-  damping: 1.6
+  punchScale: 1.25
+  punchReturnDuration: 0.08
+  absorbOffset: 8
+  floatDuration: 0.25
+  floatDistance: 22
+  fadeDuration: 0.2

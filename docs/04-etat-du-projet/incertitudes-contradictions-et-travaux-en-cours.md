@@ -29,11 +29,11 @@
 
 L’espace de travail comportait déjà des modifications de polices TMP, `ComboDefinitionCatalog.asset`, `BallScore_TMP.prefab`, scènes `Main`/`DebugLauncher`, `ShipRuntimeSetup`, scripts d’overlays combo et `ModuleCatalog.json`.
 
-Des fichiers non suivis ajoutaient : `CombosScoreRoot.prefab`, `ScoreImpactPacketUI.prefab`, `GameplayScoreImpactUI`, `ComboScoreUI`, `ScoreAttractorUI` et `ScoreFlushAbsorberUI`. Dans le YAML de Main observé, certaines références de cette nouvelle chaîne étaient nulles. La documentation les classe **en cours**, sans préjuger de leur destination ni de leur fonctionnement final.
+Des fichiers non suivis ajoutaient : `CombosScoreRoot.prefab`, `ScoreImpactPacketUI.prefab`, `GameplayScoreImpactUI`, `ComboScoreUI`, `ScoreAttractorUI` et `ScoreFlushAbsorberUI`. Le chemin fondé sur ces composants est raccordé dans `Main` : source autoritaire `ScoreManager`, racine de transfert Screen Space Overlay, cible HUD, cadence d’absorption, impacts, odomètre mécanique et session visuelle d’accumulation. Le comportement a été validé en Play Mode pour les arrivées ordinaires, les rafales, les flushs rapprochés et le Fast Flush. `ScoreImpactPacketUI.prefab` ne participe pas à ce chemin. Les composants historiques ne sont pas encore retirés ; leur nettoyage reste une étape séparée.
 
 ## Limites de l’analyse
 
-Unity n’a pas été ouvert et le Play Mode n’a pas été lancé. Les animations, UnityEvents dynamiques, ordres `Awake/Start`, valeurs par défaut de désérialisation, chargements d’assets et branches plateforme n’ont donc pas été observés en fonctionnement. Aucun `m_Script` explicitement nul n’a été retrouvé dans les scènes/prefabs, mais cette recherche ne remplace pas une importation Unity.
+Le chemin visuel du score décrit ci-dessus a été testé et validé en Play Mode par l'utilisateur. Les autres animations, UnityEvents dynamiques, ordres `Awake/Start`, valeurs par défaut de désérialisation, chargements d’assets et branches plateforme n’ont pas tous été observés systématiquement. Aucun `m_Script` explicitement nul n’a été retrouvé dans les scènes/prefabs, mais cette recherche ne remplace pas une validation exhaustive de chaque scène.
 
 ## Terminologie non établie
 

@@ -818,6 +818,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
   targetText: {fileID: 0}
   useThousandSeparator: 1
+  animationMode: 0
   unitsPerSecond: 2000
   minDuration: 0.1
   maxDuration: 0.6
@@ -845,6 +846,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  mechanicalRollDuration: 0.65
+  mechanicalRollDistance: 1
+  mechanicalCarryWindow: 0.2
+  mechanicalRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  increasingValuesRollUp: 1
 --- !u!114 &38889865
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -959,6 +988,10 @@ PrefabInstance:
     - target: {fileID: 2486092800977986842, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
       propertyPath: m_fontSize
       value: 64
+      objectReference: {fileID: 0}
+    - target: {fileID: 2486092800977986842, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 6168136643885833528, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
       propertyPath: m_Pivot.x
@@ -1166,7 +1199,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: -250, y: -354.62}
+  m_AnchoredPosition: {x: -250, y: -239.22}
   m_SizeDelta: {x: 200, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &45659275
@@ -1414,6 +1447,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
   targetText: {fileID: 1530415136}
   useThousandSeparator: 1
+  animationMode: 0
   unitsPerSecond: 1000
   minDuration: 0.1
   maxDuration: 3
@@ -1441,6 +1475,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  mechanicalRollDuration: 0.22
+  mechanicalRollDistance: 1
+  mechanicalCarryWindow: 0.2
+  mechanicalRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  increasingValuesRollUp: 1
 --- !u!225 &90369086
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -2109,6 +2171,10 @@ PrefabInstance:
       propertyPath: m_text
       value: SHIP STATUS
       objectReference: {fileID: 0}
+    - target: {fileID: 1663160814506009475, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 1764812727839428220, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
@@ -2341,6 +2407,10 @@ PrefabInstance:
       propertyPath: m_text
       value: ACTIVE SYSTEMS
       objectReference: {fileID: 0}
+    - target: {fileID: 3998684715641914783, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 5004067159543140302, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -2371,7 +2441,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5589184208446958709, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
       propertyPath: m_fontSize
-      value: 41.65
+      value: 48
       objectReference: {fileID: 0}
     - target: {fileID: 5589184208446958709, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
       propertyPath: m_margin.z
@@ -3839,6 +3909,41 @@ MonoBehaviour:
   flushVelocity: {x: -1.5, y: -6, z: 0}
   blackHullSpawnPosition: {x: 0, y: 5.8, z: -0.2}
   blackHullVelocity: {x: -1.2, y: -6.2, z: 0}
+--- !u!1 &165613607
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 165613608}
+  m_Layer: 5
+  m_Name: ScreenSpaceTransferRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &165613608
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 165613607}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 10}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1902270935}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &167030991
 GameObject:
   m_ObjectHideFlags: 0
@@ -4087,6 +4192,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
   targetText: {fileID: 168884543}
   useThousandSeparator: 1
+  animationMode: 0
   unitsPerSecond: 2000
   minDuration: 0.1
   maxDuration: 0.6
@@ -4114,6 +4220,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  mechanicalRollDuration: 0.22
+  mechanicalRollDistance: 1
+  mechanicalCarryWindow: 0.2
+  mechanicalRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  increasingValuesRollUp: 1
 --- !u!225 &168884546 stripped
 CanvasGroup:
   m_CorrespondingSourceObject: {fileID: -2884849672958341151, guid: eee3dfca91235a94bbd21f76da28bfc3, type: 3}
@@ -6207,6 +6341,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 2143675525}
   - {fileID: 1136925547}
   - {fileID: 892579289}
   m_Father: {fileID: 1611308663}
@@ -7132,6 +7267,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
   targetText: {fileID: 423945714}
   useThousandSeparator: 1
+  animationMode: 0
   unitsPerSecond: 2000
   minDuration: 0.1
   maxDuration: 0.6
@@ -7159,6 +7295,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  mechanicalRollDuration: 0.22
+  mechanicalRollDistance: 1
+  mechanicalCarryWindow: 0.2
+  mechanicalRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  increasingValuesRollUp: 1
 --- !u!114 &423945717
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7455,6 +7619,10 @@ PrefabInstance:
       propertyPath: m_text
       value: SHIP STATUS
       objectReference: {fileID: 0}
+    - target: {fileID: 1663160814506009475, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 1764812727839428220, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
@@ -7687,6 +7855,10 @@ PrefabInstance:
       propertyPath: m_text
       value: ACTIVE SYSTEMS
       objectReference: {fileID: 0}
+    - target: {fileID: 3998684715641914783, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 5004067159543140302, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -7717,7 +7889,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5589184208446958709, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
       propertyPath: m_fontSize
-      value: 41.65
+      value: 48
       objectReference: {fileID: 0}
     - target: {fileID: 5589184208446958709, guid: 099b63088d7aab342ac153db148ede0f, type: 3}
       propertyPath: m_margin.z
@@ -9268,7 +9440,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &457077327
 Transform:
   m_ObjectHideFlags: 0
@@ -14900,6 +15072,52 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 514089658}
   m_CullTransparentMesh: 1
+--- !u!1 &514711127
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 514711128}
+  - component: {fileID: 514711129}
+  - component: {fileID: 571918633}
+  m_Layer: 5
+  m_Name: ScoreIntRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &514711128
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 514711127}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 571918630}
+  m_Father: {fileID: 1136925547}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0}
+--- !u!222 &514711129
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 514711127}
+  m_CullTransparentMesh: 1
 --- !u!1 &519728285
 GameObject:
   m_ObjectHideFlags: 0
@@ -15358,6 +15576,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
   targetText: {fileID: 0}
   useThousandSeparator: 1
+  animationMode: 0
   unitsPerSecond: 2000
   minDuration: 0.1
   maxDuration: 0.6
@@ -15385,6 +15604,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  mechanicalRollDuration: 0.22
+  mechanicalRollDistance: 1
+  mechanicalCarryWindow: 0.2
+  mechanicalRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  increasingValuesRollUp: 1
 --- !u!114 &555436988
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15833,8 +16080,6 @@ GameObject:
   - component: {fileID: 571918630}
   - component: {fileID: 571918632}
   - component: {fileID: 571918631}
-  - component: {fileID: 571918634}
-  - component: {fileID: 571918633}
   m_Layer: 5
   m_Name: Score_Int
   m_TagString: Untagged
@@ -15854,7 +16099,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1136925547}
+  m_Father: {fileID: 514711128}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -15966,7 +16211,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 571918629}
+  m_GameObject: {fileID: 514711127}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f81f0f81f269918478e714fc8b11c016, type: 3}
@@ -15974,7 +16219,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
   targetText: {fileID: 571918631}
   useThousandSeparator: 1
-  unitsPerSecond: 2000
+  animationMode: 1
+  unitsPerSecond: 500
   minDuration: 0.1
   maxDuration: 0.6
   curve:
@@ -16001,19 +16247,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &571918634
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 571918629}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fccf82c40aee54142b692f0dfb65aacd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ScoreUI
-  animatedScore: {fileID: 0}
+  mechanicalRollDuration: 0.22
+  mechanicalRollDistance: 1
+  mechanicalCarryWindow: 0.2
+  mechanicalRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  increasingValuesRollUp: 1
 --- !u!1 &572059753
 GameObject:
   m_ObjectHideFlags: 0
@@ -16777,6 +17038,132 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 613539226}
   m_CullTransparentMesh: 1
+--- !u!1 &613787798
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 613787799}
+  - component: {fileID: 613787800}
+  m_Layer: 0
+  m_Name: Score
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &613787799
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613787798}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 932557156}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &613787800
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613787798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 519fe77d7534f2a4fb95234c7e28a5c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameplayScoreImpactUI
+  scoreManager: {fileID: 975156268}
+  scoreText: {fileID: 571918631}
+  animatedScore: {fileID: 571918633}
+  reactionRoot: {fileID: 514711128}
+  useThousandSeparator: 1
+  unitsPerSecond: 500
+  impactUnitsPerSecond: 1800
+  impactBoostDuration: 0.11
+  minStepPerFrame: 1
+  ballPunchScale: 1.14
+  comboPunchScale: 1.24
+  punchDuration: 0.09
+  punchOffset: 7
+  ballImpactSfx: 1
+  comboImpactSfx: 2
+  ballImpactVolume: 1.5
+  comboImpactVolume: 2
+  sessionFloatRoot: {fileID: 165613608}
+  sessionInactivityDelay: 1.5
+  sessionScaleCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 1
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  sessionValueForMaxScale: 1800
+  sessionMinScale: 1
+  sessionMaxScale: 2
+  sessionColorGradient:
+    serializedVersion: 2
+    key0: {r: 0.45, g: 0.9, b: 1, a: 1}
+    key1: {r: 0.1, g: 1, b: 0.85, a: 1}
+    key2: {r: 0, g: 1, b: 0.029119253, a: 0}
+    key3: {r: 0.9716981, g: 0.8918204, b: 0.050418302, a: 0}
+    key4: {r: 1, g: 0.5047615, b: 0.033018887, a: 0}
+    key5: {r: 1, g: 0.08018869, b: 0.113475375, a: 0}
+    key6: {r: 0.6226415, g: 0.09310732, b: 0.026432883, a: 0}
+    key7: {r: 0, g: 0, b: 0, a: 0}
+    ctime0: 0
+    ctime1: 9059
+    ctime2: 16769
+    ctime3: 27756
+    ctime4: 40092
+    ctime5: 52621
+    ctime6: 62451
+    ctime7: 0
+    atime0: 0
+    atime1: 65535
+    atime2: 0
+    atime3: 0
+    atime4: 0
+    atime5: 0
+    atime6: 0
+    atime7: 0
+    m_Mode: 0
+    m_ColorSpace: -1
+    m_NumColorKeys: 7
+    m_NumAlphaKeys: 2
+  sessionValueForMaxColor: 1800
+  negativeSessionColor: {r: 0.78994083, g: 0.1009256, b: 0.7924528, a: 1}
+  sessionRiseDuration: 0.45
+  sessionFloatDuration: 0.25
+  sessionFadeDuration: 0.35
+  sessionRiseDistance: 50
 --- !u!1 &613850161
 GameObject:
   m_ObjectHideFlags: 0
@@ -25545,6 +25932,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
   targetText: {fileID: 764870309}
   useThousandSeparator: 1
+  animationMode: 0
   unitsPerSecond: 2000
   minDuration: 0.1
   maxDuration: 0.6
@@ -25572,6 +25960,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  mechanicalRollDuration: 0.22
+  mechanicalRollDistance: 1
+  mechanicalCarryWindow: 0.2
+  mechanicalRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  increasingValuesRollUp: 1
 --- !u!114 &764870308
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26980,6 +27396,10 @@ PrefabInstance:
       propertyPath: m_fontSize
       value: 64
       objectReference: {fileID: 0}
+    - target: {fileID: 2486092800977986842, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 6168136643885833528, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -27309,11 +27729,44 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlushComboOverlayController
   verboseLogs: 1
+  ballCatalog: {fileID: 11400000, guid: f331750a1fa32a4438c5e6eed8a14a4d, type: 2}
   ballScorePrefab: {fileID: 2015517569157001901, guid: 8d013e3bee73c244899b6a81a81886e7, type: 3}
   leftBinScoreRoot: {fileID: 524422197}
   rightBinScoreRoot: {fileID: 1447788620}
-  baseItemDelay: 0.08
-  scatterRadius: 20
+  comboScorePrefab: {fileID: 317872807286249420, guid: 25375a78756fa784691481df1f2d60e8, type: 3}
+  comboSourceBindings:
+  - ComboId: FastFlush
+    SourceRoot: {fileID: 899611592}
+    SpawnOffset: {x: 0, y: 0}
+    ImpulseDirection: {x: 0, y: 1}
+  - ComboId: WhiteChain
+    SourceRoot: {fileID: 1263570784}
+    SpawnOffset: {x: 0, y: 0}
+    ImpulseDirection: {x: -1, y: 0.5}
+  - ComboId: BlueChain
+    SourceRoot: {fileID: 1636310990}
+    SpawnOffset: {x: 0, y: 0}
+    ImpulseDirection: {x: -1, y: 0}
+  - ComboId: RedChain
+    SourceRoot: {fileID: 622978058}
+    SpawnOffset: {x: 0, y: 0}
+    ImpulseDirection: {x: -1, y: 0.5}
+  scoreAttractor: {fileID: 1040092378}
+  flushAbsorber: {fileID: 2143675527}
+  gameplayScoreImpactUI: {fileID: 613787800}
+  baseItemDelay: 0.05
+  delayBeforeCombos: 0.4
+  comboItemDelay: 0.4
+  floatDuration: 0.35
+  finalFlushMaxVisualDelay: 2.2
+  baseScatterRadius: 10
+  baseImpulseMin: 35
+  baseImpulseMax: 70
+  comboScatterRadius: 15
+  comboImpulseMin: 20
+  comboImpulseMax: 45
+  comboBaseVerticalOffset: 36
+  comboVerticalSpacing: 34
 --- !u!4 &842148821
 Transform:
   m_ObjectHideFlags: 0
@@ -27907,7 +28360,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1666342546}
   m_Father: {fileID: 1215621184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &855623659
@@ -33925,6 +34379,7 @@ Transform:
   - {fileID: 1778304236}
   - {fileID: 1991424257}
   - {fileID: 698264693}
+  - {fileID: 613787799}
   m_Father: {fileID: 1215621184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &933828147
@@ -35034,7 +35489,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39914fc8a65205549b2aab44b295983e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
-  totalBillesPrevues: 0
+  plannedProgressBalls: 0
   objectiveThreshold: 0
   onGoalReached:
     m_PersistentCalls:
@@ -35499,6 +35954,58 @@ MonoBehaviour:
   goalsBonusAnimated: {fileID: 0}
   bonusTotalAnimated: {fileID: 0}
   finalScoreAnimated: {fileID: 0}
+--- !u!1 &1040092376
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1040092377}
+  - component: {fileID: 1040092378}
+  m_Layer: 0
+  m_Name: ScoreAttractor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1040092377
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1040092376}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1666342546}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1040092378
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1040092376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2a40673a0ef54f4ba828cb71c8f3ad6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScoreAttractorUI
+  overlayRoot: {fileID: 165613608}
+  absorbTarget: {fileID: 514711128}
+  flushAbsorber: {fileID: 2143675527}
+  attractDuration: 0.32
+  curvature: 70
+  ballTransferScaleMultiplier: 2.5
+  comboTransferScaleMultiplier: 2.5
+  fadeOnArrivalDuration: 0.08
 --- !u!1 &1053678154
 GameObject:
   m_ObjectHideFlags: 0
@@ -37087,7 +37594,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1893764968}
-  - {fileID: 571918630}
+  - {fileID: 514711128}
   m_Father: {fileID: 379454714}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -41243,6 +41750,10 @@ PrefabInstance:
       propertyPath: m_fontSize
       value: 64
       objectReference: {fileID: 0}
+    - target: {fileID: 2486092800977986842, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 6168136643885833528, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -42389,6 +42900,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 239923445959071989, guid: 8bfc25a07901aa64cbff7fd9dd31595d, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 415130819639333055, guid: 8bfc25a07901aa64cbff7fd9dd31595d, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -43157,6 +43672,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7956057120837093130, guid: 8bfc25a07901aa64cbff7fd9dd31595d, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 7981259210707662387, guid: 8bfc25a07901aa64cbff7fd9dd31595d, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -43212,6 +43731,10 @@ PrefabInstance:
     - target: {fileID: 8586661569955036523, guid: 8bfc25a07901aa64cbff7fd9dd31595d, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8759971633088192115, guid: 8bfc25a07901aa64cbff7fd9dd31595d, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 8872088207031509020, guid: 8bfc25a07901aa64cbff7fd9dd31595d, type: 3}
       propertyPath: m_AnchorMax.y
@@ -44128,6 +44651,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
   targetText: {fileID: 0}
   useThousandSeparator: 1
+  animationMode: 0
   unitsPerSecond: 2000
   minDuration: 0.1
   maxDuration: 0.6
@@ -44155,6 +44679,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  mechanicalRollDuration: 0.22
+  mechanicalRollDistance: 1
+  mechanicalCarryWindow: 0.2
+  mechanicalRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  increasingValuesRollUp: 1
 --- !u!114 &1492689526
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -45700,6 +46252,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
   targetText: {fileID: 1530415136}
   useThousandSeparator: 1
+  animationMode: 0
   unitsPerSecond: 2000
   minDuration: 0.1
   maxDuration: 0.6
@@ -45727,6 +46280,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  mechanicalRollDuration: 0.22
+  mechanicalRollDistance: 1
+  mechanicalCarryWindow: 0.2
+  mechanicalRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  increasingValuesRollUp: 1
 --- !u!114 &1530415135
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -48471,6 +49052,38 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1666120660}
   m_CullTransparentMesh: 1
+--- !u!1 &1666342545
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1666342546}
+  m_Layer: 0
+  m_Name: ScoreSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1666342546
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1666342545}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1040092377}
+  m_Father: {fileID: 855623658}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1667898346
 GameObject:
   m_ObjectHideFlags: 0
@@ -50705,6 +51318,10 @@ PrefabInstance:
     - target: {fileID: 2486092800977986842, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
       propertyPath: m_fontSize
       value: 64
+      objectReference: {fileID: 0}
+    - target: {fileID: 2486092800977986842, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 6168136643885833528, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
       propertyPath: m_Pivot.x
@@ -53654,6 +54271,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
   targetText: {fileID: 1890542385}
   useThousandSeparator: 1
+  animationMode: 0
   unitsPerSecond: 2000
   minDuration: 0.1
   maxDuration: 0.6
@@ -53681,6 +54299,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  mechanicalRollDuration: 0.22
+  mechanicalRollDistance: 1
+  mechanicalCarryWindow: 0.2
+  mechanicalRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  increasingValuesRollUp: 1
 --- !u!114 &1890542388
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -53854,7 +54500,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.007843138}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.07058824}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -53967,6 +54613,7 @@ RectTransform:
   - {fileID: 1451150151}
   - {fileID: 687143963}
   - {fileID: 1765144074}
+  - {fileID: 165613608}
   m_Father: {fileID: 1773629873}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -54634,7 +55281,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fccf82c40aee54142b692f0dfb65aacd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreUI
-  animatedScore: {fileID: 571918633}
+  animatedScore: {fileID: 0}
 --- !u!4 &1955269963
 Transform:
   m_ObjectHideFlags: 0
@@ -56165,6 +56812,7 @@ MonoBehaviour:
   runSession: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
   scoreManager: {fileID: 975156268}
   scoreUI: {fileID: 1955269962}
+  gameplayScoreImpactUI: {fileID: 613787800}
   shipBackgroundController: {fileID: 1646446896}
 --- !u!1 &2040707191
 GameObject:
@@ -57212,6 +57860,79 @@ MonoBehaviour:
   impactKind: 0
   minImpactSpeed: 1.5
   maxImpactSpeed: 8
+--- !u!1 &2143675524
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2143675525}
+  - component: {fileID: 2143675526}
+  - component: {fileID: 2143675527}
+  m_Layer: 5
+  m_Name: ScoreFlushAbsorberUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2143675525
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143675524}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 10}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 379454714}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 326.2, y: -7.3}
+  m_SizeDelta: {x: 100, y: 60}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2143675526
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143675524}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
+  m_IgnoreLayout: 1
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: -1
+  m_PreferredHeight: -1
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: -1
+  m_LayoutPriority: 1
+--- !u!114 &2143675527
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143675524}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ab8f6382edbcea49befbade16542696, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScoreFlushAbsorberUI
+  gameplayScore: {fileID: 613787800}
+  arrivalFlash: {fileID: 0}
+  intervalBetweenImpacts: 0.1
+  arrivalFlashDuration: 0.08
 --- !u!1 &2146900259
 GameObject:
   m_ObjectHideFlags: 0
@@ -58224,6 +58945,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimatedIntText
   targetText: {fileID: 8593108751565162681}
   useThousandSeparator: 1
+  animationMode: 0
   unitsPerSecond: 2000
   minDuration: 0.1
   maxDuration: 0.6
@@ -58251,6 +58973,34 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  mechanicalRollDuration: 0.22
+  mechanicalRollDistance: 1
+  mechanicalCarryWindow: 0.2
+  mechanicalRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  increasingValuesRollUp: 1
 --- !u!225 &8593108751565162684 stripped
 CanvasGroup:
   m_CorrespondingSourceObject: {fileID: -2884849672958341151, guid: eee3dfca91235a94bbd21f76da28bfc3, type: 3}

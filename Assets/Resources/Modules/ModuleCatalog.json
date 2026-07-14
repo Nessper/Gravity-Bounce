@@ -243,9 +243,9 @@
       "tier": 1,
       "cost": 4,
       "iconPath": "Modules/Icons/F",
-      "medalBronzeMoney": 3,
-      "medalSilverMoney": 5,
-      "medalGoldMoney": 7
+      "medalBronzeMoney": 2,
+      "medalSilverMoney": 3,
+      "medalGoldMoney": 4
     },
     {
       "id": "MEDAL_CASH_T2",
@@ -256,8 +256,8 @@
       "cost": 10,
       "iconPath": "Modules/Icons/F",
       "medalBronzeMoney": 3,
-      "medalSilverMoney": 6,
-      "medalGoldMoney": 9
+      "medalSilverMoney": 4,
+      "medalGoldMoney": 5
     },
     {
       "id": "MEDAL_CASH_T3",
@@ -268,8 +268,8 @@
       "cost": 16,
       "iconPath": "Modules/Icons/F",
       "medalBronzeMoney": 4,
-      "medalSilverMoney": 7,
-      "medalGoldMoney": 10
+      "medalSilverMoney": 5,
+      "medalGoldMoney": 6
     }
   ]
 }
