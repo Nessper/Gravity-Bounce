@@ -2,7 +2,7 @@
 
 > **Périmètre** : définition des missions, phases, génération des balles, pooling, obstacles et comportement physique.  
 > **Statut** : confirmé par code/données ; hasard exact et physique non joués.  
-> **Date de vérification** : 2026-07-14.  
+> **Date de vérification** : 2026-07-15.  
 > **Principaux appuis** : `LevelData.cs`, `LevelCatalogService.cs`, JSON `Resources/Levels`, `BallSpawner.cs`, `BallDefinition*`, `BallState.cs`, `BallPhysicsTuning.cs`, `ObstacleManager.cs`.
 
 ## Contenu de niveau
@@ -16,6 +16,8 @@ Certaines propriétés de `LevelData` appartiennent à des schémas antérieurs.
 Quatre `BallDefinition` sont actives : blanche, bleue, rouge et noire. Les trois couleurs positives contribuent à la progression et au score selon leur valeur ; la noire est négative/dangereuse et ne contribue pas à l’objectif de collecte. Les valeurs canoniques sont dans [Équilibrage](../02-donnees-et-unity/equilibrage-et-configuration-active.md).
 
 `BallState` porte l’identité/type courant, ce qui permet aux modules de transformer une balle avant la résolution finale. Les objets sont réutilisés par pooling et remis en circulation après collecte/nettoyage. `BallSpawner` maintient aussi le registre des billes actives pour permettre un ciblage ponctuel sans recherche globale. Le recyclage distingue une collecte, une perte et une neutralisation par K1 ; cette dernière ne compte ni comme collecte ni comme perte.
+
+`BallState` porte également une exclusion temporaire réservée aux drones. K2 l’utilise pour suspendre collider et simulation pendant une saisie, sans recycler la bille ni modifier son identité. `BallSpawner.TryGetDroneReentryPosition` choisit une position libre dans la plage X normale et sous le plafond ; la bille y est relâchée avec sa physique restaurée. Cette téléportation est donc distincte du spawn et du pool.
 
 ## Génération
 

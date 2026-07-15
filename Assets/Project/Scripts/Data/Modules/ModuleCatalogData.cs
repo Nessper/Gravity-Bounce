@@ -77,9 +77,21 @@ public class ModuleDefinition
     public int scanTierSet;              // 0 si pas SCAN, sinon 1..3
 
     // ----------------------------------------------------
+    // Famille K0 : controle transversal des drones
+    // ----------------------------------------------------
+    public bool dronesStartCharged;
+    public float droneCooldownMultiplier;
+
+    // ----------------------------------------------------
     // Famille K1 : drone anti-noire
     // ----------------------------------------------------
     public float k1CooldownSec;
+
+    // ----------------------------------------------------
+    // Famille K2 : drone Interceptor
+    // ----------------------------------------------------
+    public int k2TierSet;
+    public float k2CooldownSec;
 
 
 

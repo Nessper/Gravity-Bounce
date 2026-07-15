@@ -1,9 +1,9 @@
 # Contexte IA du projet 404
 
 > **Usage** : porte d’entrée autonome pour un agent IA sans accès initial au dépôt.  
-> **Statut** : synthèse de l’état observé par analyse statique ; aucun Play Mode, build ou test runtime.  
-> **Dernière vérification** : 2026-07-14.  
-> **Sources principales** : les 28 documents sous `docs/`, scènes de build, catalogues `Resources`, ScriptableObjects structurants et état Git observé.
+> **Statut** : synthèse principalement statique ; la chaîne de score et les drones K1/K2 ont aussi reçu des validations Play Mode ciblées par l’utilisateur, sans campagne runtime exhaustive.  
+> **Dernière vérification** : 2026-07-15.  
+> **Sources principales** : les 31 documents sous `docs/`, scènes de build, catalogues `Resources`, ScriptableObjects structurants et état Git observé.
 
 ## 1. Présentation factuelle
 
@@ -13,7 +13,7 @@ Le projet est local : sauvegarde, score, économie et progression ne reposent su
 
 ## 2. État actuel et niveau de certitude
 
-L’architecture décrite est celle des sources et assets présents le 2026-07-14. Le projet contient un chemin runtime actuel, plusieurs couches historiques encore présentes et une intégration de présentation du score en cours dans l’espace de travail.
+L’architecture décrite est celle des sources et assets présents le 2026-07-15. Le projet contient un chemin runtime actuel, plusieurs couches historiques encore présentes et des intégrations locales de présentation du score et de drones dans l’espace de travail.
 
 Les termes suivants ont un sens strict :
 
@@ -38,7 +38,7 @@ Unity n’a pas été lancé pour produire l’instantané documentaire. L’ord
 | État de run | Miroir runtime observable, plan et ressources | `RunSessionState`, `RunPlan`, `RunNavigator` |
 | Catalogues | Résoudre mondes, niveaux, vaisseaux et modules | services `*CatalogService`, JSON `Resources` |
 | Mission | Construire le contexte et orchestrer le niveau | `LevelBootstrapper`, `LevelManager` |
-| Résolution | Spawn, neutralisation K1, collecte, flush, score, combos, objectifs, coque | `BallSpawner`, `K1AntiBlackDroneController`, `BinCollector`, `FlushResolutionEngine`, `ScoreManager` |
+| Résolution | Spawn, drones K1/K2, collecte, flush, score, combos, objectifs, coque | `BallSpawner`, `DroneRuntimeControllerBase`, `K1AntiBlackDroneController`, `K2DroneInterceptorController`, `BinCollector`, `FlushResolutionEngine`, `ScoreManager` |
 | Présentation | HUD, overlays, narration, audio et FX | `MainUIController`, `AudioManager`, scripts `UI`/`FX` |
 
 Le root de `Boot` est normalement requis par toutes les scènes suivantes. `MainStandaloneInstaller` et `MainDebugStarterV3` fournissent des chemins alternatifs pour exécuter `Main` seule ou avec un contexte debug.
@@ -103,7 +103,7 @@ Une valeur présente dans un asset ne devient pas automatiquement active : il fa
 | Vaisseaux | Actif, trois définitions dont un vaisseau debug caché. Divergence de slots sur Aether Runner. |
 | Coque/vies | Actif. Deux ressources séparées ; les noires affectent la coque, les échecs peuvent consommer une vie de contrat. |
 | Économie | Active, monnaie uniquement liée à la run. Achat, réparation et reroll. |
-| Modules | Actif, 27 modules, neuf familles, inventaire et équipement persistés pendant la run. Catalogue local en cours de modification dans l’instantané Git. |
+| Modules | Actif, 33 modules, onze familles, inventaire et équipement persistés pendant la run. K0 améliore transversalement les drones ; K1 neutralise les noires ; K2 sauve certaines billes avant le Void. Catalogue local et assets drone encore non commités dans l’instantané Git. |
 | Niveaux/spawn | Actif. W1-L1 à W1-L6 plus DBG-L1, phases, quotas, mélange, pooling et spawns forcés. |
 | Balles/physique | Actif. Blanches, bleues, rouges positives ; noires dangereuses. Physique 2D et rebond personnalisé. |
 | Bacs/flush | Actif. Seuil automatique de base 5, transformations de modules, score puis conséquences des noires. |
@@ -125,7 +125,7 @@ La référence condensée par domaine est [AI_SYSTEMS_REFERENCE_404.md](AI_SYSTE
 - `WorldCatalog` → `RunPlanBuilder` → `RunSessionState` détermine quel nœud le hub ou `Main` doit traiter.
 - `ShipCatalog` initialise coque, durée, argent et slots ; les modules équipés peuvent modifier certains paramètres.
 - JSON de niveau + run + modules → `LevelContext` → timer, spawner, objectifs, briefing et obstacles.
-- `BallSpawner` → physique/K1 → `BinTrigger` → `BinCollector` → `BinSnapshot` → modules/`FlushResolutionEngine` → `ScoreManager`, `HullSystem`, combos et UI. K1 et le snapshot utilisent `collected` comme verrou terminal exclusif.
+- `BallSpawner` → physique/drones → `BinTrigger` ou `DroneInterceptionZone` → flush, neutralisation K1 ou téléportation K2. K1 et le snapshot utilisent `collected` comme verrou terminal exclusif ; K2 emploie une exclusion temporaire propriétaire qui le retire des bacs, du Void et des autres drones jusqu’à sa libération.
 - Score/historique/objectifs → évaluateurs de fin → `EndLevelOutcome` → `EndLevelSnapshot` → cérémonie → commit du run.
 - `RunSessionState`, `ScoreManager`, `HullSystem`, timer et bacs alimentent le HUD via événements, UnityEvents, appels directs et binders.
 
@@ -255,4 +255,4 @@ Cet état Git est un fait de l’instantané, pas une intention attribuée aux a
 
 ## 16. Limites de cette synthèse
 
-Ce document résume le projet sans inventorier les 258 scripts de jeu ni toutes les valeurs d’équilibrage. Il ne remplace pas les documents canoniques lorsqu’un dépôt est accessible. Les comportements runtime, mobiles, audiovisuels et de désérialisation non exécutés restent à valider. Pour raisonner système par système sans dépôt, poursuivre avec [AI_SYSTEMS_REFERENCE_404.md](AI_SYSTEMS_REFERENCE_404.md) ; pour préparer un travail, utiliser [AI_WORKING_GUIDE_404.md](AI_WORKING_GUIDE_404.md).
+Ce document résume le projet sans inventorier les 266 scripts C# sous `Assets/Project/Scripts` ni toutes les valeurs d’équilibrage. Il ne remplace pas les documents canoniques lorsqu’un dépôt est accessible. Les comportements runtime, mobiles, audiovisuels et de désérialisation non exécutés restent à valider. Pour raisonner système par système sans dépôt, poursuivre avec [AI_SYSTEMS_REFERENCE_404.md](AI_SYSTEMS_REFERENCE_404.md) ; pour préparer un travail, utiliser [AI_WORKING_GUIDE_404.md](AI_WORKING_GUIDE_404.md).

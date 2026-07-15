@@ -133,20 +133,52 @@
       "text": "Earn bonus credits from medals. Bronze +4 / Silver +7 / Gold +10."
     },
     {
+      "key": "module.k0.name",
+      "text": "K0 Drone Control"
+    },
+    {
+      "key": "module.k0.t1.description",
+      "text": "All drones start the mission fully charged."
+    },
+    {
+      "key": "module.k0.t2.description",
+      "text": "All drones start charged and their cooldown is reduced by 10%."
+    },
+    {
+      "key": "module.k0.t3.description",
+      "text": "All drones start charged and their cooldown is reduced by 20%."
+    },
+    {
       "key": "module.k1.name",
       "text": "K1 Anti-Black Drone"
     },
     {
       "key": "module.k1.t1.description",
-      "text": "After a 30 sec recharge, uses its laser to neutralize the nearest black ball outside a bin."
+      "text": "After a 30 sec recharge, uses its laser to neutralize the nearest black ball."
     },
     {
       "key": "module.k1.t2.description",
-      "text": "After a 23 sec recharge, uses its laser to neutralize the nearest black ball outside a bin."
+      "text": "After a 23 sec recharge, uses its laser to neutralize the nearest black ball."
     },
     {
       "key": "module.k1.t3.description",
-      "text": "After an 18 sec recharge, uses its laser to neutralize the nearest black ball outside a bin."
+      "text": "After an 18 sec recharge, uses its laser to neutralize the nearest black ball."
+    },
+    {
+      "key": "module.k2.name",
+      "text": "K2 Drone Interceptor"
+    },
+    {
+      "key": "module.k2.t1.description",
+      "text": "After a 30 sec recharge, rescues a white ball before it falls into the Void."
+    },
+    {
+      "key": "module.k2.t2.description",
+      "text": "After a 25 sec recharge, rescues a white or blue ball before it falls into the Void."
+    },
+    {
+      "key": "module.k2.t3.description",
+      "text": "After a 22 sec recharge, rescues a white, blue, or red ball before it falls into the Void."
     }
   ]
 }

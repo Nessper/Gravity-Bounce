@@ -43,6 +43,14 @@ public class ModuleRuntimeStats : MonoBehaviour
     [Header("Debug / Lecture seule - Famille K1")]
     [SerializeField] private float k1CooldownSec = 0f;
 
+    [Header("Debug / Lecture seule - Contrôle drones K0")]
+    [SerializeField] private bool dronesStartCharged = false;
+    [SerializeField] private float droneCooldownMultiplier = 1f;
+
+    [Header("Debug / Lecture seule - Famille K2")]
+    [SerializeField] private int k2Tier = 0;
+    [SerializeField] private float k2CooldownSec = 0f;
+
     public UnityEvent OnStatsRebuilt = new UnityEvent();
 
     public int BriefingScanTier => briefingScanTier;
@@ -61,6 +69,16 @@ public class ModuleRuntimeStats : MonoBehaviour
     public int MedalSilverMoney => medalSilverMoney;
     public int MedalGoldMoney => medalGoldMoney;
     public float K1CooldownSec => k1CooldownSec;
+    public bool DronesStartCharged => dronesStartCharged;
+    public float DroneCooldownMultiplier => droneCooldownMultiplier;
+    public int K2Tier => k2Tier;
+    public float K2CooldownSec => k2CooldownSec;
+
+    public float GetEffectiveDroneCooldown(float baseCooldownSec)
+    {
+        return Mathf.Max(0f, baseCooldownSec) *
+            Mathf.Clamp(droneCooldownMultiplier, 0.01f, 1f);
+    }
 
     private void Awake()
     {
@@ -139,6 +157,10 @@ public class ModuleRuntimeStats : MonoBehaviour
         medalSilverMoney = 0;
         medalGoldMoney = 0;
         k1CooldownSec = 0f;
+        dronesStartCharged = false;
+        droneCooldownMultiplier = 1f;
+        k2Tier = 0;
+        k2CooldownSec = 0f;
     }
 
     private void AggregateOneModule(ModuleDefinition mod)
@@ -167,10 +189,28 @@ public class ModuleRuntimeStats : MonoBehaviour
         medalSilverMoney += Mathf.Max(0, mod.medalSilverMoney);
         medalGoldMoney += Mathf.Max(0, mod.medalGoldMoney);
 
+        dronesStartCharged |= mod.dronesStartCharged;
+
+        if (mod.droneCooldownMultiplier > 0f)
+        {
+            droneCooldownMultiplier = Mathf.Min(
+                droneCooldownMultiplier,
+                mod.droneCooldownMultiplier
+            );
+        }
+
         if (mod.k1CooldownSec > 0f &&
             (k1CooldownSec <= 0f || mod.k1CooldownSec < k1CooldownSec))
         {
             k1CooldownSec = mod.k1CooldownSec;
+        }
+
+        k2Tier = Mathf.Max(k2Tier, Mathf.Max(0, mod.k2TierSet));
+
+        if (mod.k2CooldownSec > 0f &&
+            (k2CooldownSec <= 0f || mod.k2CooldownSec < k2CooldownSec))
+        {
+            k2CooldownSec = mod.k2CooldownSec;
         }
     }
 

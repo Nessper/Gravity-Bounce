@@ -42,6 +42,11 @@ public class BallSpawner : MonoBehaviour
     [SerializeField] private float zSpawn = -0.2f;
     [SerializeField] private float intervalDefault = 0.6f;
 
+    [Header("Drone Reentry")]
+    [SerializeField] private float droneReentryInsetBelowCeiling = 1f;
+    [SerializeField] private float droneReentryClearRadius = 0.2f;
+    [SerializeField] private int droneReentryPositionAttempts = 8;
+
     [Header("Debug Tutorial Spawn")]
     [SerializeField] private bool logTutorialSpawn = false;
     [SerializeField] private bool tutorialReleasePhysicsNextFrame = true;
@@ -727,6 +732,47 @@ public class BallSpawner : MonoBehaviour
         return ySpawn;
     }
 
+    public bool TryGetDroneReentryPosition(
+        BallState ball,
+        out Vector3 position)
+    {
+        position = default;
+
+        if (ball == null)
+            return false;
+
+        float reentryY = ceilingCollider != null
+            ? ceilingCollider.bounds.min.y -
+              Mathf.Max(0f, droneReentryInsetBelowCeiling)
+            : ComputeSpawnY();
+        float clearRadius = Mathf.Max(0.01f, droneReentryClearRadius);
+        int attempts = Mathf.Max(1, droneReentryPositionAttempts);
+        int ballLayerMask = 1 << ball.gameObject.layer;
+
+        for (int attempt = 0; attempt < attempts; attempt++)
+        {
+            Vector3 candidate = new Vector3(
+                UnityEngine.Random.Range(-xRange, xRange),
+                reentryY,
+                zSpawn
+            );
+
+            if (Physics.CheckSphere(
+                    candidate,
+                    clearRadius,
+                    ballLayerMask,
+                    QueryTriggerInteraction.Ignore))
+            {
+                continue;
+            }
+
+            position = candidate;
+            return true;
+        }
+
+        return false;
+    }
+
     private void ActivateOne(int phaseIdx)
     {
         GameObject go = pool.Count > 0 ? pool.Pop() : Instantiate(ballPrefab);
@@ -753,6 +799,7 @@ public class BallSpawner : MonoBehaviour
 
         if (go.TryGetComponent(out BallState st))
         {
+            st.ResetDroneExclusionState();
             st.inBin = false;
             st.collected = false;
             st.currentSide = Side.None;
@@ -787,6 +834,7 @@ public class BallSpawner : MonoBehaviour
         if (go.TryGetComponent(out BallState st))
         {
             ballId = st.BallId;
+            st.ResetDroneExclusionState();
             activeBalls.Remove(st);
         }
 
@@ -830,6 +878,20 @@ public class BallSpawner : MonoBehaviour
         Vector3 origin,
         out BallState nearest)
     {
+        return TryGetNearestActiveDangerBall(
+            ballId,
+            origin,
+            float.PositiveInfinity,
+            out nearest
+        );
+    }
+
+    public bool TryGetNearestActiveDangerBall(
+        string ballId,
+        Vector3 origin,
+        float maximumWorldY,
+        out BallState nearest)
+    {
         nearest = null;
         float nearestSqrDistance = float.PositiveInfinity;
         bool nearestIsInBin = false;
@@ -844,7 +906,10 @@ public class BallSpawner : MonoBehaviour
                 continue;
             }
 
-            if (candidate.collected || !candidate.IsVisualDanger)
+            if (candidate.collected ||
+                candidate.IsTemporarilyExcludedFromGameplay ||
+                !candidate.IsVisualDanger ||
+                candidate.transform.position.y > maximumWorldY)
                 continue;
 
             if (!string.Equals(
@@ -935,6 +1000,7 @@ public class BallSpawner : MonoBehaviour
 
         if (go.TryGetComponent(out BallState st))
         {
+            st.ResetDroneExclusionState();
             st.inBin = false;
             st.collected = false;
             st.currentSide = Side.None;

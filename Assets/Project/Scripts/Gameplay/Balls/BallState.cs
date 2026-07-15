@@ -17,17 +17,60 @@ public class BallState : MonoBehaviour
     public bool collected = false;
     public Side currentSide = Side.None;
 
+    [SerializeField] private DroneBallExclusionState droneExclusionState;
+
+    public DroneBallExclusionState DroneExclusionState =>
+        droneExclusionState;
+    public bool IsTemporarilyExcludedFromGameplay =>
+        droneExclusionState != DroneBallExclusionState.None;
+
     [Header("Tutorial")]
     public bool isTutorialBall = false;
 
     [Header("Visual")]
     [SerializeField] private Renderer visualRenderer;
 
+    [Header("Destruction FX")]
+    [SerializeField] private BallDestructionEffects destructionEffects;
+
     [Header("Physics")]
     [SerializeField] private Rigidbody rb;
 
+    private Collider ballCollider;
+    private Object droneExclusionOwner;
+    private bool colliderWasEnabledBeforeDroneReservation;
+    private bool rigidbodyWasKinematicBeforeDroneReservation;
+
     public Vector3 LinearVelocity =>
         rb != null ? rb.linearVelocity : Vector3.zero;
+
+    public void ClearTrailHistory()
+    {
+        trailWhite?.Clear();
+        trailBlue?.Clear();
+        trailRed?.Clear();
+        trailBlack?.Clear();
+    }
+
+    public void SetDroneTeleportVisualVisible(bool isVisible)
+    {
+        droneTeleportVisualHidden = !isVisible;
+
+        if (visualRenderer != null)
+            visualRenderer.enabled = isVisible;
+
+        if (isVisible)
+        {
+            RefreshAllVisualState();
+            return;
+        }
+
+        SetTrail(trailWhite, false);
+        SetTrail(trailBlue, false);
+        SetTrail(trailRed, false);
+        SetTrail(trailBlack, false);
+        UpdateParticleFx(dangerCrackleFX, false);
+    }
 
     [Header("Trails by BallId")]
     [SerializeField] private TrailRenderer trailWhite;
@@ -73,6 +116,7 @@ public class BallState : MonoBehaviour
     private int dangerLayer = -1;
 
     private TrailRenderer activeTrail;
+    private bool droneTeleportVisualHidden;
 
     private bool dangerTrailAllowed;
     private float dangerTrailStopTimer;
@@ -99,6 +143,11 @@ public class BallState : MonoBehaviour
 
         if (rb == null)
             rb = GetComponent<Rigidbody>();
+
+        if (destructionEffects == null)
+            destructionEffects = GetComponentInChildren<BallDestructionEffects>(true);
+
+        ballCollider = GetComponent<Collider>();
     }
 
     private void Start()
@@ -128,6 +177,10 @@ public class BallState : MonoBehaviour
 
         dangerTrailAllowed = false;
         dangerTrailStopTimer = 0f;
+        droneTeleportVisualHidden = false;
+
+        if (visualRenderer != null)
+            visualRenderer.enabled = true;
 
         RefreshAllVisualState();
     }
@@ -135,6 +188,114 @@ public class BallState : MonoBehaviour
     public void SetDefinition(BallDefinition newDefinition)
     {
         Initialize(newDefinition);
+    }
+
+    public bool TryReserveForDrone(Object owner)
+    {
+        if (owner == null ||
+            collected ||
+            inBin ||
+            IsTemporarilyExcludedFromGameplay ||
+            !gameObject.activeInHierarchy)
+        {
+            return false;
+        }
+
+        if (ballCollider == null)
+            ballCollider = GetComponent<Collider>();
+
+        colliderWasEnabledBeforeDroneReservation =
+            ballCollider != null && ballCollider.enabled;
+        rigidbodyWasKinematicBeforeDroneReservation =
+            rb != null && rb.isKinematic;
+
+        droneExclusionOwner = owner;
+        droneExclusionState = DroneBallExclusionState.Reserved;
+
+        if (ballCollider != null)
+            ballCollider.enabled = false;
+
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
+        }
+
+        return true;
+    }
+
+    public bool TryMarkCapturedByDrone(Object owner)
+    {
+        if (!IsOwnedByDrone(owner) ||
+            droneExclusionState != DroneBallExclusionState.Reserved)
+        {
+            return false;
+        }
+
+        droneExclusionState = DroneBallExclusionState.Captured;
+        return true;
+    }
+
+    public bool TryReleaseFromDrone(Object owner, Vector3 launchVelocity)
+    {
+        if (!IsOwnedByDrone(owner))
+            return false;
+
+        RestoreAfterDroneExclusion(launchVelocity);
+        return true;
+    }
+
+    public bool TryCancelDroneExclusion(Object owner)
+    {
+        if (!IsOwnedByDrone(owner))
+            return false;
+
+        RestoreAfterDroneExclusion(Vector3.zero);
+        return true;
+    }
+
+    public void ForceReleaseDroneExclusion()
+    {
+        if (!IsTemporarilyExcludedFromGameplay)
+            return;
+
+        RestoreAfterDroneExclusion(Vector3.zero);
+    }
+
+    public void ResetDroneExclusionState()
+    {
+        droneExclusionState = DroneBallExclusionState.None;
+        droneExclusionOwner = null;
+        colliderWasEnabledBeforeDroneReservation = false;
+        rigidbodyWasKinematicBeforeDroneReservation = false;
+    }
+
+    public bool IsOwnedByDrone(Object owner)
+    {
+        return owner != null &&
+               droneExclusionOwner == owner &&
+               IsTemporarilyExcludedFromGameplay;
+    }
+
+    private void RestoreAfterDroneExclusion(Vector3 launchVelocity)
+    {
+        bool restoreCollider = colliderWasEnabledBeforeDroneReservation;
+        bool restoreKinematic = rigidbodyWasKinematicBeforeDroneReservation;
+
+        ResetDroneExclusionState();
+
+        if (rb != null)
+        {
+            rb.isKinematic = restoreKinematic;
+            rb.angularVelocity = Vector3.zero;
+            rb.linearVelocity = restoreKinematic
+                ? Vector3.zero
+                : launchVelocity;
+        }
+
+        if (ballCollider != null)
+            ballCollider.enabled = restoreCollider;
     }
 
     public void SetModuleVisualPreview(BallDefinition previewDefinition)
@@ -151,6 +312,21 @@ public class BallState : MonoBehaviour
     public void ClearModuleVisualPreview()
     {
         SetModuleVisualPreview(null);
+    }
+
+    public void PlayDestructionEffect(Vector3 worldPosition)
+    {
+        if (destructionEffects == null)
+            return;
+
+        BallDefinition visualDefinition = CurrentVisualDefinition;
+        string visualBallId =
+            visualDefinition != null &&
+            !string.IsNullOrWhiteSpace(visualDefinition.Id)
+                ? visualDefinition.Id
+                : BallId;
+
+        destructionEffects.Play(visualBallId, worldPosition);
     }
 
     private void RefreshAllVisualState()
@@ -256,6 +432,12 @@ public class BallState : MonoBehaviour
     {
         if (activeTrail == null)
             return;
+
+        if (droneTeleportVisualHidden)
+        {
+            activeTrail.emitting = false;
+            return;
+        }
 
         if (HasVisualPreview)
         {

@@ -273,13 +273,47 @@
     },
 
     {
+      "id": "K0_T1",
+      "familyId": "K0",
+      "displayNameLocKey": "module.k0.name",
+      "descriptionLocKey": "module.k0.t1.description",
+      "tier": 1,
+      "cost": 4,
+      "iconPath": "Modules/Icons/K0",
+      "dronesStartCharged": true,
+      "droneCooldownMultiplier": 1.0
+    },
+    {
+      "id": "K0_T2",
+      "familyId": "K0",
+      "displayNameLocKey": "module.k0.name",
+      "descriptionLocKey": "module.k0.t2.description",
+      "tier": 2,
+      "cost": 10,
+      "iconPath": "Modules/Icons/K0",
+      "dronesStartCharged": true,
+      "droneCooldownMultiplier": 0.9
+    },
+    {
+      "id": "K0_T3",
+      "familyId": "K0",
+      "displayNameLocKey": "module.k0.name",
+      "descriptionLocKey": "module.k0.t3.description",
+      "tier": 3,
+      "cost": 16,
+      "iconPath": "Modules/Icons/K0",
+      "dronesStartCharged": true,
+      "droneCooldownMultiplier": 0.8
+    },
+
+    {
       "id": "K1_T1",
       "familyId": "K1",
       "displayNameLocKey": "module.k1.name",
       "descriptionLocKey": "module.k1.t1.description",
       "tier": 1,
       "cost": 4,
-      "iconPath": "Modules/Icons/K",
+      "iconPath": "Modules/Icons/K1",
       "k1CooldownSec": 30
     },
     {
@@ -289,7 +323,7 @@
       "descriptionLocKey": "module.k1.t2.description",
       "tier": 2,
       "cost": 10,
-      "iconPath": "Modules/Icons/K",
+      "iconPath": "Modules/Icons/K1",
       "k1CooldownSec": 23
     },
     {
@@ -299,8 +333,41 @@
       "descriptionLocKey": "module.k1.t3.description",
       "tier": 3,
       "cost": 16,
-      "iconPath": "Modules/Icons/K",
+      "iconPath": "Modules/Icons/K1",
       "k1CooldownSec": 18
+    },
+    {
+      "id": "K2_T1",
+      "familyId": "K2",
+      "displayNameLocKey": "module.k2.name",
+      "descriptionLocKey": "module.k2.t1.description",
+      "tier": 1,
+      "cost": 4,
+      "iconPath": "Modules/Icons/K2",
+      "k2TierSet": 1,
+      "k2CooldownSec": 30
+    },
+    {
+      "id": "K2_T2",
+      "familyId": "K2",
+      "displayNameLocKey": "module.k2.name",
+      "descriptionLocKey": "module.k2.t2.description",
+      "tier": 2,
+      "cost": 10,
+      "iconPath": "Modules/Icons/K2",
+      "k2TierSet": 2,
+      "k2CooldownSec": 25
+    },
+    {
+      "id": "K2_T3",
+      "familyId": "K2",
+      "displayNameLocKey": "module.k2.name",
+      "descriptionLocKey": "module.k2.t3.description",
+      "tier": 3,
+      "cost": 16,
+      "iconPath": "Modules/Icons/K2",
+      "k2TierSet": 3,
+      "k2CooldownSec": 22
     }
   ]
 }

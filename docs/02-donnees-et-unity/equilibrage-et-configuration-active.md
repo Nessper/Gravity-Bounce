@@ -1,8 +1,8 @@
 # Équilibrage et configuration active
 
 > **Périmètre** : valeurs structurantes confirmées et emplacement des réglages de contenu actifs.  
-> **Statut** : valeurs observées le 2026-07-14 ; aucune appréciation d’équilibrage.  
-> **Date de vérification** : 2026-07-14.  
+> **Statut** : valeurs observées le 2026-07-15 ; aucune appréciation d’équilibrage.  
+> **Date de vérification** : 2026-07-15.  
 > **Principaux appuis** : SO sous `Assets/Project/Data`, JSON sous `Assets/Resources`, prefabs/scènes portant les réglages runtime.
 
 ## Balles
@@ -42,7 +42,7 @@ Source canonique du projet : `Assets/Project/Data/Balls/Ball_*.asset`.
 - `W1_MID` : 2×T1 + 1×T2 (poids 80), 3×T1 (17), 1×T1 + 2×T2 (3).
 - `W2_START` et `W2_MID` ont des règles définies, mais aucun monde W2 actif n’a été retrouvé.
 
-Les prix, paramètres et effets détaillés des 27 modules résident dans `Assets/Resources/Modules/ModuleCatalog.json`. Le statut de travail observé de ce fichier est consigné dans [Incertitudes et travaux en cours](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md).
+Les prix, paramètres et effets détaillés des 33 modules résident dans `Assets/Resources/Modules/ModuleCatalog.json`. Pour les familles drone actives : K0 applique un départ chargé aux trois tiers et des multiplicateurs de cooldown `1,0/0,9/0,8` ; K1 utilise `30/23/18 s` ; K2 utilise `30/25/22 s` et autorise successivement blanche, blanche/bleue, puis blanche/bleue/rouge. Le statut de travail observé de ce fichier est consigné dans [Incertitudes et travaux en cours](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md).
 
 ## Niveaux et combos
 

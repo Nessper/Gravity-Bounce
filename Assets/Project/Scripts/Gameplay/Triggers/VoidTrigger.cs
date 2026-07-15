@@ -16,7 +16,9 @@ public class VoidTrigger : MonoBehaviour
 
         BallState state = other.GetComponent<BallState>();
 
-        if (state == null || state.collected)
+        if (state == null ||
+            state.collected ||
+            state.IsTemporarilyExcludedFromGameplay)
             return;
 
         state.collected = true;

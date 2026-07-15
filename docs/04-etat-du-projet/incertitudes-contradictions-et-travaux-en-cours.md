@@ -2,7 +2,7 @@
 
 > **Périmètre** : registre canonique des comportements non prouvés, divergences statiques et fichiers déjà en cours de modification.  
 > **Statut** : chaque entrée reste ouverte faute de validation runtime ; aucune correction proposée.  
-> **Date de vérification** : 2026-07-14.  
+> **Date de vérification** : 2026-07-15.  
 > **Principaux appuis** : comparaisons code/données/scènes, état Git initial, absence de Play Mode.
 
 ## Incertitudes fonctionnelles
@@ -30,6 +30,8 @@
 L’espace de travail comportait déjà des modifications de polices TMP, `ComboDefinitionCatalog.asset`, `BallScore_TMP.prefab`, scènes `Main`/`DebugLauncher`, `ShipRuntimeSetup`, scripts d’overlays combo et `ModuleCatalog.json`.
 
 Le chemin V2 du score est raccordé dans `Main` : source autoritaire `ScoreManager`, racine de transfert Screen Space Overlay, cible HUD, cadence d’absorption, impacts, odomètre mécanique et session visuelle d’accumulation. Le comportement a été validé en Play Mode pour les arrivées ordinaires, les rafales, les flushs rapprochés et le Fast Flush. Après cette validation, `ScoreImpactPacketUI.prefab`, `ScoreBinder`, `ScoreUI` et leurs branchements sérialisés ont été retirés. Les anciennes scènes d’archive qui conservaient encore `ScoreUI` ont également été supprimées ; ce nettoyage n’est plus un travail en cours.
+
+Les familles drone K0, K1 et K2 sont également présentes dans les modifications locales : catalogue/localisation/icônes, socle commun, contrôleurs, exclusion temporaire des billes, assets visuels et câblage de `Main`. Les comportements principaux de K0/K1/K2 et la saisie-téléportation de K2 ont été validés de façon itérative en Play Mode par l’utilisateur ; les valeurs de mouvement, cooldown et effets restent des réglages de polish susceptibles d’évoluer avant commit.
 
 ## Limites de l’analyse
 

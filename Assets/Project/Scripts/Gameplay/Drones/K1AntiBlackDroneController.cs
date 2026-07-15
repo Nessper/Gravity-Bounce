@@ -3,36 +3,31 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
-public sealed class K1AntiBlackDroneController : MonoBehaviour
+public sealed class K1AntiBlackDroneController : DroneRuntimeControllerBase
 {
     private const string BlackBallId = "black";
 
-    [Header("Dépendances")]
-    [SerializeField] private LevelRunStateController runStateController;
+    [Header("Dépendances K1")]
     [SerializeField] private BallSpawner ballSpawner;
     [SerializeField] private BinTrigger leftBin;
     [SerializeField] private BinTrigger rightBin;
 
-    [Header("Sprites temporaires")]
-    [SerializeField] private Sprite droneSprite;
-    [SerializeField] private Sprite cooldownSprite;
+    [Header("Presentation de charge K1")]
+    [SerializeField] private Sprite k1UnchargedSprite;
+    [SerializeField] private Sprite k1ChargedSprite;
+    [SerializeField] private Sprite k1CooldownSprite;
 
-    [Header("Trajectoire elliptique")]
-    [SerializeField] private Vector3 ellipseCenter = Vector3.zero;
-    [SerializeField] private Vector2 ellipseRadii = new Vector2(2.45f, 3f);
-    [SerializeField] private float ellipseSpeed = 0.42f;
-    [SerializeField] private Vector2 ellipseRadiusVariation = new Vector2(0.45f, 0.35f);
-    [SerializeField] private Vector2 ellipseCenterDrift = new Vector2(0.35f, 0.2f);
-    [SerializeField] private float ellipseMorphSpeed = 0.18f;
-    [SerializeField, Range(0f, 0.5f)] private float ellipseSpeedVariation = 0.18f;
-    [SerializeField] private float patrolMinY = -3f;
-    [SerializeField] private float droneScale = 0.105f;
-
-    [Header("Cooldown visuel")]
-    [SerializeField] private float cooldownVisualScale = 1.6f;
+    [Header("Patrouille verticale a gauche du mur")]
+    [SerializeField] private Transform leftWall;
+    [SerializeField] private float horizontalWallClearance = 0.25f;
+    [SerializeField] private float fallbackPatrolX = -2.75f;
+    [SerializeField] private float verticalPatrolMinY = -3f;
+    [SerializeField] private float verticalPatrolMaxY = 3f;
+    [SerializeField] private float verticalPatrolCycleSec = 6f;
 
     [Header("Verrouillage de cible")]
     [SerializeField] private float lockOnDelaySec = 0.15f;
+    [SerializeField] private float maximumTargetY = 4f;
 
     [Header("Laser temporaire")]
     [SerializeField] private float laserSpeed = 18f;
@@ -40,180 +35,129 @@ public sealed class K1AntiBlackDroneController : MonoBehaviour
     [SerializeField] private float maximumLaserTravelSec = 0.75f;
     [SerializeField] private float retryDelaySec = 0.15f;
 
-    private GameObject visualRoot;
-    private Image cooldownImage;
-    private SpriteRenderer laserRenderer;
+    [Header("Decharge visuelle avant tir")]
+    [SerializeField] private Shader dischargeFlashShader;
+    [SerializeField] private float dischargeFlashDuration = 0.12f;
+    [SerializeField] private float dischargeFlashScale = 1.14f;
+    [SerializeField, Range(0f, 1f)] private float dischargeFlashMinAlpha = 0.3f;
+
+    [Header("Recul au tir")]
+    [SerializeField] private float recoilDistance = 0.32f;
+    [SerializeField] private float recoilDuration = 0.1f;
+
+    private LineRenderer laserRenderer;
+    private Image k1CooldownImage;
+    private Image k1UnchargedImage;
+    private Image k1ChargedImage;
+    private Material dischargeFlashMaterial;
     private Coroutine lockOnCoroutine;
     private Coroutine shotCoroutine;
+    private Coroutine recoilCoroutine;
     private BallState committedTarget;
-    private Sprite runtimeLaserSprite;
+    private Material runtimeLaserMaterial;
 
-    private float ellipseAngle;
-    private float patrolTime;
-    private float cooldownDuration;
-    private float cooldownRemaining;
+    private float verticalPatrolPhase;
     private float retryTimer;
+    private bool dischargeFlashActive;
+    private Vector3 recoilOffset;
 
-    private bool moduleEquipped;
-    private bool gameplayWasArmed;
-    private bool charged;
+    protected override string DroneVisualName => "K1";
+    protected override bool UsesCustomChargePresentation => true;
 
-    private void Awake()
-    {
-        CreateVisuals();
-        RefreshModule();
-    }
-
-    private void OnEnable()
-    {
-        if (ModuleRuntimeStats.Instance != null)
-            ModuleRuntimeStats.Instance.OnStatsRebuilt.AddListener(RefreshModule);
-    }
-
-    private void OnDisable()
-    {
-        if (ModuleRuntimeStats.Instance != null)
-            ModuleRuntimeStats.Instance.OnStatsRebuilt.RemoveListener(RefreshModule);
-
-        AbortShot();
-    }
+    protected override bool HasDroneActionInProgress =>
+        lockOnCoroutine != null || shotCoroutine != null;
 
     private void OnDestroy()
     {
-        if (runtimeLaserSprite != null)
-            Destroy(runtimeLaserSprite);
+        if (runtimeLaserMaterial != null)
+            Destroy(runtimeLaserMaterial);
+
+        if (dischargeFlashMaterial != null)
+            Destroy(dischargeFlashMaterial);
     }
 
-    private void Update()
+    protected override float GetBaseCooldownSec(ModuleRuntimeStats stats)
     {
-        if (!moduleEquipped)
-            return;
+        return stats != null ? Mathf.Max(0f, stats.K1CooldownSec) : 0f;
+    }
 
-        UpdateEllipseMotion();
-
-        bool gameplayArmed =
-            runStateController != null && runStateController.GameplayArmed;
-
-        if (gameplayArmed && !gameplayWasArmed)
-            StartMissionCooldown();
-        else if (!gameplayArmed && gameplayWasArmed)
-            StopMissionRuntime();
-
-        gameplayWasArmed = gameplayArmed;
-
-        if (!gameplayArmed ||
-            lockOnCoroutine != null ||
-            shotCoroutine != null)
-        {
-            UpdateCooldownVisual();
-            return;
-        }
-
-        if (!charged)
-        {
-            cooldownRemaining = Mathf.Max(
-                0f,
-                cooldownRemaining - Time.deltaTime
-            );
-
-            if (cooldownRemaining <= 0f)
-                charged = true;
-        }
-
-        if (retryTimer > 0f)
+    protected override void OnDroneGameplayTick()
+    {
+        if (retryTimer > 0f && !HasDroneActionInProgress)
             retryTimer = Mathf.Max(0f, retryTimer - Time.deltaTime);
-
-        if (charged && retryTimer <= 0f)
-            TryFireAtNearestBlackBall();
-
-        UpdateCooldownVisual();
     }
 
-    private void RefreshModule()
+    protected override void OnDroneGameplayStarted()
     {
-        bool wasEquipped = moduleEquipped;
+        retryTimer = 0f;
+    }
 
-        cooldownDuration = ModuleRuntimeStats.Instance != null
-            ? Mathf.Max(0f, ModuleRuntimeStats.Instance.K1CooldownSec)
-            : 0f;
-        moduleEquipped = cooldownDuration > 0f;
+    protected override void OnDroneRuntimeStopped()
+    {
+        AbortShot();
+        StopRecoilAndReset();
+        retryTimer = 0f;
+    }
 
-        if (visualRoot != null)
-            visualRoot.SetActive(moduleEquipped);
+    protected override void UpdateDroneMotion()
+    {
+        float cycleDuration = Mathf.Max(0.01f, verticalPatrolCycleSec);
+        verticalPatrolPhase = Mathf.Repeat(
+            verticalPatrolPhase + Time.deltaTime / cycleDuration,
+            1f
+        );
 
-        if (!moduleEquipped)
-        {
-            gameplayWasArmed = false;
-            StopMissionRuntime();
+        float minimumY = Mathf.Min(
+            verticalPatrolMinY,
+            verticalPatrolMaxY
+        );
+        float maximumY = Mathf.Max(
+            verticalPatrolMinY,
+            verticalPatrolMaxY
+        );
+        float normalizedY =
+            0.5f + 0.5f * Mathf.Sin(verticalPatrolPhase * Mathf.PI * 2f);
+
+        Vector3 patrolPosition = new Vector3(
+            ResolvePatrolLocalX(),
+            Mathf.Lerp(minimumY, maximumY, normalizedY),
+            0f
+        );
+        transform.localPosition = patrolPosition + recoilOffset;
+    }
+
+    private float ResolvePatrolLocalX()
+    {
+        if (leftWall == null)
+            return fallbackPatrolX;
+
+        Collider wallCollider = leftWall.GetComponent<Collider>();
+        float wallOutsideWorldX = wallCollider != null
+            ? wallCollider.bounds.min.x
+            : leftWall.position.x;
+        float patrolWorldX = wallOutsideWorldX -
+            Mathf.Max(0f, horizontalWallClearance);
+
+        if (transform.parent == null)
+            return patrolWorldX;
+
+        Vector3 worldPoint = transform.position;
+        worldPoint.x = patrolWorldX;
+        return transform.parent.InverseTransformPoint(worldPoint).x;
+    }
+
+    protected override void TryBeginChargedAction()
+    {
+        if (retryTimer > 0f)
             return;
-        }
 
-        if (!wasEquipped)
-        {
-            charged = false;
-            cooldownRemaining = cooldownDuration;
-        }
-    }
-
-    private void StartMissionCooldown()
-    {
-        AbortShot();
-        charged = false;
-        cooldownRemaining = cooldownDuration;
-        retryTimer = 0f;
-    }
-
-    private void StopMissionRuntime()
-    {
-        AbortShot();
-        charged = false;
-        cooldownRemaining = cooldownDuration;
-        retryTimer = 0f;
-    }
-
-    private void UpdateEllipseMotion()
-    {
-        patrolTime += Time.deltaTime;
-
-        float morphTime = patrolTime * Mathf.Max(0.01f, ellipseMorphSpeed);
-        float speedMultiplier = 1f +
-            Mathf.Sin(morphTime * 2.3f + 0.4f) * ellipseSpeedVariation;
-        ellipseAngle += ellipseSpeed * speedMultiplier * Time.deltaTime;
-
-        float radiusX = Mathf.Max(
-            0.1f,
-            ellipseRadii.x + ellipseRadiusVariation.x *
-            (0.7f * Mathf.Sin(morphTime) +
-             0.3f * Mathf.Sin(morphTime * 0.47f + 1.8f))
-        );
-        float radiusY = Mathf.Max(
-            0.1f,
-            ellipseRadii.y + ellipseRadiusVariation.y *
-            (0.65f * Mathf.Sin(morphTime * 0.73f + 1.1f) +
-             0.35f * Mathf.Sin(morphTime * 0.31f + 2.6f))
-        );
-
-        float centerX = ellipseCenter.x + ellipseCenterDrift.x *
-            Mathf.Sin(morphTime * 0.41f + 0.7f);
-        float wantedCenterY = ellipseCenter.y + ellipseCenterDrift.y *
-            Mathf.Sin(morphTime * 0.37f + 2.1f);
-        float centerY = Mathf.Max(wantedCenterY, patrolMinY + radiusY);
-
-        transform.localPosition = new Vector3(
-            centerX + Mathf.Cos(ellipseAngle) * radiusX,
-            centerY + Mathf.Sin(ellipseAngle) * radiusY,
-            ellipseCenter.z
-        );
-    }
-
-    private void TryFireAtNearestBlackBall()
-    {
         if (ballSpawner == null)
             return;
 
         if (!ballSpawner.TryGetNearestActiveDangerBall(
                 BlackBallId,
                 transform.position,
+                maximumTargetY,
                 out BallState target))
         {
             return;
@@ -258,6 +202,7 @@ public sealed class K1AntiBlackDroneController : MonoBehaviour
         }
 
         lockOnCoroutine = null;
+        BeginDischargeFlash();
         shotCoroutine = StartCoroutine(
             FireLaserRoutine(
                 target,
@@ -337,9 +282,18 @@ public sealed class K1AntiBlackDroneController : MonoBehaviour
         BallState target,
         float travelSec)
     {
+        yield return AnimateDischargeFlash();
+
+        if (!IsCommittedTargetActive(target))
+        {
+            CompleteCommittedNeutralization();
+            yield break;
+        }
+
         Vector3 origin = transform.position;
         float elapsed = 0f;
 
+        StartRecoil(target.transform.position - origin);
         laserRenderer.enabled = true;
 
         while (elapsed < travelSec)
@@ -352,11 +306,16 @@ public sealed class K1AntiBlackDroneController : MonoBehaviour
 
             elapsed += Time.deltaTime;
             float progress = Mathf.Clamp01(elapsed / travelSec);
+            Vector3 currentOrigin = transform.position;
             Vector3 destination = target.transform.position;
-            destination.z = origin.z;
-            Vector3 head = Vector3.Lerp(origin, destination, progress);
+            destination.z = currentOrigin.z;
+            Vector3 head = Vector3.Lerp(
+                currentOrigin,
+                destination,
+                progress
+            );
 
-            DrawLaser(origin, head);
+            DrawLaser(currentOrigin, head);
             yield return null;
         }
 
@@ -379,8 +338,14 @@ public sealed class K1AntiBlackDroneController : MonoBehaviour
         }
 
         committedTarget = target;
-        charged = false;
-        cooldownRemaining = cooldownDuration;
+
+        if (!TryConsumeDroneCharge())
+        {
+            committedTarget = null;
+            target.collected = false;
+            return false;
+        }
+
         retryTimer = 0f;
         return true;
     }
@@ -397,6 +362,7 @@ public sealed class K1AntiBlackDroneController : MonoBehaviour
         BallState target = committedTarget;
         committedTarget = null;
         shotCoroutine = null;
+        EndDischargeFlash();
 
         if (laserRenderer != null)
             laserRenderer.enabled = false;
@@ -414,7 +380,7 @@ public sealed class K1AntiBlackDroneController : MonoBehaviour
         if (!recycled)
             return;
 
-        PlayImpactParticles(particlePosition);
+        target.PlayDestructionEffect(particlePosition);
     }
 
     private bool IsTargetStillValid(BallState target)
@@ -422,6 +388,8 @@ public sealed class K1AntiBlackDroneController : MonoBehaviour
         return target != null &&
                target.gameObject.activeInHierarchy &&
                !target.collected &&
+               !target.IsTemporarilyExcludedFromGameplay &&
+               target.transform.position.y <= maximumTargetY &&
                target.IsVisualDanger &&
                !IsReservedByFamilyA(target) &&
                string.Equals(
@@ -472,6 +440,8 @@ public sealed class K1AntiBlackDroneController : MonoBehaviour
             shotCoroutine = null;
         }
 
+        EndDischargeFlash();
+
         // Un laser deja visible est une promesse de destruction. Une fermeture
         // du gameplay ou une desactivation du module la resout immediatement.
         if (committedTarget != null)
@@ -484,187 +454,350 @@ public sealed class K1AntiBlackDroneController : MonoBehaviour
             laserRenderer.enabled = false;
     }
 
-    private void CreateVisuals()
+    protected override void OnDroneVisualsCreated()
     {
-        visualRoot = new GameObject("K1 Visual");
-        visualRoot.transform.SetParent(transform, false);
-        visualRoot.transform.localScale = Vector3.one * droneScale;
+        CreateChargePresentation();
 
         int gameplayLayer = LayerMask.NameToLayer("Gameplay");
-        if (gameplayLayer >= 0)
-            visualRoot.layer = gameplayLayer;
-
-        SpriteRenderer droneRenderer =
-            visualRoot.AddComponent<SpriteRenderer>();
-        droneRenderer.sprite = droneSprite;
-        droneRenderer.sortingOrder = 30;
-
-        GameObject cooldownCanvasObject = new GameObject(
-            "K1 Cooldown Canvas",
-            typeof(RectTransform),
-            typeof(Canvas)
-        );
-        cooldownCanvasObject.transform.SetParent(visualRoot.transform, false);
-
-        if (gameplayLayer >= 0)
-            cooldownCanvasObject.layer = gameplayLayer;
-
-        RectTransform cooldownCanvasRect =
-            cooldownCanvasObject.GetComponent<RectTransform>();
-        Vector2 droneSize = droneSprite != null
-            ? droneSprite.bounds.size
-            : Vector2.one;
-        cooldownCanvasRect.sizeDelta =
-            droneSize * Mathf.Max(1f, cooldownVisualScale);
-
-        Canvas cooldownCanvas = cooldownCanvasObject.GetComponent<Canvas>();
-        cooldownCanvas.renderMode = RenderMode.WorldSpace;
-        cooldownCanvas.overrideSorting = true;
-        cooldownCanvas.sortingOrder = 31;
-
-        GameObject cooldownBackgroundObject = new GameObject(
-            "K1 Cooldown Background",
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(Image)
-        );
-        cooldownBackgroundObject.transform.SetParent(
-            cooldownCanvasObject.transform,
-            false
-        );
-
-        if (gameplayLayer >= 0)
-            cooldownBackgroundObject.layer = gameplayLayer;
-
-        RectTransform cooldownBackgroundRect =
-            cooldownBackgroundObject.GetComponent<RectTransform>();
-        StretchToParent(cooldownBackgroundRect);
-
-        Image cooldownBackgroundImage =
-            cooldownBackgroundObject.GetComponent<Image>();
-        cooldownBackgroundImage.sprite = cooldownSprite;
-        cooldownBackgroundImage.type = Image.Type.Simple;
-        cooldownBackgroundImage.preserveAspect = true;
-        cooldownBackgroundImage.raycastTarget = false;
-        cooldownBackgroundImage.color = new Color(1f, 1f, 1f, 0.18f);
-
-        GameObject cooldownObject = new GameObject(
-            "K1 Cooldown Fill",
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(Image)
-        );
-        cooldownObject.transform.SetParent(cooldownCanvasObject.transform, false);
-
-        if (gameplayLayer >= 0)
-            cooldownObject.layer = gameplayLayer;
-
-        RectTransform cooldownRect =
-            cooldownObject.GetComponent<RectTransform>();
-        StretchToParent(cooldownRect);
-
-        cooldownImage = cooldownObject.GetComponent<Image>();
-        cooldownImage.sprite = cooldownSprite;
-        cooldownImage.type = Image.Type.Filled;
-        cooldownImage.fillMethod = Image.FillMethod.Radial360;
-        cooldownImage.fillOrigin = (int)Image.Origin360.Top;
-        cooldownImage.fillClockwise = true;
-        cooldownImage.fillAmount = 0f;
-        cooldownImage.preserveAspect = true;
-        cooldownImage.raycastTarget = false;
-
         GameObject laserObject = new GameObject("K1 Laser");
         laserObject.transform.SetParent(transform, true);
 
         if (gameplayLayer >= 0)
             laserObject.layer = gameplayLayer;
 
-        laserRenderer = laserObject.AddComponent<SpriteRenderer>();
-        runtimeLaserSprite = CreateLaserSprite();
-        laserRenderer.sprite = runtimeLaserSprite;
-        laserRenderer.color = Color.red;
+        laserRenderer = laserObject.AddComponent<LineRenderer>();
+        laserRenderer.useWorldSpace = true;
+        laserRenderer.positionCount = 2;
+        laserRenderer.alignment = LineAlignment.View;
+        laserRenderer.textureMode = LineTextureMode.Stretch;
+        laserRenderer.numCapVertices = 0;
+        laserRenderer.numCornerVertices = 0;
+        laserRenderer.startColor = Color.red;
+        laserRenderer.endColor = Color.red;
         laserRenderer.sortingOrder = 29;
+
+        Shader laserShader = Shader.Find("Sprites/Default");
+        if (laserShader != null)
+        {
+            runtimeLaserMaterial = new Material(laserShader)
+            {
+                name = "K1 Laser Runtime"
+            };
+            laserRenderer.material = runtimeLaserMaterial;
+        }
+
         laserRenderer.enabled = false;
     }
 
-    private static void StretchToParent(RectTransform rect)
+    protected override void OnDroneChargePresentationUpdated(
+        float normalizedProgress,
+        bool isCharged)
     {
+        if (dischargeFlashActive)
+        {
+            ShowChargedPresentationForDischarge();
+            return;
+        }
+
+        if (k1CooldownImage != null)
+        {
+            k1CooldownImage.enabled = true;
+            k1CooldownImage.fillAmount =
+                Mathf.Clamp01(normalizedProgress);
+        }
+
+        if (k1UnchargedImage != null)
+            k1UnchargedImage.enabled = !isCharged;
+
+        if (k1ChargedImage != null)
+            k1ChargedImage.enabled = isCharged;
+    }
+
+    private void BeginDischargeFlash()
+    {
+        dischargeFlashActive = true;
+
+        if (k1ChargedImage != null && dischargeFlashMaterial != null)
+            k1ChargedImage.material = dischargeFlashMaterial;
+
+        ShowChargedPresentationForDischarge();
+    }
+
+    private IEnumerator AnimateDischargeFlash()
+    {
+        float duration = Mathf.Max(0f, dischargeFlashDuration);
+        if (duration <= 0f)
+        {
+            EndDischargeFlash();
+            yield break;
+        }
+
+        float elapsed = 0f;
+        while (elapsed < duration && dischargeFlashActive)
+        {
+            elapsed += Time.deltaTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+            float pulse = Mathf.Sin(progress * Mathf.PI);
+
+            if (k1ChargedImage != null)
+            {
+                k1ChargedImage.rectTransform.localScale =
+                    Vector3.one * Mathf.Lerp(
+                        1f,
+                        Mathf.Max(1f, dischargeFlashScale),
+                        pulse
+                    );
+
+                Color color = Color.white;
+                color.a = Mathf.Lerp(
+                    1f,
+                    Mathf.Clamp01(dischargeFlashMinAlpha),
+                    pulse
+                );
+                k1ChargedImage.color = color;
+            }
+
+            yield return null;
+        }
+
+        EndDischargeFlash();
+    }
+
+    private void ShowChargedPresentationForDischarge()
+    {
+        if (k1CooldownImage != null)
+        {
+            k1CooldownImage.enabled = true;
+            k1CooldownImage.fillAmount = 0f;
+        }
+
+        if (k1UnchargedImage != null)
+            k1UnchargedImage.enabled = true;
+
+        if (k1ChargedImage != null)
+            k1ChargedImage.enabled = true;
+    }
+
+    private void EndDischargeFlash()
+    {
+        dischargeFlashActive = false;
+
+        if (k1ChargedImage != null)
+        {
+            k1ChargedImage.rectTransform.localScale = Vector3.one;
+            k1ChargedImage.color = Color.white;
+            k1ChargedImage.material = null;
+        }
+
+        // La charge a deja ete consommee au point de non-retour du tir.
+        OnDroneChargePresentationUpdated(0f, false);
+    }
+
+    private void StartRecoil(Vector3 shotDirectionWorld)
+    {
+        shotDirectionWorld.z = 0f;
+        if (shotDirectionWorld.sqrMagnitude <= 0.0001f)
+            return;
+
+        if (recoilCoroutine != null)
+        {
+            StopCoroutine(recoilCoroutine);
+            recoilCoroutine = null;
+        }
+
+        Vector3 oppositeWorldDirection =
+            -shotDirectionWorld.normalized;
+        Vector3 oppositeLocalDirection = transform.parent != null
+            ? transform.parent.InverseTransformDirection(
+                oppositeWorldDirection
+            )
+            : oppositeWorldDirection;
+        oppositeLocalDirection.z = 0f;
+
+        if (oppositeLocalDirection.sqrMagnitude <= 0.0001f)
+            return;
+
+        Vector3 targetOffset = oppositeLocalDirection.normalized *
+            Mathf.Max(0f, recoilDistance);
+
+        float duration = Mathf.Max(0f, recoilDuration);
+        if (duration <= 0f)
+        {
+            recoilOffset = Vector3.zero;
+            return;
+        }
+
+        recoilCoroutine = StartCoroutine(
+            AnimateRecoil(targetOffset, duration)
+        );
+    }
+
+    private IEnumerator AnimateRecoil(
+        Vector3 targetOffset,
+        float duration)
+    {
+        Vector3 startOffset = recoilOffset;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+            float easedProgress = 1f - Mathf.Pow(1f - progress, 3f);
+            recoilOffset = Vector3.LerpUnclamped(
+                startOffset,
+                targetOffset,
+                easedProgress
+            );
+            yield return null;
+        }
+
+        recoilOffset = targetOffset;
+
+        elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+            float easedProgress = progress * progress * (3f - 2f * progress);
+            recoilOffset = Vector3.LerpUnclamped(
+                targetOffset,
+                Vector3.zero,
+                easedProgress
+            );
+            yield return null;
+        }
+
+        recoilOffset = Vector3.zero;
+        recoilCoroutine = null;
+    }
+
+    private void StopRecoilAndReset()
+    {
+        if (recoilCoroutine != null)
+        {
+            StopCoroutine(recoilCoroutine);
+            recoilCoroutine = null;
+        }
+
+        recoilOffset = Vector3.zero;
+    }
+
+    private void CreateChargePresentation()
+    {
+        Transform visualRoot = DroneVisualRoot;
+        if (visualRoot == null)
+            return;
+
+        int gameplayLayer = LayerMask.NameToLayer("Gameplay");
+        GameObject canvasObject = new GameObject(
+            "K1 Charge Canvas",
+            typeof(RectTransform),
+            typeof(Canvas)
+        );
+        canvasObject.transform.SetParent(visualRoot, false);
+
+        if (gameplayLayer >= 0)
+            canvasObject.layer = gameplayLayer;
+
+        Sprite referenceSprite = k1UnchargedSprite != null
+            ? k1UnchargedSprite
+            : k1ChargedSprite != null
+                ? k1ChargedSprite
+                : k1CooldownSprite;
+
+        RectTransform canvasRect =
+            canvasObject.GetComponent<RectTransform>();
+        canvasRect.sizeDelta = referenceSprite != null
+            ? (Vector2)referenceSprite.bounds.size
+            : Vector2.one;
+
+        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = 31;
+
+        // L'ordre des enfants est volontaire : le remplissage cyan reste
+        // derriere le drone rouge, puis le sprite charge prend sa place.
+        k1CooldownImage = CreateChargeImage(
+            canvasObject.transform,
+            "K1Cooldown",
+            k1CooldownSprite,
+            gameplayLayer
+        );
+        k1CooldownImage.type = Image.Type.Filled;
+        k1CooldownImage.fillMethod = Image.FillMethod.Radial360;
+        k1CooldownImage.fillOrigin = (int)Image.Origin360.Top;
+        k1CooldownImage.fillClockwise = true;
+        k1CooldownImage.fillAmount = 0f;
+
+        k1UnchargedImage = CreateChargeImage(
+            canvasObject.transform,
+            "K1Uncharged",
+            k1UnchargedSprite,
+            gameplayLayer
+        );
+        k1UnchargedImage.enabled = true;
+
+        k1ChargedImage = CreateChargeImage(
+            canvasObject.transform,
+            "K1Charged",
+            k1ChargedSprite,
+            gameplayLayer
+        );
+        k1ChargedImage.enabled = false;
+
+        if (dischargeFlashShader != null)
+        {
+            dischargeFlashMaterial = new Material(dischargeFlashShader)
+            {
+                name = "K1 White Flash Runtime"
+            };
+        }
+    }
+
+    private static Image CreateChargeImage(
+        Transform parent,
+        string objectName,
+        Sprite sprite,
+        int gameplayLayer)
+    {
+        GameObject imageObject = new GameObject(
+            objectName,
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image)
+        );
+        imageObject.transform.SetParent(parent, false);
+
+        if (gameplayLayer >= 0)
+            imageObject.layer = gameplayLayer;
+
+        RectTransform rect = imageObject.GetComponent<RectTransform>();
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
         rect.localScale = Vector3.one;
-    }
 
-    private Sprite CreateLaserSprite()
-    {
-        Texture2D texture = Texture2D.whiteTexture;
-        return Sprite.Create(
-            texture,
-            new Rect(0f, 0f, texture.width, texture.height),
-            new Vector2(0.5f, 0.5f),
-            1f
-        );
+        Image image = imageObject.GetComponent<Image>();
+        image.sprite = sprite;
+        image.type = Image.Type.Simple;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+        image.color = Color.white;
+        return image;
     }
 
     private void DrawLaser(Vector3 start, Vector3 end)
     {
-        Vector3 delta = end - start;
-        float length = delta.magnitude;
-
-        laserRenderer.transform.position = (start + end) * 0.5f;
-        laserRenderer.transform.rotation = Quaternion.Euler(
-            0f,
-            0f,
-            Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg
-        );
-        laserRenderer.transform.localScale =
-            new Vector3(length, laserWidth, 1f);
-    }
-
-    private void UpdateCooldownVisual()
-    {
-        if (cooldownImage == null)
+        if (laserRenderer == null)
             return;
 
-        if (charged)
-        {
-            cooldownImage.fillAmount = 1f;
-            cooldownImage.color = new Color(1f, 1f, 1f, 0.9f);
-            return;
-        }
-
-        float progress = cooldownDuration > 0f
-            ? 1f - cooldownRemaining / cooldownDuration
-            : 0f;
-
-        cooldownImage.fillAmount = Mathf.Clamp01(progress);
-        cooldownImage.color = new Color(1f, 1f, 1f, 0.9f);
+        float width = Mathf.Max(0.001f, laserWidth);
+        laserRenderer.startWidth = width;
+        laserRenderer.endWidth = width;
+        laserRenderer.SetPosition(0, start);
+        laserRenderer.SetPosition(1, end);
     }
 
-    private void PlayImpactParticles(Vector3 position)
-    {
-        GameObject particleObject = new GameObject("K1 Impact FX");
-        particleObject.transform.position = position;
-
-        ParticleSystem particles = particleObject.AddComponent<ParticleSystem>();
-        ParticleSystem.MainModule main = particles.main;
-        main.duration = 0.35f;
-        main.loop = false;
-        main.startLifetime = 0.4f;
-        main.startSpeed = 2.4f;
-        main.startSize = 0.1f;
-        main.startColor = new Color(1f, 0.12f, 0.08f, 1f);
-        main.stopAction = ParticleSystemStopAction.Destroy;
-
-        ParticleSystem.EmissionModule emission = particles.emission;
-        emission.rateOverTime = 0f;
-
-        ParticleSystem.ShapeModule shape = particles.shape;
-        shape.shapeType = ParticleSystemShapeType.Sphere;
-        shape.radius = 0.08f;
-
-        particles.Emit(18);
-        particles.Play();
-    }
 }

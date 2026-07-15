@@ -1,8 +1,8 @@
 # Référence IA condensée des systèmes de 404
 
-> **Usage** : fiches autonomes pour raisonner sur les systèmes sans parcourir les 258 scripts de jeu.
+> **Usage** : fiches autonomes pour raisonner sur les systèmes sans parcourir les 266 scripts C# sous `Assets/Project/Scripts`.
 > **Statut** : synthèse statique de l’état observé, pas une spécification d’intention.  
-> **Dernière vérification** : 2026-07-14.  
+> **Dernière vérification** : 2026-07-15.  
 > **Compléments** : [contexte global](AI_CONTEXT_404.md) et [guide de travail](AI_WORKING_GUIDE_404.md).
 
 ## Comment lire une fiche
@@ -99,13 +99,13 @@ Chaque domaine indique rôle, état, fonctionnement/cycle, données, persistance
 
 ## 9. Modules, inventaire et équipement
 
-- **Rôle — état** : modifier briefing, durée, flush, coque, score, récompenses et neutralisation de noires par K1 ; **actif**, catalogue local **en cours**.
+- **Rôle — état** : modifier briefing, durée, flush, coque, score, récompenses et comportements de drones K0/K1/K2 ; **actif**, catalogue local et assets drone **en cours**.
 - **Fonctionnement — cycle** : catalogue → offre → achat/possession → équipement dans un slot → agrégation runtime → effets au point d’application.
-- **Données — persistance** : 27 définitions JSON, inventaire, IDs équipés, slots ouverts, charges/bonus pertinents dans le run.
-- **Classes/assets** : `ModuleCatalogService`, `RunModuleEquipmentService`, `ModuleRuntimeStats`, `K1AntiBlackDroneController`, services `RunModule*`, `ModuleCatalog.json`.
+- **Données — persistance** : 33 définitions JSON, inventaire, IDs équipés, slots ouverts, charges/bonus pertinents dans le run. Les états vivants de charge/capture des drones restent temporaires à la mission.
+- **Classes/assets** : `ModuleCatalogService`, `RunModuleEquipmentService`, `ModuleRuntimeStats`, `DroneRuntimeControllerBase`, `K1AntiBlackDroneController`, `K2DroneInterceptorController`, `DroneInterceptionZone`, `BallState`, services `RunModule*`, `ModuleCatalog.json`.
 - **Entrantes → sortantes** : boutique et vaisseau → équipement ; équipement → briefing, timer, flush, coque, score, fin de niveau.
 - **Surface publique** : résolution par ID, équiper/déséquiper, lecture des statistiques agrégées et événements de changement.
-- **Cas limites/validation** : compatibilité slot/possession, ordre des transformations et données locales modifiées doivent être vérifiés avant changement. Pour K1 : A réservé est intouchable, laser visible signifie neutralisation garantie, et le verrou `collected` arbitre avec les snapshots.
+- **Cas limites/validation** : compatibilité slot/possession, ordre des transformations et données locales modifiées doivent être vérifiés avant changement. K0 doit rester générique. Pour K1 : A réservé est intouchable, laser visible signifie neutralisation garantie, et `collected` arbitre avec les snapshots. Pour K2 : réservation temporaire atomique, exclusion du Void/bacs/autres drones, restauration obligatoire en cas d’interruption et réentrée libre sous le plafond.
 - **Canonique** : [`economie-boutique-et-modules.md`](../01-systemes/economie-boutique-et-modules.md).
 
 ## 10. Boutique, reroll et réparation

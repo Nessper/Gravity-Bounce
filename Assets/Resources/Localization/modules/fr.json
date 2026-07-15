@@ -135,20 +135,52 @@
       "text": "Gagnez des crédits bonus selon la médaille. Bronze +4 / Argent +7 / Or +10."
     },
     {
+      "key": "module.k0.name",
+      "text": "Contrôle des drones K0"
+    },
+    {
+      "key": "module.k0.t1.description",
+      "text": "Tous les drones commencent la mission déjà chargés."
+    },
+    {
+      "key": "module.k0.t2.description",
+      "text": "Tous les drones commencent chargés et leur cooldown est réduit de 10 %."
+    },
+    {
+      "key": "module.k0.t3.description",
+      "text": "Tous les drones commencent chargés et leur cooldown est réduit de 20 %."
+    },
+    {
       "key": "module.k1.name",
       "text": "Drone anti-noire K1"
     },
     {
       "key": "module.k1.t1.description",
-      "text": "Après 30 s de recharge, neutralise au laser la bille noire hors bac la plus proche."
+      "text": "Après 30 s de recharge, neutralise au laser la bille la plus proche."
     },
     {
       "key": "module.k1.t2.description",
-      "text": "Après 23 s de recharge, neutralise au laser la bille noire hors bac la plus proche."
+      "text": "Après 23 s de recharge, neutralise au laser la bille noire la plus proche."
     },
     {
       "key": "module.k1.t3.description",
-      "text": "Après 18 s de recharge, neutralise au laser la bille noire hors bac la plus proche."
+      "text": "Après 18 s de recharge, neutralise au laser la bille noire la plus proche."
+    },
+    {
+      "key": "module.k2.name",
+      "text": "Drone Interceptor K2"
+    },
+    {
+      "key": "module.k2.t1.description",
+      "text": "Après 30 s de recharge, sauve une bille blanche avant sa chute dans le Void."
+    },
+    {
+      "key": "module.k2.t2.description",
+      "text": "Après 25 s de recharge, sauve une bille blanche ou bleue avant sa chute dans le Void."
+    },
+    {
+      "key": "module.k2.t3.description",
+      "text": "Après 22 s de recharge, sauve une bille blanche, bleue ou rouge avant sa chute dans le Void."
     }
   ]
 }

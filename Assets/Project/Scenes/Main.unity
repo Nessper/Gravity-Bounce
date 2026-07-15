@@ -17080,7 +17080,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   sessionValueForMaxScale: 1800
   sessionMinScale: 1
-  sessionMaxScale: 2
+  sessionMaxScale: 1.8
   sessionColorGradient:
     serializedVersion: 2
     key0: {r: 0.45, g: 0.9, b: 1, a: 1}
@@ -17111,12 +17111,12 @@ MonoBehaviour:
     m_ColorSpace: -1
     m_NumColorKeys: 7
     m_NumAlphaKeys: 2
-  sessionValueForMaxColor: 1800
+  sessionValueForMaxColor: 2000
   negativeSessionColor: {r: 0.78994083, g: 0.1009256, b: 0.7924528, a: 1}
   sessionRiseDuration: 0.45
   sessionFloatDuration: 0.25
   sessionFadeDuration: 0.35
-  sessionRiseDistance: 50
+  sessionRiseDistance: 30
 --- !u!1 &613850161
 GameObject:
   m_ObjectHideFlags: 0
@@ -25440,7 +25440,7 @@ Transform:
   m_GameObject: {fileID: 756336879}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -0.2}
+  m_LocalPosition: {x: 0, y: 3, z: -0.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -41258,6 +41258,9 @@ MonoBehaviour:
   ySpawn: 6.3
   zSpawn: -0.2
   intervalDefault: 1
+  droneReentryInsetBelowCeiling: 1
+  droneReentryClearRadius: 0.2
+  droneReentryPositionAttempts: 8
   logTutorialSpawn: 0
   tutorialReleasePhysicsNextFrame: 1
 --- !u!1001 &1347960825
@@ -46065,6 +46068,7 @@ Transform:
   - {fileID: 756336880}
   - {fileID: 2142159873}
   - {fileID: 627939177}
+  - {fileID: 2200000202}
   - {fileID: 1811206634}
   - {fileID: 1330354627}
   - {fileID: 1646786765}
@@ -50509,6 +50513,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2100000102}
+  - {fileID: 2200000102}
   m_Father: {fileID: 1529241366}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1743994498
@@ -54582,11 +54587,11 @@ RectTransform:
   - {fileID: 343408491}
   - {fileID: 876886473}
   - {fileID: 1934073753}
+  - {fileID: 165613608}
   - {fileID: 808726435}
   - {fileID: 1451150151}
   - {fileID: 687143963}
   - {fileID: 1765144074}
-  - {fileID: 165613608}
   m_Father: {fileID: 1773629873}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -57560,26 +57565,34 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::K1AntiBlackDroneController
   runStateController: {fileID: 4523183}
+  droneSprite: {fileID: 0}
+  cooldownSprite: {fileID: 0}
+  droneScale: 0.06
+  cooldownVisualScale: 1.6
   ballSpawner: {fileID: 1342328577}
   leftBin: {fileID: 2142159875}
   rightBin: {fileID: 627939179}
-  droneSprite: {fileID: 21300000, guid: f08369255eb194f41bbee8ad6a8587d0, type: 3}
-  cooldownSprite: {fileID: 21300000, guid: 6e1d2c242e737da4b89cad8da691080f, type: 3}
-  ellipseCenter: {x: 0, y: 0, z: 0}
-  ellipseRadii: {x: 2.45, y: 3}
-  ellipseSpeed: 0.42
-  ellipseRadiusVariation: {x: 0.45, y: 0.35}
-  ellipseCenterDrift: {x: 0.35, y: 0.2}
-  ellipseMorphSpeed: 0.18
-  ellipseSpeedVariation: 0.18
-  patrolMinY: -3
-  droneScale: 0.105
-  cooldownVisualScale: 1.6
+  k1UnchargedSprite: {fileID: 21300000, guid: a9d840c6475337444903877b4d3e5ece, type: 3}
+  k1ChargedSprite: {fileID: 21300000, guid: c10747e5b2ab49c458b416a87d176f17, type: 3}
+  k1CooldownSprite: {fileID: 21300000, guid: f8af37b50a9f53440b7fa8460819bedd, type: 3}
+  leftWall: {fileID: 1987701688}
+  horizontalWallClearance: 0.4
+  fallbackPatrolX: -2.75
+  verticalPatrolMinY: -3
+  verticalPatrolMaxY: 3
+  verticalPatrolCycleSec: 8
   lockOnDelaySec: 0.15
-  laserSpeed: 18
-  laserWidth: 0.055
+  maximumTargetY: 4
+  laserSpeed: 22
+  laserWidth: 0.016
   maximumLaserTravelSec: 0.75
   retryDelaySec: 0.15
+  dischargeFlashShader: {fileID: 4800000, guid: c6e417046baf49dd9fe1621ea4e31993, type: 3}
+  dischargeFlashDuration: 0.12
+  dischargeFlashScale: 1.14
+  dischargeFlashMinAlpha: 0.4
+  recoilDistance: 0.4
+  recoilDuration: 0.2
 --- !u!1 &2138110289
 GameObject:
   m_ObjectHideFlags: 0
@@ -58000,6 +58013,143 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2146900259}
   m_CullTransparentMesh: 1
+--- !u!1 &2200000101
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2200000102}
+  - component: {fileID: 2200000103}
+  m_Layer: 16
+  m_Name: K2 Drone Interceptor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2200000102
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000101}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -4.35, z: -4}
+  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
+  m_ConstrainProportionsScale: 1
+  m_Children: []
+  m_Father: {fileID: 1740700063}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2200000103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b00c5822dd44013aa70918238418c4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::K2DroneInterceptorController
+  runStateController: {fileID: 4523183}
+  droneSprite: {fileID: 21300000, guid: f08369255eb194f41bbee8ad6a8587d0, type: 3}
+  cooldownSprite: {fileID: 21300000, guid: 6e1d2c242e737da4b89cad8da691080f, type: 3}
+  droneScale: 0.105
+  cooldownVisualScale: 1.6
+  interceptionZone: {fileID: 2200000204}
+  paddle: {fileID: 1330354634}
+  ballSpawner: {fileID: 1342328577}
+  k2UnchargedSprite: {fileID: 21300000, guid: 1f6faeb4959181847abe685320b9574a, type: 3}
+  k2ChargedSprite: {fileID: 21300000, guid: df194b010ca9fe840b468f11ab5856de, type: 3}
+  k2CooldownSprite: {fileID: 21300000, guid: 5710d82e2a5fc514d8916081ae185b93, type: 3}
+  patrolY: -4.35
+  fallbackPatrolRange: 2.2
+  patrolExtraRange: 0.4
+  patrolSpeed: 1.6
+  patrolVerticalReturnSpeed: 4
+  interceptionSpeed: 12
+  droneOffsetAboveBall: 0.3
+  captureSnapDuration: 0.1
+  holdDuration: 0.12
+  teleportFlashLeadDuration: 0.1
+  teleportFlashDuration: 0.22
+  reentryRevealDelay: 0.12
+  reentryFlashDuration: 0.42
+  teleportFlashScale: 0.7
+  teleportFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  teleportFlashShader: {fileID: 4800000, guid: 3f264fb2d2644e2293ec53948373ee3a, type: 3}
+--- !u!1 &2200000201
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2200000202}
+  - component: {fileID: 2200000203}
+  - component: {fileID: 2200000204}
+  m_Layer: 16
+  m_Name: Drone Interception Zone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2200000202
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000201}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -4.72, z: -0.2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1529241366}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2200000203
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000201}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 5.4, y: 0.08, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2200000204
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c82c7d1ad6043cf9a5c780ba97482c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneInterceptionZone
 --- !u!1001 &3443745720828464453
 PrefabInstance:
   m_ObjectHideFlags: 0

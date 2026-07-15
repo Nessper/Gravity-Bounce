@@ -2,7 +2,7 @@
 
 > **Usage** : méthode à suivre par un agent IA avant, pendant et après une future modification du projet.  
 > **Statut** : guide opératoire fondé sur l’architecture observée ; il ne donne aucune autorisation de modifier le projet.  
-> **Dernière vérification** : 2026-07-14.  
+> **Dernière vérification** : 2026-07-15.  
 > **Contexte associé** : [AI_CONTEXT_404.md](AI_CONTEXT_404.md) et [AI_SYSTEMS_REFERENCE_404.md](AI_SYSTEMS_REFERENCE_404.md).
 
 ## 1. Ordre de lecture recommandé
@@ -194,7 +194,7 @@ Lire :
 - [`donnees-schemas-et-sources-de-verite.md`](../02-donnees-et-unity/donnees-schemas-et-sources-de-verite.md)
 - [`equilibrage-et-configuration-active.md`](../02-donnees-et-unity/equilibrage-et-configuration-active.md)
 
-Vérifier : `ModuleCatalog.json`, localisation modules, services `RunModule*`, équipement/slots, boutique, points d’application et sauvegarde. Pour K1, vérifier aussi `K1AntiBlackDroneController`, les deux `BinTrigger`, la priorité de la famille A et l’arbitrage `collected` avec les snapshots.
+Vérifier : `ModuleCatalog.json`, localisation modules, services `RunModule*`, équipement/slots, boutique, points d’application et sauvegarde. Pour les drones, inspecter d’abord `DroneRuntimeControllerBase` et `ModuleRuntimeStats` : K0 doit rester transversal et ne connaître aucune classe concrète. Pour K1, vérifier `K1AntiBlackDroneController`, les deux `BinTrigger`, la priorité de la famille A et l’arbitrage `collected` avec les snapshots. Pour K2, vérifier `K2DroneInterceptorController`, `DroneInterceptionZone`, l’exclusion propriétaire dans `BallState`, les gardes de `BinTrigger`/`VoidTrigger`, la position de réentrée du `BallSpawner` et la libération forcée du nettoyage final.
 
 ### Score, progression ou combos
 

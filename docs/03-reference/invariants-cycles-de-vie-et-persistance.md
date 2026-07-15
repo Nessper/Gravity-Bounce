@@ -2,7 +2,7 @@
 
 > **Périmètre** : règles structurelles à préserver mentalement pour comprendre le runtime actuel.  
 > **Statut** : invariants déduits de garde-fous explicites ; exceptions incertaines référencées.  
-> **Date de vérification** : 2026-07-14.  
+> **Date de vérification** : 2026-07-15.  
 > **Principaux appuis** : services Boot, `RunSessionState`, `SaveManager`, contrôleurs de niveau/fin, systèmes de bac et modules.
 
 ## Cycle global
@@ -30,6 +30,10 @@
 - `BallState.collected` est un verrou de propriété terminal partagé : un snapshot ou K1 peut l’acquérir, mais une bille déjà verrouillée ne peut pas être reprise par l’autre système.
 - Avant le laser visible, K1 reste annulable ; dès que le laser est affiché, la noire est retirée de son éventuel bac, le cooldown est consommé et la neutralisation doit aboutir, même lors de la fermeture du gameplay.
 - Une noire réservée par la famille A ne doit jamais être réservée par K1.
+- K0 modifie tous les drones uniquement par le contrat de `DroneRuntimeControllerBase` : départ chargé et multiplicateur de cooldown ; il ne crée pas de drone et ne connaît aucune classe concrète.
+- Une bille réservée par K2 est temporairement exclue des bacs, du Void, de K1 et des autres drones ; son collider et sa simulation sont restaurés lors de la libération ou de l’annulation.
+- K2 ne peut réserver ni une bille déjà collectée, ni une bille dans un bac, ni une bille de tutoriel, ni une bille déjà possédée par un autre système de drone.
+- Une interruption de K2 ne doit jamais laisser une bille invisible, cinématique ou sans collider. Le nettoyage final force la libération des exclusions de drone résiduelles avant de reprendre ses règles normales.
 - Le nettoyage final précède l’évaluation complète et le snapshot de fin.
 
 ## Transaction de fin

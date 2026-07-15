@@ -128,7 +128,9 @@ public class BinTrigger : MonoBehaviour
 
         BallState state = other.GetComponent<BallState>();
 
-        if (state == null || state.collected)
+        if (state == null ||
+            state.collected ||
+            state.IsTemporarilyExcludedFromGameplay)
             return;
 
         if (!present.Add(state))

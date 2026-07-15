@@ -33,6 +33,12 @@ public class FinalBallCleanupService : MonoBehaviour
             if (go == null || !go.activeInHierarchy)
                 continue;
 
+            // Aucun systeme de drone ne doit pouvoir laisser une bille hors
+            // gameplay au moment du sweep final. On la restaure d'abord,
+            // puis les regles normales de fin decident de son sort.
+            if (st.IsTemporarilyExcludedFromGameplay)
+                st.ForceReleaseDroneExclusion();
+
             // Deja collectee: recycle "collected"
             if (st.collected)
             {

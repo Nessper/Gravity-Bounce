@@ -1,8 +1,8 @@
 # Index des classes, dépendances et événements
 
 > **Périmètre** : points d’entrée C# et relations utiles pour retrouver rapidement une responsabilité.  
-> **Statut** : index sélectif et maintenable, non inventaire ligne à ligne des 258 scripts de jeu.
-> **Date de vérification** : 2026-07-14.  
+> **Statut** : index sélectif et maintenable, non inventaire ligne à ligne des 266 scripts C# sous `Assets/Project/Scripts`.
+> **Date de vérification** : 2026-07-15.  
 > **Principaux appuis** : `Assets/Project/Scripts`, références sérialisées des scènes/prefabs.
 
 ## Bootstrap et navigation
@@ -31,7 +31,7 @@
 | `RunNavigator` | Navigation et avancée dans le plan construit. |
 | `RunHubController` | Routage du nœud courant dans le hub. |
 | `RunModuleEquipmentService` | Inventaire, équipement et slots. |
-| `ModuleRuntimeStats` | Agrégation des effets équipés. |
+| `ModuleRuntimeStats` | Agrégation des effets équipés, dont départ chargé et multiplicateur de cooldown transversal K0. |
 
 ## Niveau et résolution
 
@@ -48,6 +48,9 @@
 | `BinCollector` | Snapshot et pipeline de résolution d’un bac | flush, visuels, score, coque |
 | `BlackFilterRuntimeController` | Réservations réversibles de noires pour la famille A | aperçus de bac, snapshot |
 | `K1AntiBlackDroneController` | Ronde, cooldown, acquisition et neutralisation garantie des noires | `BallSpawner`, `BinTrigger`, verrou `collected` |
+| `DroneRuntimeControllerBase` | Socle commun d’équipement, charge, cooldown, K0 et frontières de mission | `ModuleRuntimeStats`, K1, K2 et futurs drones |
+| `DroneInterceptionZone` | Détection événementielle des billes descendantes après la dernière collecte | `K2DroneInterceptorController` |
+| `K2DroneInterceptorController` | Patrouille, interception, saisie et téléportation des couleurs autorisées par tier | `DroneInterceptionZone`, `BallState`, `BallSpawner`, paddle |
 | `FlushResolutionEngine` | Transformations et total d’un flush | score, coque, combos |
 | `ScoreManager` | Score, progression et historique | HUD, objectifs, fin |
 | `HullSystem` | Coque courante/maximale | HUD, game over |
