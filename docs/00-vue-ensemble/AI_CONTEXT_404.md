@@ -38,7 +38,7 @@ Unity n’a pas été lancé pour produire l’instantané documentaire. L’ord
 | État de run | Miroir runtime observable, plan et ressources | `RunSessionState`, `RunPlan`, `RunNavigator` |
 | Catalogues | Résoudre mondes, niveaux, vaisseaux et modules | services `*CatalogService`, JSON `Resources` |
 | Mission | Construire le contexte et orchestrer le niveau | `LevelBootstrapper`, `LevelManager` |
-| Résolution | Spawn, collecte, flush, score, combos, objectifs, coque | `BallSpawner`, `BinCollector`, `FlushResolutionEngine`, `ScoreManager` |
+| Résolution | Spawn, neutralisation K1, collecte, flush, score, combos, objectifs, coque | `BallSpawner`, `K1AntiBlackDroneController`, `BinCollector`, `FlushResolutionEngine`, `ScoreManager` |
 | Présentation | HUD, overlays, narration, audio et FX | `MainUIController`, `AudioManager`, scripts `UI`/`FX` |
 
 Le root de `Boot` est normalement requis par toutes les scènes suivantes. `MainStandaloneInstaller` et `MainDebugStarterV3` fournissent des chemins alternatifs pour exécuter `Main` seule ou avec un contexte debug.
@@ -103,7 +103,7 @@ Une valeur présente dans un asset ne devient pas automatiquement active : il fa
 | Vaisseaux | Actif, trois définitions dont un vaisseau debug caché. Divergence de slots sur Aether Runner. |
 | Coque/vies | Actif. Deux ressources séparées ; les noires affectent la coque, les échecs peuvent consommer une vie de contrat. |
 | Économie | Active, monnaie uniquement liée à la run. Achat, réparation et reroll. |
-| Modules | Actif, 24 modules, huit familles, inventaire et équipement persistés pendant la run. Catalogue local en cours de modification dans l’instantané Git. |
+| Modules | Actif, 27 modules, neuf familles, inventaire et équipement persistés pendant la run. Catalogue local en cours de modification dans l’instantané Git. |
 | Niveaux/spawn | Actif. W1-L1 à W1-L6 plus DBG-L1, phases, quotas, mélange, pooling et spawns forcés. |
 | Balles/physique | Actif. Blanches, bleues, rouges positives ; noires dangereuses. Physique 2D et rebond personnalisé. |
 | Bacs/flush | Actif. Seuil automatique de base 5, transformations de modules, score puis conséquences des noires. |
@@ -125,7 +125,7 @@ La référence condensée par domaine est [AI_SYSTEMS_REFERENCE_404.md](AI_SYSTE
 - `WorldCatalog` → `RunPlanBuilder` → `RunSessionState` détermine quel nœud le hub ou `Main` doit traiter.
 - `ShipCatalog` initialise coque, durée, argent et slots ; les modules équipés peuvent modifier certains paramètres.
 - JSON de niveau + run + modules → `LevelContext` → timer, spawner, objectifs, briefing et obstacles.
-- `BallSpawner` → physique → `BinCollector` → `BinSnapshot` → modules/`FlushResolutionEngine` → `ScoreManager`, `HullSystem`, combos et UI.
+- `BallSpawner` → physique/K1 → `BinTrigger` → `BinCollector` → `BinSnapshot` → modules/`FlushResolutionEngine` → `ScoreManager`, `HullSystem`, combos et UI. K1 et le snapshot utilisent `collected` comme verrou terminal exclusif.
 - Score/historique/objectifs → évaluateurs de fin → `EndLevelOutcome` → `EndLevelSnapshot` → cérémonie → commit du run.
 - `RunSessionState`, `ScoreManager`, `HullSystem`, timer et bacs alimentent le HUD via événements, UnityEvents, appels directs et binders.
 

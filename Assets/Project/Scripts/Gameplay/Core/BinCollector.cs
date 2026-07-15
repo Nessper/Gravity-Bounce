@@ -179,6 +179,16 @@ public class BinCollector : MonoBehaviour
             int blackCount;
             BinSnapshot snapshot = BuildSnapshot(lot, side, out blackCount);
 
+            // Le snapshot possede desormais definitivement ce lot.
+            // Les billes restent visibles jusqu'aux FX, mais ne sont plus
+            // eligibles pour un autre systeme de gameplay (drone, void, etc.).
+            for (int i = 0; i < lot.Count; i++)
+            {
+                BallState st = lot[i];
+                if (st != null)
+                    st.collected = true;
+            }
+
             if (spawner != null)
                 snapshot.phaseIndex1Based = spawner.CurrentPhaseIndex + 1;
 

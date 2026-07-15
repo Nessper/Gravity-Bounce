@@ -157,8 +157,21 @@ public class BinTrigger : MonoBehaviour
         if (state == null)
             return;
 
+        RemovePresentBall(state);
+    }
+
+    public bool TryRemoveForNeutralization(BallState state)
+    {
+        return RemovePresentBall(state);
+    }
+
+    private bool RemovePresentBall(BallState state)
+    {
+        if (state == null)
+            return false;
+
         if (!present.Remove(state))
-            return;
+            return false;
 
         presentOrdered.Remove(state);
 
@@ -175,6 +188,8 @@ public class BinTrigger : MonoBehaviour
 
         RefreshModuleVisualPreviews();
         OnContentChanged?.Invoke();
+
+        return true;
     }
 
     private void RefreshModuleVisualPreviews()

@@ -194,7 +194,7 @@ Lire :
 - [`donnees-schemas-et-sources-de-verite.md`](../02-donnees-et-unity/donnees-schemas-et-sources-de-verite.md)
 - [`equilibrage-et-configuration-active.md`](../02-donnees-et-unity/equilibrage-et-configuration-active.md)
 
-Vérifier : `ModuleCatalog.json`, localisation modules, services `RunModule*`, équipement/slots, boutique, points d’application et sauvegarde.
+Vérifier : `ModuleCatalog.json`, localisation modules, services `RunModule*`, équipement/slots, boutique, points d’application et sauvegarde. Pour K1, vérifier aussi `K1AntiBlackDroneController`, les deux `BinTrigger`, la priorité de la famille A et l’arbitrage `collected` avec les snapshots.
 
 ### Score, progression ou combos
 

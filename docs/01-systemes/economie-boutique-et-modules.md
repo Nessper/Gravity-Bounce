@@ -39,9 +39,19 @@ Le catalogue comporte 27 modules répartis sur neuf familles :
 | B | Conversion de blanches vers bleues ou rouges. |
 | E | Modification de durée de niveau. |
 | F | Gain d’argent lié aux médailles de fin. |
-| K1 | Drone anti-noire : recharge en 30/23/18 s selon le tier, vise la noire hors bac la plus proche et la neutralise au laser si le tir l’atteint avant qu’elle ne devienne invalide. |
+| K1 | Drone anti-noire : recharge en 30/23/18 s selon le tier, priorise les noires dangereuses présentes dans les bacs puis la noire dangereuse la plus proche sur le plateau, et les neutralise sans score ni perte. |
 
 L’ordre fonctionnel des transformations de bac est décrit dans [Paddle, bacs et flush](paddle-bacs-et-flush.md). Les bonus de fin sont décrits dans [Fin de niveau](fin-de-niveau-recompenses-et-reprise.md).
+
+## K1 : drone anti-noire
+
+`K1AntiBlackDroneController` vit dans le monde sous `WorldRoot/BoardRoot/DronesRoot`. Il effectue une ronde elliptique dont le centre, les rayons et la vitesse dérivent progressivement ; sa limite basse active est `Y = -3`. Son cooldown radial reste visuellement plein tant qu’aucune cible admissible n’est disponible.
+
+Après acquisition, K1 attend silencieusement `0,15 s`, revalide la cible puis tente une réservation terminale juste avant le premier affichage du laser. Une noire réservée et affichée blanche par la famille A n’est jamais admissible. Une bille déjà verrouillée par un snapshot (`collected`) ne l’est pas davantage.
+
+Le départ visible du laser est le point de non-retour : K1 marque la bille comme possédée, la retire immédiatement de son bac logique si nécessaire, notifie le changement de contenu et consomme son cooldown. Le laser suit ensuite la position courante de la bille malgré les rebonds et la neutralisation est garantie. Un arrêt du gameplay pendant le trajet finalise immédiatement cette neutralisation. Le recyclage utilise `BallRecycleReason.Neutralized`, qui ne compte ni collecte, ni perte, ni dégât.
+
+L’arbitrage avec les flushs est documenté dans [Paddle, bacs et flush](paddle-bacs-et-flush.md).
 
 ## État et limites
 

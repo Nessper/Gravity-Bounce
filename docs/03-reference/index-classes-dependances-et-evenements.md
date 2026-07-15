@@ -44,7 +44,10 @@
 | `LevelIntroSequenceController` | Briefing/intro/dialogue/countdown | UI, audio, plateau |
 | `BallSpawner` | Phases, quotas et pooling | balles runtime |
 | `PlayerController` | Mouvement et rebond du paddle | physique/feedbacks |
-| `BinCollector` | Contenu de bac et snapshot | flush, visuels |
+| `BinTrigger` | Contenu vivant, ordre d’entrée et retrait notifié d’une bille | `BinCollector`, aperçus A/B, K1 |
+| `BinCollector` | Snapshot et pipeline de résolution d’un bac | flush, visuels, score, coque |
+| `BlackFilterRuntimeController` | Réservations réversibles de noires pour la famille A | aperçus de bac, snapshot |
+| `K1AntiBlackDroneController` | Ronde, cooldown, acquisition et neutralisation garantie des noires | `BallSpawner`, `BinTrigger`, verrou `collected` |
 | `FlushResolutionEngine` | Transformations et total d’un flush | score, coque, combos |
 | `ScoreManager` | Score, progression et historique | HUD, objectifs, fin |
 | `HullSystem` | Coque courante/maximale | HUD, game over |

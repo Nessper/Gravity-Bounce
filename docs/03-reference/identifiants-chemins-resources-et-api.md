@@ -33,7 +33,7 @@ Unity exige que ces chemins omettent extension et préfixe `Assets/Resources`.
 - Domaines de localisation : `ui`, `ships`, `modules`, `dialogs`; langues présentes : `en`, `fr`.
 - Combos runtime principaux : `WhiteStreak`, `BlueRush`, `RedStorm`, `FastFlush`, `WhiteChain`, `BlueChain`, `RedChain`, `Super`, `Ultra`, `Monster`.
 
-Les 24 identifiants de module restent canoniques dans `ModuleCatalog.json`; les recopier ici créerait un second catalogue documentaire.
+Les 27 identifiants de module restent canoniques dans `ModuleCatalog.json`; les recopier ici créerait un second catalogue documentaire.
 
 ## Clés locales
 

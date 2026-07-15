@@ -99,13 +99,13 @@ Chaque domaine indique rôle, état, fonctionnement/cycle, données, persistance
 
 ## 9. Modules, inventaire et équipement
 
-- **Rôle — état** : modifier briefing, durée, flush, coque, score et récompenses ; **actif**, catalogue local **en cours**.
+- **Rôle — état** : modifier briefing, durée, flush, coque, score, récompenses et neutralisation de noires par K1 ; **actif**, catalogue local **en cours**.
 - **Fonctionnement — cycle** : catalogue → offre → achat/possession → équipement dans un slot → agrégation runtime → effets au point d’application.
-- **Données — persistance** : 24 définitions JSON, inventaire, IDs équipés, slots ouverts, charges/bonus pertinents dans le run.
-- **Classes/assets** : `ModuleCatalogService`, `RunModuleEquipmentService`, `ModuleRuntimeStats`, services `RunModule*`, `ModuleCatalog.json`.
+- **Données — persistance** : 27 définitions JSON, inventaire, IDs équipés, slots ouverts, charges/bonus pertinents dans le run.
+- **Classes/assets** : `ModuleCatalogService`, `RunModuleEquipmentService`, `ModuleRuntimeStats`, `K1AntiBlackDroneController`, services `RunModule*`, `ModuleCatalog.json`.
 - **Entrantes → sortantes** : boutique et vaisseau → équipement ; équipement → briefing, timer, flush, coque, score, fin de niveau.
 - **Surface publique** : résolution par ID, équiper/déséquiper, lecture des statistiques agrégées et événements de changement.
-- **Cas limites/validation** : compatibilité slot/possession, ordre des transformations et données locales modifiées doivent être vérifiés avant changement.
+- **Cas limites/validation** : compatibilité slot/possession, ordre des transformations et données locales modifiées doivent être vérifiés avant changement. Pour K1 : A réservé est intouchable, laser visible signifie neutralisation garantie, et le verrou `collected` arbitre avec les snapshots.
 - **Canonique** : [`economie-boutique-et-modules.md`](../01-systemes/economie-boutique-et-modules.md).
 
 ## 10. Boutique, reroll et réparation
@@ -166,12 +166,12 @@ Chaque domaine indique rôle, état, fonctionnement/cycle, données, persistance
 ## 15. Bacs, flush et transformations
 
 - **Rôle — état** : collecter et résoudre un groupe de balles ; **actif**.
-- **Fonctionnement — cycle** : collecte → `BinSnapshot` → transformations A/B → combos/score → conséquence des noires → événements → recyclage.
+- **Fonctionnement — cycle** : contenu vivant → éventuel retrait K1 notifié → `BinSnapshot` verrouillé → transformations A/B → combos/score → conséquence des noires → événements → recyclage.
 - **Données — persistance** : contenu vivant/snapshot temporaires ; score/coque résultants rejoignent l’état de niveau/run. Seuil automatique de base : 5, modifiable par GREED.
 - **Classes/assets** : `BinCollector`, `BinTrigger`, `CloseBinController`, `BlackFilterRuntimeController`, `FlushResolutionEngine`.
 - **Entrantes → sortantes** : balles et commandes clavier/tactile/seuil/fin → score, progression, coque, combos, UI/audio/FX.
 - **Surface publique** : collecte, fermeture/flush, snapshot et événements de résolution.
-- **Cas limites/validation** : une balle ne doit être résolue qu’une fois ; ordre des transformations avant dégâts ; ambiguïté de score de base.
+- **Cas limites/validation** : une balle ne doit être résolue qu’une fois ; snapshot et K1 se départagent par le premier verrou terminal `collected` ; ordre des transformations avant dégâts ; ambiguïté de score de base.
 - **Canonique** : [`paddle-bacs-et-flush.md`](../01-systemes/paddle-bacs-et-flush.md).
 
 ## 16. Physique et obstacles

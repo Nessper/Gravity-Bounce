@@ -27,6 +27,9 @@
 - Les transformations A puis B produisent un snapshot de flush unique ; son, FX, score, combos et conséquence finale des noires doivent tous en dériver.
 - Une noire ne compte pas pour la progression principale.
 - Une noire neutralisée par K1 repasse par le pool exactement une fois, sans score, dégât, collecte ou perte enregistrée.
+- `BallState.collected` est un verrou de propriété terminal partagé : un snapshot ou K1 peut l’acquérir, mais une bille déjà verrouillée ne peut pas être reprise par l’autre système.
+- Avant le laser visible, K1 reste annulable ; dès que le laser est affiché, la noire est retirée de son éventuel bac, le cooldown est consommé et la neutralisation doit aboutir, même lors de la fermeture du gameplay.
+- Une noire réservée par la famille A ne doit jamais être réservée par K1.
 - Le nettoyage final précède l’évaluation complète et le snapshot de fin.
 
 ## Transaction de fin

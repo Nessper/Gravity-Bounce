@@ -29,6 +29,8 @@ Les écrans suivants dépendent normalement de ce root. Des installateurs altern
 
 `Main` regroupe le plateau, les managers de niveau, le spawner, le paddle, les bacs, le HUD, les overlays, l’audio de niveau, les feedbacks et les testeurs debug. Le `LevelBootstrapper` résout les dépendances à partir du contexte courant et lance l’orchestration.
 
+Les drones de gameplay appartiennent au monde et non aux Game Systems. Le câblage actif place `DronesRoot` sous `WorldRoot/BoardRoot`, au même niveau architectural que les autres racines du plateau ; `K1 Anti-Black Drone` en est un enfant. Son contrôleur référence le spawner et les deux `BinTrigger`, tandis que le sprite, le Canvas world-space du cooldown et le laser sont créés à l’exécution.
+
 Des écrans de fin de générations différentes sont encore sérialisés. Le fait qu’un GameObject soit actif dans le YAML ne suffit pas à établir qu’il reçoit le contrôle fonctionnel ; le chemin orchestré est décrit dans [Fin de niveau](../01-systemes/fin-de-niveau-recompenses-et-reprise.md).
 
 ## Hors build

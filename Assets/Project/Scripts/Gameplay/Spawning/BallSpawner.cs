@@ -825,13 +825,14 @@ public class BallSpawner : MonoBehaviour
         return true;
     }
 
-    public bool TryGetNearestActiveBall(
+    public bool TryGetNearestActiveDangerBall(
         string ballId,
         Vector3 origin,
         out BallState nearest)
     {
         nearest = null;
         float nearestSqrDistance = float.PositiveInfinity;
+        bool nearestIsInBin = false;
 
         for (int i = activeBalls.Count - 1; i >= 0; i--)
         {
@@ -843,7 +844,7 @@ public class BallSpawner : MonoBehaviour
                 continue;
             }
 
-            if (candidate.collected || candidate.inBin)
+            if (candidate.collected || !candidate.IsVisualDanger)
                 continue;
 
             if (!string.Equals(
@@ -857,11 +858,21 @@ public class BallSpawner : MonoBehaviour
             float sqrDistance =
                 (candidate.transform.position - origin).sqrMagnitude;
 
-            if (sqrDistance >= nearestSqrDistance)
+            bool candidateIsInBin = candidate.inBin;
+            bool hasHigherPriority =
+                candidateIsInBin && !nearestIsInBin;
+            bool hasSamePriority =
+                candidateIsInBin == nearestIsInBin;
+
+            if (!hasHigherPriority &&
+                (!hasSamePriority || sqrDistance >= nearestSqrDistance))
+            {
                 continue;
+            }
 
             nearest = candidate;
             nearestSqrDistance = sqrDistance;
+            nearestIsInBin = candidateIsInBin;
         }
 
         return nearest != null;
