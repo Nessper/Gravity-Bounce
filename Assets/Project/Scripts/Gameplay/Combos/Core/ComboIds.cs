@@ -29,4 +29,12 @@ public static class ComboIds
     public const string WhiteChain = "WhiteChain";
     public const string BlueChain = "BlueChain";
     public const string RedChain = "RedChain";
+
+    // =========================================================
+    // MODULE J - MIXED COLORS
+    // =========================================================
+
+    public const string JMix41 = "J_MIX_41";
+    public const string JMix32 = "J_MIX_32";
+    public const string JMix221 = "J_MIX_221";
 }

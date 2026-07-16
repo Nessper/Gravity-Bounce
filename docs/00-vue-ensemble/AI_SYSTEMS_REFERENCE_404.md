@@ -187,13 +187,13 @@ Chaque domaine indique rôle, état, fonctionnement/cycle, données, persistance
 
 ## 17. Score
 
-- **Rôle — état** : cumuler valeur de jeu et historique ; **actif**, calcul de base partiellement **incertain**.
+- **Rôle — état** : cumuler valeur de jeu et historique ; **actif**.
 - **Fonctionnement — cycle** : chaque flush fournit valeurs/combos/modificateurs au `ScoreManager`, qui met à jour total, historique et notifications ; fin intègre le résultat au run.
 - **Données — persistance** : score/historique temporaires pendant le niveau ; score de run et snapshot persistés ; meilleur score permanent à la fin appropriée.
 - **Classes/assets** : `ScoreManager`, `FlushResolution`, `FlushResolutionEngine`, `GameplayScoreImpactUI`, `ScoreAttractorUI`, `ScoreFlushAbsorberUI`.
 - **Entrantes → sortantes** : balles, combos, modules → HUD, objectifs, fin, analytics et meilleur score.
 - **Surface publique** : ajout/résolution, snapshot, événements de changement et historique de bacs.
-- **Cas limites/validation** : `GetSnapshot` et `FinalTotal` semblent tous deux intégrer le base score ; double comptage réel non affirmé.
+- **Cas limites/validation** : `GetSnapshot` ajoute le score de base ; `FlushResolutionEngine` ajoute ensuite uniquement `ComboTotal`.
 - **Canonique** : [`score-objectifs-et-combos.md`](../01-systemes/score-objectifs-et-combos.md), registre des [incertitudes](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md).
 
 ## 18. Progression de mission
@@ -220,13 +220,13 @@ Chaque domaine indique rôle, état, fonctionnement/cycle, données, persistance
 
 ## 20. Combos runtime
 
-- **Rôle — état** : reconnaître motifs de couleur, timing, chaîne et volume lors des flushs ; **actif**, durée de vie statique **incertaine**.
-- **Fonctionnement — cycle** : `ComboResolver` applique les règles au snapshot/résolution et met à jour les états de chaîne/timing.
-- **Données — persistance** : définitions dans `ComboDefinitionCatalog.asset`; états runtime statiques, historique dans le résultat, pas de persistance de run établie.
-- **Classes/assets** : `ComboResolver`, `ColorComboRule`, `TimingComboRule`, `ChainComboRule`, `VolumeComboRule`, `ChainRuntimeState`, `TimingRuntimeState`.
+- **Rôle — état** : reconnaître motifs de couleur, timing, chaîne, volume et compositions mixtes J lors des flushs, puis amplifier leurs points avec I ; **actif**.
+- **Fonctionnement — cycle** : `ComboResolver` applique toutes les règles au snapshot/résolution, met à jour les états de chaîne/timing et active J selon `ModuleRuntimeStats.JComboTier`. Après cette détection complète et avant tout consommateur, la résolution applique une fois `ModuleRuntimeStats.ComboPointsMultiplier` à chaque occurrence, depuis ses points de base.
+- **Données — persistance** : treize définitions dans `ComboDefinitionCatalog.asset`; types distincts et occurrences détaillées dans `ScoreManager`; états runtime statiques réinitialisés à chaque instance de niveau.
+- **Classes/assets** : `ComboResolver`, `FlushResolution`, `FlushResolutionEngine`, `ColorComboRule`, `MixedColorComboRule`, `TimingComboRule`, `ChainComboRule`, `VolumeComboRule`, `ChainRuntimeState`, `TimingRuntimeState`.
 - **Entrantes → sortantes** : flush et temps → score, historique, overlays/audio et combos finaux.
-- **Surface publique** : résolution, IDs de combo, événements de déclenchement, reset explicite dans tutoriel/debug.
-- **Cas limites/validation** : reset normal entre niveaux non retrouvé ; catalogue et UI combo modifiés dans l’instantané Git.
+- **Surface publique** : résolution, `DefinitionId`, `OccurrenceKey`, événements de déclenchement et reset à la création du moteur de niveau.
+- **Cas limites/validation** : plusieurs occurrences d’un ID comptent séparément pour score/objectifs, mais une seule fois pour la diversité ; I amplifie chaque occurrence sans modifier ces identités et refuse une seconde application ; matrice pure J validée hors Play Mode.
 - **Canonique** : [`score-objectifs-et-combos.md`](../01-systemes/score-objectifs-et-combos.md).
 
 ## 21. Bonus finaux et médailles
@@ -270,7 +270,7 @@ Chaque domaine indique rôle, état, fonctionnement/cycle, données, persistance
 - **Classes/assets** : `LevelTutorialController`, références sérialisées de `Main`, contrôleurs/UI de tutoriel.
 - **Entrantes → sortantes** : niveau W1-L1 + profil → contrôles, spawner, combos et UI → profil complété.
 - **Surface publique** : start/advance/complete/restore ; événements d’étape.
-- **Cas limites/validation** : reset des combos explicitement observé ici, mais pas établi pour les niveaux normaux ; séquence non jouée.
+- **Cas limites/validation** : le tutoriel conserve son reset explicite ; les niveaux normaux réinitialisent aussi les états lors de la création de `FlushResolutionEngine` ; séquence tutorielle non rejouée.
 - **Canonique** : [`tutoriel-pause-input-et-plateformes.md`](../01-systemes/tutoriel-pause-input-et-plateformes.md).
 
 ## 25. Pause, abandon et retry

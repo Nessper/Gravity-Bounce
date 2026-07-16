@@ -273,6 +273,68 @@
     },
 
     {
+      "id": "I_T1",
+      "familyId": "I",
+      "displayNameLocKey": "module.i_combo_amplifier.name",
+      "descriptionLocKey": "module.i_combo_amplifier.t1.description",
+      "tier": 1,
+      "cost": 4,
+      "iconPath": "Modules/Icons/I",
+      "comboPointsMultiplierSet": 1.15
+    },
+    {
+      "id": "I_T2",
+      "familyId": "I",
+      "displayNameLocKey": "module.i_combo_amplifier.name",
+      "descriptionLocKey": "module.i_combo_amplifier.t2.description",
+      "tier": 2,
+      "cost": 10,
+      "iconPath": "Modules/Icons/I",
+      "comboPointsMultiplierSet": 1.22
+    },
+    {
+      "id": "I_T3",
+      "familyId": "I",
+      "displayNameLocKey": "module.i_combo_amplifier.name",
+      "descriptionLocKey": "module.i_combo_amplifier.t3.description",
+      "tier": 3,
+      "cost": 16,
+      "iconPath": "Modules/Icons/I",
+      "comboPointsMultiplierSet": 1.30
+    },
+
+    {
+      "id": "J_T1",
+      "familyId": "J",
+      "displayNameLocKey": "module.j_combo_matrix.name",
+      "descriptionLocKey": "module.j_combo_matrix.t1.description",
+      "tier": 1,
+      "cost": 4,
+      "iconPath": "Modules/Icons/J",
+      "jComboTierSet": 1
+    },
+    {
+      "id": "J_T2",
+      "familyId": "J",
+      "displayNameLocKey": "module.j_combo_matrix.name",
+      "descriptionLocKey": "module.j_combo_matrix.t2.description",
+      "tier": 2,
+      "cost": 10,
+      "iconPath": "Modules/Icons/J",
+      "jComboTierSet": 2
+    },
+    {
+      "id": "J_T3",
+      "familyId": "J",
+      "displayNameLocKey": "module.j_combo_matrix.name",
+      "descriptionLocKey": "module.j_combo_matrix.t3.description",
+      "tier": 3,
+      "cost": 16,
+      "iconPath": "Modules/Icons/J",
+      "jComboTierSet": 3
+    },
+
+    {
       "id": "K0_T1",
       "familyId": "K0",
       "displayNameLocKey": "module.k0.name",

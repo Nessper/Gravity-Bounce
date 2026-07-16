@@ -98,9 +98,9 @@ public static class FinalComboEvaluator
             {
                 foreach (var id in combosTriggered)
                 {
-                    if (id.StartsWith("WhiteFlushChain") ||
-                        id.StartsWith("BlueFlushChain") ||
-                        id.StartsWith("RedFlushChain"))
+                    if (id == ComboIds.WhiteChain ||
+                        id == ComboIds.BlueChain ||
+                        id == ComboIds.RedChain)
                     {
                         hasColorChain = true;
                         break;
@@ -129,9 +129,9 @@ public static class FinalComboEvaluator
         // COLOR TRINITY (WhiteStreak + BlueRush + RedStorm tous declenches)
         // ============================================================
         {
-            bool hasWhite = combosTriggered != null && combosTriggered.Contains("WhiteStreak");
-            bool hasBlue = combosTriggered != null && combosTriggered.Contains("BlueRush");
-            bool hasRed = combosTriggered != null && combosTriggered.Contains("RedStorm");
+            bool hasWhite = combosTriggered != null && combosTriggered.Contains(ComboIds.WhiteStreak);
+            bool hasBlue = combosTriggered != null && combosTriggered.Contains(ComboIds.BlueRush);
+            bool hasRed = combosTriggered != null && combosTriggered.Contains(ComboIds.RedStorm);
 
             if (hasWhite && hasBlue && hasRed)
             {
@@ -151,11 +151,11 @@ public static class FinalComboEvaluator
             {
                 foreach (var id in combosTriggered)
                 {
-                    if (id.StartsWith("WhiteFlushChain"))
+                    if (id == ComboIds.WhiteChain)
                         whiteChain = true;
-                    else if (id.StartsWith("BlueFlushChain"))
+                    else if (id == ComboIds.BlueChain)
                         blueChain = true;
-                    else if (id.StartsWith("RedFlushChain"))
+                    else if (id == ComboIds.RedChain)
                         redChain = true;
                 }
             }

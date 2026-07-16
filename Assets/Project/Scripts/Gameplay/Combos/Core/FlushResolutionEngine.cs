@@ -10,6 +10,13 @@ public class FlushResolutionEngine : MonoBehaviour
 
     public event Action<FlushResolution> OnFlushResolved;
 
+    private void Awake()
+    {
+        // ComboResolver conserve ses états Timing/Chain dans des champs statiques.
+        // Chaque nouvelle scène de niveau doit donc repartir d'un état propre.
+        ResetRuntimeState();
+    }
+
     public void OnFlush(BinSnapshot snapshot)
     {
         if (snapshot == null)
@@ -19,6 +26,13 @@ public class FlushResolutionEngine : MonoBehaviour
             FlushResolutionBuilder.BuildBase(snapshot);
 
         ComboResolver.Resolve(snapshot, resolution);
+
+        float comboPointsMultiplier =
+            ModuleRuntimeStats.Instance != null
+                ? ModuleRuntimeStats.Instance.ComboPointsMultiplier
+                : 1f;
+
+        resolution.ApplyComboPointsMultiplier(comboPointsMultiplier);
 
         ApplyScore(resolution);
 
@@ -35,8 +49,10 @@ public class FlushResolutionEngine : MonoBehaviour
         if (scoreManager == null || resolution == null)
             return;
 
-        if (resolution.FinalTotal != 0)
-            scoreManager.AddPoints(resolution.FinalTotal, "Flush Resolution");
+        // Le score de base a déjà été ajouté par ScoreManager.GetSnapshot().
+        // Cette couche n'ajoute que les bonus de combos.
+        if (resolution.ComboTotal != 0)
+            scoreManager.AddPoints(resolution.ComboTotal, "Flush Combo Resolution");
     }
 
     private void NotifyCombos(FlushResolution resolution)
@@ -47,10 +63,10 @@ public class FlushResolutionEngine : MonoBehaviour
         foreach (ComboEvent comboEvent in resolution.ComboEvents)
         {
             if (scoreManager != null)
-                scoreManager.RegisterComboId(comboEvent.Id);
+                scoreManager.RegisterCombo(comboEvent);
 
             if (levelManager != null)
-                levelManager.NotifyComboTriggered(comboEvent.Id);
+                levelManager.NotifyComboTriggered(comboEvent.DefinitionId);
         }
     }
 

@@ -5,19 +5,19 @@ using VoidScrappers.Briefing;
 /// <summary>
 /// ModuleRuntimeStats
 /// ------------------------------------------------------------
-/// Service runtime global qui agrège les effets des modules équipés.
+/// Service runtime global qui agrÃ¨ge les effets des modules Ã©quipÃ©s.
 ///
 /// Important :
 /// - Ce script ne persiste rien.
-/// - Ce script ne gère pas l'équipement.
-/// - Ce script expose seulement les bonus donnés par les modules équipés.
-/// - Les états gameplay vivants restent dans des controllers dédiés.
+/// - Ce script ne gÃ¨re pas l'Ã©quipement.
+/// - Ce script expose seulement les bonus donnÃ©s par les modules Ã©quipÃ©s.
+/// - Les Ã©tats gameplay vivants restent dans des controllers dÃ©diÃ©s.
 /// </summary>
 public class ModuleRuntimeStats : MonoBehaviour
 {
     public static ModuleRuntimeStats Instance { get; private set; }
 
-    [Header("Références")]
+    [Header("RÃ©fÃ©rences")]
     [SerializeField] private RunSessionState runSessionState;
 
     [Header("Debug / Lecture seule - Passifs")]
@@ -40,10 +40,16 @@ public class ModuleRuntimeStats : MonoBehaviour
     [SerializeField] private int medalSilverMoney = 0;
     [SerializeField] private int medalGoldMoney = 0;
 
+    [Header("Debug / Lecture seule - Famille I")]
+    [SerializeField] private float comboPointsMultiplier = 1f;
+
+    [Header("Debug / Lecture seule - Famille J")]
+    [SerializeField] private int jComboTier = 0;
+
     [Header("Debug / Lecture seule - Famille K1")]
     [SerializeField] private float k1CooldownSec = 0f;
 
-    [Header("Debug / Lecture seule - Contrôle drones K0")]
+    [Header("Debug / Lecture seule - ContrÃ´le drones K0")]
     [SerializeField] private bool dronesStartCharged = false;
     [SerializeField] private float droneCooldownMultiplier = 1f;
 
@@ -68,6 +74,8 @@ public class ModuleRuntimeStats : MonoBehaviour
     public int MedalBronzeMoney => medalBronzeMoney;
     public int MedalSilverMoney => medalSilverMoney;
     public int MedalGoldMoney => medalGoldMoney;
+    public float ComboPointsMultiplier => comboPointsMultiplier;
+    public int JComboTier => jComboTier;
     public float K1CooldownSec => k1CooldownSec;
     public bool DronesStartCharged => dronesStartCharged;
     public float DroneCooldownMultiplier => droneCooldownMultiplier;
@@ -156,6 +164,8 @@ public class ModuleRuntimeStats : MonoBehaviour
         medalBronzeMoney = 0;
         medalSilverMoney = 0;
         medalGoldMoney = 0;
+        comboPointsMultiplier = 1f;
+        jComboTier = 0;
         k1CooldownSec = 0f;
         dronesStartCharged = false;
         droneCooldownMultiplier = 1f;
@@ -188,6 +198,15 @@ public class ModuleRuntimeStats : MonoBehaviour
         medalBronzeMoney += Mathf.Max(0, mod.medalBronzeMoney);
         medalSilverMoney += Mathf.Max(0, mod.medalSilverMoney);
         medalGoldMoney += Mathf.Max(0, mod.medalGoldMoney);
+
+        if (mod.comboPointsMultiplierSet > 0f)
+        {
+            comboPointsMultiplier = Mathf.Max(
+                comboPointsMultiplier,
+                mod.comboPointsMultiplierSet);
+        }
+
+        jComboTier = Mathf.Max(jComboTier, Mathf.Max(0, mod.jComboTierSet));
 
         dronesStartCharged |= mod.dronesStartCharged;
 

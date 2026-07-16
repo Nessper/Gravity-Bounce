@@ -27,7 +27,7 @@ Les slots proviennent de la définition du vaisseau. L’inventaire et l’équi
 
 ## Familles et effets observés
 
-Le catalogue comporte 33 modules répartis sur onze familles :
+Le catalogue comporte 39 modules répartis sur treize familles :
 
 | Famille | Effet fonctionnel observé |
 |---|---|
@@ -39,11 +39,25 @@ Le catalogue comporte 33 modules répartis sur onze familles :
 | B | Conversion de blanches vers bleues ou rouges. |
 | E | Modification de durée de niveau. |
 | F | Gain d’argent lié aux médailles de fin. |
+| I | Multiplie les points de chaque occurrence de combo après sa détection, sans modifier les déclenchements ni les compteurs. |
+| J | Débloque cumulativement les combos mixtes 4+1, 3+2 puis tricolores 2+2+1. |
 | K0 | Contrôle transversal des drones : tous commencent chargés ; aux tiers 2 et 3, leurs cooldowns sont respectivement multipliés par `0,9` et `0,8`. K0 ne crée aucun drone et passe uniquement par le socle commun. |
 | K1 | Drone anti-noire : recharge en 30/23/18 s selon le tier, priorise les noires dangereuses présentes dans les bacs puis la noire dangereuse la plus proche sur le plateau, et les neutralise sans score ni perte. |
 | K2 | Drone Interceptor : recharge en 30/25/22 s ; sauve respectivement les billes blanches, blanches/bleues, puis blanches/bleues/rouges avant le Void et les téléporte vers le haut du plateau. |
 
 L’ordre fonctionnel des transformations de bac est décrit dans [Paddle, bacs et flush](paddle-bacs-et-flush.md). Les bonus de fin sont décrits dans [Fin de niveau](fin-de-niveau-recompenses-et-reprise.md).
+
+## I : amplificateur de points de combos
+
+Les modules `I_T1`, `I_T2` et `I_T3` coûtent provisoirement `4/10/16` et utilisent les multiplicateurs temporaires `1,15/1,22/1,30`. `ModuleRuntimeStats.ComboPointsMultiplier` conserve uniquement la plus grande valeur équipée ; les tiers ne se cumulent pas.
+
+Après la fin de `ComboResolver.Resolve`, `FlushResolution` applique une fois ce multiplicateur à chaque `ComboEvent`, depuis ses `BasePoints`, puis recalcule `ComboTotal`. Les IDs, clés d’occurrence, rôles, compteurs et conditions de déclenchement restent inchangés. Le score, l’historique, les statistiques et l’overlay consomment ensuite les mêmes points finaux. Un garde idempotent interdit toute seconde amplification de la résolution.
+
+## J : matrice de combos mixtes
+
+Les modules `J_T1`, `J_T2` et `J_T3` coûtent provisoirement `4/10/16`. `ModuleRuntimeStats.JComboTier` expose le tier équipé sans stocker d’état de combo. `MixedColorComboRule` consomme ce tier et la composition finale du snapshot, après les transformations A/B. La présence des trois définitions J dans `ComboDefinitionCatalog.asset` ne suffit jamais à les déclencher : sans module J équipé, le tier runtime reste à zéro et la règle est inactive.
+
+Les trois scores plats temporaires `100/150/200` sont configurés dans le catalogue de combos. Ils ne varient pas selon les couleurs. Les modules J utilisent l’icône `Resources/Modules/Icons/J` ; leur achat, leurs prérequis de tier et leur exclusivité de famille passent par le pipeline normal des modules.
 
 ## K1 : drone anti-noire
 

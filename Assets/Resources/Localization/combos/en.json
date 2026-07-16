@@ -1,0 +1,129 @@
+{
+  "language": "en",
+  "entries": [
+    {
+      "key": "combo.white_streak.name",
+      "text": "White Streak"
+    },
+    {
+      "key": "combo.white_streak.description",
+      "text": "Flush at least 5 white balls at once."
+    },
+    {
+      "key": "combo.blue_rush.name",
+      "text": "Blue Rush"
+    },
+    {
+      "key": "combo.blue_rush.description",
+      "text": "Flush at least 4 blue balls at once."
+    },
+    {
+      "key": "combo.red_storm.name",
+      "text": "Red Storm"
+    },
+    {
+      "key": "combo.red_storm.description",
+      "text": "Flush at least 3 red balls at once."
+    },
+    {
+      "key": "combo.fast_flush.name",
+      "text": "Fast Flush"
+    },
+    {
+      "key": "combo.fast_flush.description",
+      "text": "Trigger another flush before the timing window expires."
+    },
+    {
+      "key": "combo.white_chain.name",
+      "text": "White Chain"
+    },
+    {
+      "key": "combo.white_chain.description",
+      "text": "Accumulate white balls without flushing a black ball."
+    },
+    {
+      "key": "combo.blue_chain.name",
+      "text": "Blue Chain"
+    },
+    {
+      "key": "combo.blue_chain.description",
+      "text": "Accumulate blue balls without flushing a black ball."
+    },
+    {
+      "key": "combo.red_chain.name",
+      "text": "Red Chain"
+    },
+    {
+      "key": "combo.red_chain.description",
+      "text": "Accumulate red balls without flushing a black ball."
+    },
+    {
+      "key": "combo.super_flush.name",
+      "text": "Super Flush"
+    },
+    {
+      "key": "combo.super_flush.description",
+      "text": "Flush 6 balls at once."
+    },
+    {
+      "key": "combo.ultra_flush.name",
+      "text": "Ultra Flush"
+    },
+    {
+      "key": "combo.ultra_flush.description",
+      "text": "Flush 7 balls at once."
+    },
+    {
+      "key": "combo.monster_flush.name",
+      "text": "Monster Flush"
+    },
+    {
+      "key": "combo.monster_flush.description",
+      "text": "Flush at least 8 balls at once."
+    },
+    {
+      "key": "combo.j_mix_41.name",
+      "text": "4+1 Alliance"
+    },
+    {
+      "key": "combo.j_mix_41.description",
+      "text": "Combine at least 4 balls of one positive color and 1 of another."
+    },
+    {
+      "key": "combo.j_mix_32.name",
+      "text": "3+2 Alliance"
+    },
+    {
+      "key": "combo.j_mix_32.description",
+      "text": "Combine at least 3 balls of one positive color and 2 of another."
+    },
+    {
+      "key": "combo.j_mix_221.name",
+      "text": "2+2+1 Trinity"
+    },
+    {
+      "key": "combo.j_mix_221.description",
+      "text": "Bring together all three positive colors, with at least two balls in two colors."
+    },
+    {
+      "key": "combo.color.white",
+      "text": "White"
+    },
+    {
+      "key": "combo.color.blue",
+      "text": "Blue"
+    },
+    {
+      "key": "combo.color.red",
+      "text": "Red"
+    },
+    {
+      "key": "combo.occurrence.two_colors.format",
+      "text": "{0} — {1} {2} + {3} {4}"
+    },
+    {
+      "key": "combo.occurrence.three_colors.format",
+      "text": "{0} — {1} {2} + {3} {4} + {5} {6}"
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "language": "fr",
+  "entries": [
+    {
+      "key": "combo.white_streak.name",
+      "text": "Série blanche"
+    },
+    {
+      "key": "combo.white_streak.description",
+      "text": "Au moins 5 billes blanches dans un flush."
+    },
+    {
+      "key": "combo.blue_rush.name",
+      "text": "Ruée bleue"
+    },
+    {
+      "key": "combo.blue_rush.description",
+      "text": "Au moins 4 billes bleues dans un flush."
+    },
+    {
+      "key": "combo.red_storm.name",
+      "text": "Tempête rouge"
+    },
+    {
+      "key": "combo.red_storm.description",
+      "text": "Au moins 3 billes rouges dans un flush."
+    },
+    {
+      "key": "combo.fast_flush.name",
+      "text": "Flush éclair"
+    },
+    {
+      "key": "combo.fast_flush.description",
+      "text": "Déclenchez un nouveau flush avant la fin du délai."
+    },
+    {
+      "key": "combo.white_chain.name",
+      "text": "Chaîne blanche"
+    },
+    {
+      "key": "combo.white_chain.description",
+      "text": "Cumulez les billes blanches sans flusher de bille noire."
+    },
+    {
+      "key": "combo.blue_chain.name",
+      "text": "Chaîne bleue"
+    },
+    {
+      "key": "combo.blue_chain.description",
+      "text": "Cumulez les billes bleues sans flusher de bille noire."
+    },
+    {
+      "key": "combo.red_chain.name",
+      "text": "Chaîne rouge"
+    },
+    {
+      "key": "combo.red_chain.description",
+      "text": "Cumulez les billes rouges sans flusher de bille noire."
+    },
+    {
+      "key": "combo.super_flush.name",
+      "text": "Super Flush"
+    },
+    {
+      "key": "combo.super_flush.description",
+      "text": "Flushez 6 billes simultanément."
+    },
+    {
+      "key": "combo.ultra_flush.name",
+      "text": "Ultra Flush"
+    },
+    {
+      "key": "combo.ultra_flush.description",
+      "text": "Flushez 7 billes simultanément."
+    },
+    {
+      "key": "combo.monster_flush.name",
+      "text": "Monster Flush"
+    },
+    {
+      "key": "combo.monster_flush.description",
+      "text": "Flushez au moins 8 billes simultanément."
+    },
+    {
+      "key": "combo.j_mix_41.name",
+      "text": "Alliance 4+1"
+    },
+    {
+      "key": "combo.j_mix_41.description",
+      "text": "Associez au moins 4 billes d’une couleur positive et 1 d’une autre."
+    },
+    {
+      "key": "combo.j_mix_32.name",
+      "text": "Alliance 3+2"
+    },
+    {
+      "key": "combo.j_mix_32.description",
+      "text": "Associez au moins 3 billes d’une couleur positive et 2 d’une autre."
+    },
+    {
+      "key": "combo.j_mix_221.name",
+      "text": "Trinité 2+2+1"
+    },
+    {
+      "key": "combo.j_mix_221.description",
+      "text": "Réunissez les trois couleurs positives, dont au moins deux avec 2 billes."
+    },
+    {
+      "key": "combo.color.white",
+      "text": "Blanc"
+    },
+    {
+      "key": "combo.color.blue",
+      "text": "Bleu"
+    },
+    {
+      "key": "combo.color.red",
+      "text": "Rouge"
+    },
+    {
+      "key": "combo.occurrence.two_colors.format",
+      "text": "{0} — {1} {2} + {3} {4}"
+    },
+    {
+      "key": "combo.occurrence.three_colors.format",
+      "text": "{0} — {1} {2} + {3} {4} + {5} {6}"
+    }
+  ]
+}

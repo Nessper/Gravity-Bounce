@@ -1406,6 +1406,7 @@ MonoBehaviour:
   - ui
   - ships
   - modules
+  - combos
 --- !u!1 &1967514260
 GameObject:
   m_ObjectHideFlags: 0

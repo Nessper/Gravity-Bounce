@@ -151,7 +151,9 @@ public class RuntimeComboOverlayController : MonoBehaviour
 
         if (definition != null)
         {
-            displayName = definition.Id;
+            displayName = ComboTextResolver.ResolveDisplayName(
+                definition,
+                comboId);
             uiColor = definition.UiColor;
         }
 
@@ -183,7 +185,9 @@ public class RuntimeComboOverlayController : MonoBehaviour
 
         if (definition != null)
         {
-            displayName = definition.Id;
+            displayName = ComboTextResolver.ResolveDisplayName(
+                definition,
+                ComboIds.FastFlush);
             uiColor = definition.UiColor;
         }
 

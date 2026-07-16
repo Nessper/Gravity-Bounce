@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Types d'objectifs secondaires supportés.
+/// Types d'objectifs secondaires supportÃ©s.
 /// - BallCount : collecter au moins X (>= Threshold)
 /// - ComboCount : declencher au moins X combos (>= Threshold)
 /// - MaxCount : ne pas depasser X collectes d'un type (<= Threshold)
@@ -312,6 +312,15 @@ public class SecondaryObjectivesManager
             case SecondaryObjectiveType.ComboCount:
                 {
                     string comboId = def.TargetId;
+
+                    if (string.Equals(
+                            comboId,
+                            "Any",
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        return SumDict(comboCounts);
+                    }
+
                     return GetCount(comboCounts, comboId);
                 }
 

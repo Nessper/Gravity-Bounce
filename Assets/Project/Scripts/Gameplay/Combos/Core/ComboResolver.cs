@@ -75,9 +75,14 @@ public static class ComboResolver
 
     private static List<IComboRule> GetRules()
     {
+        int jComboTier = ModuleRuntimeStats.Instance != null
+            ? ModuleRuntimeStats.Instance.JComboTier
+            : 0;
+
         return new List<IComboRule>
     {
         new ColorComboRule(GetProvider()),
+        new MixedColorComboRule(GetProvider(), jComboTier),
         new VolumeComboRule(GetProvider()),
         TimingRule,
         ChainRule

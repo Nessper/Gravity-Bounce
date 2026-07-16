@@ -103,12 +103,12 @@ Une valeur présente dans un asset ne devient pas automatiquement active : il fa
 | Vaisseaux | Actif, trois définitions dont un vaisseau debug caché. Divergence de slots sur Aether Runner. |
 | Coque/vies | Actif. Deux ressources séparées ; les noires affectent la coque, les échecs peuvent consommer une vie de contrat. |
 | Économie | Active, monnaie uniquement liée à la run. Achat, réparation et reroll. |
-| Modules | Actif, 33 modules, onze familles, inventaire et équipement persistés pendant la run. K0 améliore transversalement les drones ; K1 neutralise les noires ; K2 sauve certaines billes avant le Void. Catalogue local et assets drone encore non commités dans l’instantané Git. |
+| Modules | Actif, 39 modules, treize familles, inventaire et équipement persistés pendant la run. I amplifie les points de chaque occurrence de combo ; J débloque les combos mixtes par tier ; K0 améliore transversalement les drones ; K1 neutralise les noires ; K2 sauve certaines billes avant le Void. |
 | Niveaux/spawn | Actif. W1-L1 à W1-L6 plus DBG-L1, phases, quotas, mélange, pooling et spawns forcés. |
 | Balles/physique | Actif. Blanches, bleues, rouges positives ; noires dangereuses. Physique 2D et rebond personnalisé. |
 | Bacs/flush | Actif. Seuil automatique de base 5, transformations de modules, score puis conséquences des noires. |
-| Score/progression | Actif, mais une ambiguïté de calcul du score de base est documentée. Les noires ne progressent pas l’objectif. |
-| Objectifs/combos | Actif. Objectif principal, secondaires, combos runtime et bonus finaux ; plusieurs incertitudes sur états/IDs finaux. |
+| Score/progression | Actif. Le snapshot ajoute le score de base et la résolution ajoute uniquement les bonus de combos. Les noires ne progressent pas l’objectif. |
+| Objectifs/combos | Actif. Objectif principal, secondaires, treize définitions runtime localisées, occurrences J distinctes et bonus finaux. |
 | Fin de niveau | Chemin actuel actif : évacuation, nettoyage, snapshot, cérémonie, `EndResult`, commit idempotent. Anciennes générations encore présentes. |
 | Tutoriel/pause/input | Actif mais input hybride. Tutoriel W1-L1 persistant ; voies clavier/souris/tactile ; nouveau Input System peu consommé. |
 | UI/HUD | Actif et fortement câblé dans les scènes. Nouvelle chaîne visuelle de score en cours dans l’espace de travail. |
@@ -172,14 +172,11 @@ Les données se répartissent en trois durées de vie distinctes ; cette sépara
 
 Ces points sont des constats ouverts, pas des bugs affirmés :
 
-1. intégration possible du score de base à deux endroits ;
-2. reset des états statiques de combo entre niveaux normaux non retrouvé ;
-3. IDs recherchés par certains combos finaux différents des IDs runtime ;
-4. valeur `ptsJustInTime` absente de l’asset sérialisé observé ;
-5. convention de fin de plan (`Count`) opposée au bornage à `Count - 1` ;
-6. ordre exact des deux mécanismes de récupération au Boot ;
-7. démarrage analytics conditionné à un index qui correspond normalement à la boutique ;
-8. visibilité/déblocage des vaisseaux et auto-ajout lors de la sélection ;
+1. valeur `ptsJustInTime` absente de l’asset sérialisé observé ;
+2. convention de fin de plan (`Count`) opposée au bornage à `Count - 1` ;
+3. ordre exact des deux mécanismes de récupération au Boot ;
+4. démarrage analytics conditionné à un index qui correspond normalement à la boutique ;
+5. visibilité/déblocage des vaisseaux et auto-ajout lors de la sélection ;
 9. Aether Runner : cinq slots déclarés, six layouts ;
 10. voie tactile réelle avec paddle en mode delta ;
 11. ancien champ `Mix.Type` de DBG-L1 face au `BallId` courant.
@@ -195,7 +192,7 @@ Ces points sont des constats ouverts, pas des bugs affirmés :
 - scènes/prefabs portent des références sérialisées avec GUID/fileID invisibles dans une lecture C# seule ;
 - les services persistants et l’ordre `Awake`/`Start` ne peuvent pas être déduits complètement sans exécution ;
 - `RunSessionState.asset` est un ScriptableObject mutable runtime : distinguer valeur sérialisée d’éditeur et état synchronisé ;
-- les événements statiques de combos peuvent traverser les frontières de scène ;
+- les états statiques de combos sont remis à zéro à la création du moteur de résolution de chaque niveau ;
 - `PlayerPrefs.DeleteAll()` est appelé lors d’un changement de version applicative ;
 - les chemins debug peuvent muter l’état local et ne constituent pas une protection anti-triche ;
 - plusieurs fichiers Unity et de score sont déjà modifiés : toute analyse future doit préserver ces changements locaux.

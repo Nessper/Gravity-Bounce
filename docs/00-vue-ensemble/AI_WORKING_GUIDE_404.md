@@ -260,14 +260,12 @@ Lire la page système correspondante dans [`docs/01-systemes`](../01-systemes/),
 
 Ces zones exigent davantage de vérifications ; elles ne sont pas déclarées défectueuses :
 
-1. calcul du score de base entre résolution et snapshot ;
-2. états statiques de combos et frontière de niveau ;
-3. correspondance des IDs de combos finaux et valeur non sérialisée ;
-4. limite finale du `RunPlan` ;
-5. récupération distribuée entre `SaveManager` et `RunRecoveryOnBoot` ;
-6. déblocage/visibilité des vaisseaux et sixième layout Aether Runner ;
-7. ancien/nouveau input et comportement tactile ;
-8. schéma de niveau historique, surtout DBG-L1 ;
+1. valeur finale `ptsJustInTime` non sérialisée ;
+2. limite finale du `RunPlan` ;
+3. récupération distribuée entre `SaveManager` et `RunRecoveryOnBoot` ;
+4. déblocage/visibilité des vaisseaux et sixième layout Aether Runner ;
+5. ancien/nouveau input et comportement tactile ;
+6. schéma de niveau historique, surtout DBG-L1 ;
 9. trois générations d’UI de fin et deux générations de transition ;
 10. nouvelle UI de score avec fichiers locaux et références nulles observées ;
 11. identité 404/VoidScrappers et clés/version de sauvegarde historiques ;

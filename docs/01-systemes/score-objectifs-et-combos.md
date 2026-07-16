@@ -1,8 +1,8 @@
 # Score, objectifs et combos
 
-> **Périmètre** : score de niveau, progression, historiques, objectifs principal/secondaires, combos runtime et finaux.  
-> **Statut** : architecture confirmée ; plusieurs correspondances de calcul restent incertaines.  
-> **Date de vérification** : 2026-07-14.  
+> **Périmètre** : score de niveau, progression, historiques, objectifs principal/secondaires, combos runtime et finaux.
+> **Statut** : architecture confirmée ; combos existants normalisés et familles I/J intégrées.
+> **Date de vérification** : 2026-07-15.
 > **Principaux appuis** : `ScoreManager.cs`, `FlushResolution*`, règles sous `Gameplay/Combos`, `SecondaryObjectivesManager.cs`, `LevelResultEvaluator.cs`, `FinalComboEvaluator.cs`, catalogues de combos.
 
 ## État suivi
@@ -19,10 +19,15 @@ Les valeurs unitaires des balles et paramètres de combo sont regroupés dans [�
 - timing : `FastFlush` ;
 - chaînes par couleur ;
 - volume : `Super`, `Ultra`, `Monster`.
+- compositions mixtes du module J : `J_MIX_41`, `J_MIX_32`, `J_MIX_221`.
 
-`ChainRuntimeState` et `TimingRuntimeState` conservent un état entre résolutions. L’absence de reset régulier retrouvé et sa conséquence non établie sont détaillées uniquement dans [Incertitudes et contradictions](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md).
+`ChainRuntimeState` et `TimingRuntimeState` conservent un état entre résolutions. `FlushResolutionEngine` les réinitialise lors de la création de chaque nouvelle instance de niveau.
 
-Le `ComboDefinitionCatalog` fournit libellés, règles et présentation. Le statut des assets et scripts de score observés dans l’espace de travail est centralisé dans [Travaux en cours](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md).
+Le `ComboDefinitionCatalog` fournit seuils, bonus, clés de localisation et présentation. Les noms des treize combos sont localisés en français et en anglais dans le pack dédié `Resources/Localization/combos`, avec fallback sur l’identifiant. La scène `Boot` charge explicitement ce pack avec `ui`, `ships` et `modules`. Les combos Volume utilisent `PercentOfPositivePoints`; les seuils Color et Volume sont lus dans le catalogue avec garde de repli identique aux anciennes valeurs.
+
+La famille J est inactive avec `JComboTier = 0`. Ses tiers sont cumulatifs : T1 active 4+1, T2 ajoute 3+2, T3 ajoute le tricolore 2+2+1. Plusieurs occurrences peuvent partager le même `DefinitionId`; leur `OccurrenceKey` canonique et leurs rôles/couleurs restent propres à l’occurrence. Le score, l’affichage et les compteurs travaillent par occurrence, tandis que la diversité travaille sur les IDs distincts.
+
+La famille I ne participe pas à la détection. Une fois toutes les règles résolues, `FlushResolutionEngine` transmet le multiplicateur runtime unique à la résolution avant tout score, historique, objectif ou affichage. Chaque événement conserve ses `BasePoints`; ses `Points` finaux sont arrondis individuellement avec `Mathf.RoundToInt`, puis `ComboTotal` est recalculé. L’application est idempotente et ne modifie ni `DefinitionId`, ni `OccurrenceKey`, ni les rôles ou compteurs.
 
 ## Objectif principal
 
@@ -30,11 +35,11 @@ La réussite principale compare la progression obtenue à la cible du niveau. L�
 
 ## Objectifs secondaires
 
-Les types retrouvés sont : nombre de balles, nombre de combos, maximum d’un compteur, maximum de balles perdues, avec possibilité de restriction à une phase. `LevelSecondaryObjectivesController` relie la définition du niveau au `SecondaryObjectivesManager`, qui produit les résultats utilisés pour les médailles/récompenses.
+Les types retrouvés sont : nombre de balles, nombre de combos, maximum d’un compteur, maximum de balles perdues, avec possibilité de restriction à une phase. `ComboCount` compte chaque occurrence pour un ID ciblé et additionne toutes les occurrences avec `TargetId = Any`. `LevelSecondaryObjectivesController` relie la définition du niveau au `SecondaryObjectivesManager`, qui produit les résultats utilisés pour les médailles/récompenses.
 
 ## Combos finaux
 
-`FinalComboEvaluator` examine l’historique complet après le nettoyage final. `FinalComboConfig` définit les bonus finaux, puis le résultat les présente comme lignes distinctes. Les divergences d’identifiants et de sérialisation sont décrites uniquement dans [Incertitudes et contradictions](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md).
+`FinalComboEvaluator` examine l’historique complet après le nettoyage final. `FinalComboConfig` définit les bonus finaux, puis le résultat les présente comme lignes distinctes. Les chaînes utilisent les IDs runtime canoniques de `ComboIds`; la diversité compte les `DefinitionId` distincts, jamais les clés d’occurrence.
 
 ## Frontière de responsabilité
 

@@ -133,6 +133,38 @@
       "text": "Earn bonus credits from medals. Bronze +4 / Silver +7 / Gold +10."
     },
     {
+      "key": "module.i_combo_amplifier.name",
+      "text": "I Combo Amplifier"
+    },
+    {
+      "key": "module.i_combo_amplifier.t1.description",
+      "text": "All combos grant 15% more points."
+    },
+    {
+      "key": "module.i_combo_amplifier.t2.description",
+      "text": "All combos grant 22% more points."
+    },
+    {
+      "key": "module.i_combo_amplifier.t3.description",
+      "text": "All combos grant 30% more points."
+    },
+    {
+      "key": "module.j_combo_matrix.name",
+      "text": "J Combo Matrix"
+    },
+    {
+      "key": "module.j_combo_matrix.t1.description",
+      "text": "Unlocks mixed 4+1 combos."
+    },
+    {
+      "key": "module.j_combo_matrix.t2.description",
+      "text": "Keeps 4+1 and unlocks mixed 3+2 combos."
+    },
+    {
+      "key": "module.j_combo_matrix.t3.description",
+      "text": "Keeps previous patterns and unlocks tricolor 2+2+1 combos."
+    },
+    {
       "key": "module.k0.name",
       "text": "K0 Drone Control"
     },

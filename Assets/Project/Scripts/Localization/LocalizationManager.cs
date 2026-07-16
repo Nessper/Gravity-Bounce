@@ -19,7 +19,8 @@ public class LocalizationManager : MonoBehaviour
     [SerializeField] private string languageCode = "fr";
 
     [Tooltip("Nom des packs de textes simples a charger au demarrage.")]
-    [SerializeField] private string[] textPackNames = { "ui", "ships", "modules" };
+    [SerializeField] private string[] textPackNames =
+        { "ui", "ships", "modules", "combos" };
 
     public static LocalizationManager Instance { get; private set; }
 

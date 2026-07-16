@@ -9,9 +9,6 @@
 
 | Domaine | Fait observé | Ce qui n’est pas établi |
 |---|---|---|
-| Score | `ScoreManager.GetSnapshot` ajoute le total du snapshot et `FlushResolutionEngine` fournit un `FinalTotal` incluant le base score. | Un double comptage réel sur le chemin actif. |
-| Combos runtime | Les états de chaîne/timing sont statiques ; resets retrouvés surtout en tutoriel/debug. | Leur remise à zéro entre deux niveaux normaux. |
-| Combos finaux | L’évaluateur recherche `WhiteFlushChain` et équivalents, le runtime définit `WhiteChain` et équivalents. | Déclenchement effectif de ces bonus finaux. |
 | Combo final | `ptsJustInTime` n’est pas sérialisé dans l’asset observé. | Valeur chargée par Unity. |
 | Fin de plan | Une convention accepte `index == Count`; `EnsurePlanLoaded` borne à `Count - 1`. | État exact après le dernier nœud. |
 | Récupération | `SaveManager` et `RunRecoveryOnBoot` traitent l’abandon/reprise avec des gardes. | Ordre exact des callbacks et absence absolue de double traitement. |
@@ -32,6 +29,8 @@ L’espace de travail comportait déjà des modifications de polices TMP, `Combo
 Le chemin V2 du score est raccordé dans `Main` : source autoritaire `ScoreManager`, racine de transfert Screen Space Overlay, cible HUD, cadence d’absorption, impacts, odomètre mécanique et session visuelle d’accumulation. Le comportement a été validé en Play Mode pour les arrivées ordinaires, les rafales, les flushs rapprochés et le Fast Flush. Après cette validation, `ScoreImpactPacketUI.prefab`, `ScoreBinder`, `ScoreUI` et leurs branchements sérialisés ont été retirés. Les anciennes scènes d’archive qui conservaient encore `ScoreUI` ont également été supprimées ; ce nettoyage n’est plus un travail en cours.
 
 Les familles drone K0, K1 et K2 sont également présentes dans les modifications locales : catalogue/localisation/icônes, socle commun, contrôleurs, exclusion temporaire des billes, assets visuels et câblage de `Main`. Les comportements principaux de K0/K1/K2 et la saisie-téléportation de K2 ont été validés de façon itérative en Play Mode par l’utilisateur ; les valeurs de mouvement, cooldown et effets restent des réglages de polish susceptibles d’évoluer avant commit.
+
+Les valeurs de la famille I (`+15 %/+22 %/+30 %`) et ses prix `4/10/16` sont explicitement provisoires. Leur pipeline central et idempotent ainsi que ses tests Editor compilent, mais l’affichage et les totaux avec un module I réellement équipé restent à confirmer en Play Mode.
 
 ## Limites de l’analyse
 

@@ -219,8 +219,8 @@ public class FlushComboOverlayController : MonoBehaviour
         for (int i = 0; i < resolution.ComboEvents.Count; i++)
         {
             ComboEvent combo = resolution.ComboEvents[i];
-            ComboDefinition definition = GetComboDefinition(combo.Id);
-            ComboSourceBinding binding = GetBinding(combo.Id);
+            ComboDefinition definition = GetComboDefinition(combo.DefinitionId);
+            ComboSourceBinding binding = GetBinding(combo.DefinitionId);
 
             bool hasSpecialSource =
                 binding != null &&
@@ -359,12 +359,14 @@ public class FlushComboOverlayController : MonoBehaviour
                 );
         }
 
-        string displayName = combo.Id;
+        string displayName = combo.DefinitionId;
         Color color = Color.white;
 
         if (definition != null)
         {
-            displayName = definition.Id;
+            displayName = ComboTextResolver.ResolveEventDisplayName(
+                definition,
+                combo);
             color = definition.UiColor;
         }
 
@@ -467,7 +469,7 @@ public class FlushComboOverlayController : MonoBehaviour
         ComboEvent combo,
         FlushResolution resolution)
     {
-        ComboSourceBinding binding = GetBinding(combo.Id);
+        ComboSourceBinding binding = GetBinding(combo.DefinitionId);
 
         if (binding != null && binding.SourceRoot != null)
             return binding.SourceRoot;

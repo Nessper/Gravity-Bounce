@@ -47,6 +47,9 @@ public class ScoreManager : MonoBehaviour
     private readonly HashSet<string> combosTriggered =
         new HashSet<string>();
 
+    private readonly List<ComboEvent> comboOccurrences =
+        new List<ComboEvent>();
+
     public int TotalBilles => totalBallsCollected;
     public int TotalNonBlackBilles => totalProgressBallsCollected;
     public int TotalPertes => totalBallsLost;
@@ -106,6 +109,7 @@ public class ScoreManager : MonoBehaviour
         lostByBallId.Clear();
         historique.Clear();
         combosTriggered.Clear();
+        comboOccurrences.Clear();
 
         onScoreChanged?.Invoke(currentScore);
     }
@@ -224,9 +228,23 @@ public class ScoreManager : MonoBehaviour
         combosTriggered.Add(comboId);
     }
 
+    public void RegisterCombo(ComboEvent comboEvent)
+    {
+        if (string.IsNullOrWhiteSpace(comboEvent.DefinitionId))
+            return;
+
+        comboOccurrences.Add(comboEvent);
+        combosTriggered.Add(comboEvent.DefinitionId);
+    }
+
     public IReadOnlyCollection<string> GetCombosTriggeredSnapshot()
     {
         return new List<string>(combosTriggered);
+    }
+
+    public IReadOnlyList<ComboEvent> GetComboOccurrencesSnapshot()
+    {
+        return new List<ComboEvent>(comboOccurrences);
     }
 
     public void RegisterLost(string ballId)

@@ -1,8 +1,8 @@
 public class ColorComboRule : IComboRule
 {
-    private const int WHITE_STREAK_THRESHOLD = 5;
-    private const int BLUE_RUSH_THRESHOLD = 4;
-    private const int RED_STORM_THRESHOLD = 3;
+    private const int WHITE_STREAK_FALLBACK_THRESHOLD = 5;
+    private const int BLUE_RUSH_FALLBACK_THRESHOLD = 4;
+    private const int RED_STORM_FALLBACK_THRESHOLD = 3;
 
     private readonly ComboDefinitionProvider definitionProvider;
 
@@ -31,7 +31,10 @@ public class ColorComboRule : IComboRule
         snapshot.parBallId.TryGetValue("red", out int redCount);
         snapshot.pointsParBallId.TryGetValue("red", out int redPoints);
 
-        if (whiteCount >= WHITE_STREAK_THRESHOLD)
+        if (MeetsThreshold(
+                ComboIds.WhiteStreak,
+                whiteCount,
+                WHITE_STREAK_FALLBACK_THRESHOLD))
         {
             AddColorCombo(
                 ComboIds.WhiteStreak,
@@ -40,7 +43,10 @@ public class ColorComboRule : IComboRule
                 whitePoints);
         }
 
-        if (blueCount >= BLUE_RUSH_THRESHOLD)
+        if (MeetsThreshold(
+                ComboIds.BlueRush,
+                blueCount,
+                BLUE_RUSH_FALLBACK_THRESHOLD))
         {
             AddColorCombo(
                 ComboIds.BlueRush,
@@ -49,7 +55,10 @@ public class ColorComboRule : IComboRule
                 bluePoints);
         }
 
-        if (redCount >= RED_STORM_THRESHOLD)
+        if (MeetsThreshold(
+                ComboIds.RedStorm,
+                redCount,
+                RED_STORM_FALLBACK_THRESHOLD))
         {
             AddColorCombo(
                 ComboIds.RedStorm,
@@ -57,6 +66,19 @@ public class ColorComboRule : IComboRule
                 resolution,
                 redPoints);
         }
+    }
+
+    private bool MeetsThreshold(
+        string comboId,
+        int count,
+        int fallbackThreshold)
+    {
+        ComboDefinition definition = definitionProvider.Get(comboId);
+        int threshold = definition != null && definition.Threshold > 0
+            ? definition.Threshold
+            : fallbackThreshold;
+
+        return count >= threshold;
     }
 
     private void AddColorCombo(

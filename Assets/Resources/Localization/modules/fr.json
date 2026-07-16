@@ -135,6 +135,38 @@
       "text": "Gagnez des crédits bonus selon la médaille. Bronze +4 / Argent +7 / Or +10."
     },
     {
+      "key": "module.i_combo_amplifier.name",
+      "text": "Amplificateur de combos I"
+    },
+    {
+      "key": "module.i_combo_amplifier.t1.description",
+      "text": "Tous les combos rapportent 15 % de points supplémentaires."
+    },
+    {
+      "key": "module.i_combo_amplifier.t2.description",
+      "text": "Tous les combos rapportent 22 % de points supplémentaires."
+    },
+    {
+      "key": "module.i_combo_amplifier.t3.description",
+      "text": "Tous les combos rapportent 30 % de points supplémentaires."
+    },
+    {
+      "key": "module.j_combo_matrix.name",
+      "text": "Matrice de combos J"
+    },
+    {
+      "key": "module.j_combo_matrix.t1.description",
+      "text": "Débloque les combos mixtes 4+1."
+    },
+    {
+      "key": "module.j_combo_matrix.t2.description",
+      "text": "Conserve 4+1 et débloque les combos mixtes 3+2."
+    },
+    {
+      "key": "module.j_combo_matrix.t3.description",
+      "text": "Conserve les patterns précédents et débloque les combos tricolores 2+2+1."
+    },
+    {
       "key": "module.k0.name",
       "text": "Contrôle des drones K0"
     },

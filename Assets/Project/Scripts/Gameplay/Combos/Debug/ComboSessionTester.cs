@@ -194,17 +194,17 @@ public class ComboSessionTester : MonoBehaviour
         {
             ComboEvent combo = resolution.ComboEvents[i];
 
-            if (!comboCounts.ContainsKey(combo.Id))
-                comboCounts[combo.Id] = 0;
+            if (!comboCounts.ContainsKey(combo.DefinitionId))
+                comboCounts[combo.DefinitionId] = 0;
 
-            comboCounts[combo.Id] += 1;
+            comboCounts[combo.DefinitionId] += 1;
             totalCombos += 1;
 
             if (logEachStep)
             {
                 Debug.Log(
                     $"[ComboSessionTester] Combo: " +
-                    $"{combo.Id} +{combo.Points} " +
+                    $"{combo.DefinitionId} +{combo.Points} " +
                     $"Family={combo.Family} " +
                     $"Chain={combo.ChainValue}");
             }

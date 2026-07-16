@@ -42,7 +42,7 @@ Source canonique du projet : `Assets/Project/Data/Balls/Ball_*.asset`.
 - `W1_MID` : 2×T1 + 1×T2 (poids 80), 3×T1 (17), 1×T1 + 2×T2 (3).
 - `W2_START` et `W2_MID` ont des règles définies, mais aucun monde W2 actif n’a été retrouvé.
 
-Les prix, paramètres et effets détaillés des 33 modules résident dans `Assets/Resources/Modules/ModuleCatalog.json`. Pour les familles drone actives : K0 applique un départ chargé aux trois tiers et des multiplicateurs de cooldown `1,0/0,9/0,8` ; K1 utilise `30/23/18 s` ; K2 utilise `30/25/22 s` et autorise successivement blanche, blanche/bleue, puis blanche/bleue/rouge. Le statut de travail observé de ce fichier est consigné dans [Incertitudes et travaux en cours](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md).
+Les prix, paramètres et effets détaillés des 39 modules résident dans `Assets/Resources/Modules/ModuleCatalog.json`. I utilise provisoirement les prix `4/10/16` et les multiplicateurs de points de combos `1,15/1,22/1,30`; J utilise les mêmes prix et débloque cumulativement les patterns 4+1, 3+2 et 2+2+1. Pour les familles drone actives : K0 applique un départ chargé aux trois tiers et des multiplicateurs de cooldown `1,0/0,9/0,8` ; K1 utilise `30/23/18 s` ; K2 utilise `30/25/22 s` et autorise successivement blanche, blanche/bleue, puis blanche/bleue/rouge. Le statut de travail observé de ce fichier est consigné dans [Incertitudes et travaux en cours](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md).
 
 ## Niveaux et combos
 

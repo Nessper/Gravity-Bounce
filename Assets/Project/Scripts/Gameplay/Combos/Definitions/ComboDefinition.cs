@@ -87,3 +87,126 @@ public class ComboDefinition
         return Mathf.RoundToInt(sourcePoints * finalBonusValue);
     }
 }
+
+public static class ComboTextResolver
+{
+    private const string CombosPackName = "combos";
+    private const string TwoColorsFormatKey =
+        "combo.occurrence.two_colors.format";
+    private const string ThreeColorsFormatKey =
+        "combo.occurrence.three_colors.format";
+
+    public static string ResolveDisplayName(
+        ComboDefinition definition,
+        string fallbackId)
+    {
+        string safeFallback = string.IsNullOrWhiteSpace(fallbackId)
+            ? string.Empty
+            : fallbackId;
+
+        if (definition == null ||
+            string.IsNullOrWhiteSpace(definition.NameLocKey) ||
+            LocalizationManager.Instance == null)
+        {
+            return safeFallback;
+        }
+
+        string localized = LocalizationManager.Instance.GetTextOrKey(
+            CombosPackName,
+            definition.NameLocKey);
+
+        if (string.IsNullOrWhiteSpace(localized) ||
+            localized == definition.NameLocKey)
+        {
+            return safeFallback;
+        }
+
+        return localized;
+    }
+
+    public static string ResolveEventDisplayName(
+        ComboDefinition definition,
+        ComboEvent comboEvent)
+    {
+        string baseName = ResolveDisplayName(
+            definition,
+            comboEvent.DefinitionId);
+
+        if (comboEvent.ColorRoles == null ||
+            LocalizationManager.Instance == null)
+        {
+            return baseName;
+        }
+
+        if (comboEvent.ColorRoles.Length == 2)
+        {
+            ComboColorRole first = comboEvent.ColorRoles[0];
+            ComboColorRole second = comboEvent.ColorRoles[1];
+
+            return FormatOccurrence(
+                TwoColorsFormatKey,
+                baseName,
+                ResolveBallName(first.BallId),
+                first.Count,
+                ResolveBallName(second.BallId),
+                second.Count);
+        }
+
+        if (comboEvent.ColorRoles.Length == 3)
+        {
+            ComboColorRole first = comboEvent.ColorRoles[0];
+            ComboColorRole second = comboEvent.ColorRoles[1];
+            ComboColorRole third = comboEvent.ColorRoles[2];
+
+            return FormatOccurrence(
+                ThreeColorsFormatKey,
+                baseName,
+                ResolveBallName(first.BallId),
+                first.Count,
+                ResolveBallName(second.BallId),
+                second.Count,
+                ResolveBallName(third.BallId),
+                third.Count);
+        }
+
+        return baseName;
+    }
+
+    private static string ResolveBallName(string ballId)
+    {
+        if (string.IsNullOrWhiteSpace(ballId) ||
+            LocalizationManager.Instance == null)
+        {
+            return ballId ?? string.Empty;
+        }
+
+        string key = "combo.color." + ballId.ToLowerInvariant();
+        string localized = LocalizationManager.Instance.GetTextOrKey(
+            CombosPackName,
+            key);
+
+        return localized == key ? ballId : localized;
+    }
+
+    private static string FormatOccurrence(
+        string formatKey,
+        string fallback,
+        params object[] args)
+    {
+        string format = LocalizationManager.Instance.GetTextOrKey(
+            CombosPackName,
+            formatKey);
+
+        if (format == formatKey)
+            return fallback;
+
+        try
+        {
+            return string.Format(format, args);
+        }
+        catch (FormatException)
+        {
+            return fallback;
+        }
+    }
+}

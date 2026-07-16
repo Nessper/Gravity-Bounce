@@ -1,8 +1,8 @@
 public class VolumeComboRule : IComboRule
 {
-    private const int SUPER_FLUSH_COUNT = 6;
-    private const int ULTRA_FLUSH_COUNT = 7;
-    private const int MONSTER_FLUSH_COUNT = 8;
+    private const int SUPER_FLUSH_FALLBACK_COUNT = 6;
+    private const int ULTRA_FLUSH_FALLBACK_COUNT = 7;
+    private const int MONSTER_FLUSH_FALLBACK_COUNT = 8;
 
     private readonly ComboDefinitionProvider definitionProvider;
 
@@ -28,7 +28,19 @@ public class VolumeComboRule : IComboRule
         int count =
             snapshot.nombreDeBilles;
 
-        if (count >= MONSTER_FLUSH_COUNT)
+        int superThreshold = GetThreshold(
+            ComboIds.SuperFlush,
+            SUPER_FLUSH_FALLBACK_COUNT);
+
+        int ultraThreshold = GetThreshold(
+            ComboIds.UltraFlush,
+            ULTRA_FLUSH_FALLBACK_COUNT);
+
+        int monsterThreshold = GetThreshold(
+            ComboIds.MonsterFlush,
+            MONSTER_FLUSH_FALLBACK_COUNT);
+
+        if (count >= monsterThreshold)
         {
             AddVolumeCombo(
                 ComboIds.MonsterFlush,
@@ -36,7 +48,7 @@ public class VolumeComboRule : IComboRule
                 resolution,
                 positivePoints);
         }
-        else if (count == ULTRA_FLUSH_COUNT)
+        else if (count == ultraThreshold)
         {
             AddVolumeCombo(
                 ComboIds.UltraFlush,
@@ -44,7 +56,7 @@ public class VolumeComboRule : IComboRule
                 resolution,
                 positivePoints);
         }
-        else if (count == SUPER_FLUSH_COUNT)
+        else if (count == superThreshold)
         {
             AddVolumeCombo(
                 ComboIds.SuperFlush,
@@ -52,6 +64,17 @@ public class VolumeComboRule : IComboRule
                 resolution,
                 positivePoints);
         }
+    }
+
+    private int GetThreshold(
+        string comboId,
+        int fallbackThreshold)
+    {
+        ComboDefinition definition = definitionProvider.Get(comboId);
+
+        return definition != null && definition.Threshold > 0
+            ? definition.Threshold
+            : fallbackThreshold;
     }
 
     private void AddVolumeCombo(
