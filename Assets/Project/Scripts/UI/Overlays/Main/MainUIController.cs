@@ -100,6 +100,14 @@ public class MainUIController : MonoBehaviour
         runtimeComboOverlayController?.RefreshAll();
     }
 
+    /// <summary>
+    /// Efface les indicateurs visuels de combos sans modifier le score.
+    /// </summary>
+    public void ClearRuntimeComboIndicators()
+    {
+        runtimeComboOverlayController?.ClearPresentation();
+    }
+
     public void InitializePauseOverlay(
         LevelCatalogService.LevelCatalogEntry levelMeta,
         LevelData levelData,
@@ -306,6 +314,44 @@ public class MainUIController : MonoBehaviour
 
     private IEnumerator ShowEndResultViewRoutine(Action onComplete)
     {
+        bool backgroundNeedsReveal =
+            backgroundGroup != null &&
+            backgroundGroup.alpha < 0.999f;
+
+        if (backgroundNeedsReveal)
+        {
+            HideGameplayHud();
+
+            SetCanvasGroup(dimmerGroup, 0f, false, false);
+            SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, false, false);
+            SetCanvasGroup(endResultOverlayGroup, 0f, false, false);
+
+            yield return StartCoroutine(
+                FadeCanvasGroup(
+                    backgroundGroup,
+                    backgroundGroup.alpha,
+                    1f,
+                    endResultFadeDuration,
+                    false,
+                    false
+                )
+            );
+
+            yield return StartCoroutine(
+                FadeCanvasGroup(
+                    endResultOverlayGroup,
+                    0f,
+                    1f,
+                    endResultFadeDuration,
+                    true,
+                    true
+                )
+            );
+
+            onComplete?.Invoke();
+            yield break;
+        }
+
         SetCanvasGroup(dimmerGroup, 1f, false, false);
         SetCanvasGroup(resultsCeremonyOverlayGroup, 0f, false, false);
         SetCanvasGroup(endResultOverlayGroup, 0f, true, true);

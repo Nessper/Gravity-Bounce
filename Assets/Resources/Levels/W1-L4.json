@@ -33,13 +33,6 @@
     }
   ],
 
-  "ScanText": {
-    "T1": "Fin de mission dangereuse.",
-    "T2": "Fin de mission composée uniquement de bleues et de noires.",
-    "T3": "Fin de mission composée uniquement de bleues et de noires. Accumuler des bleues avant la fin permet d’arriver à un bac presque prêt, à compléter avec une seule bille."
-  },
-
-
 
   "Phases": [
     {

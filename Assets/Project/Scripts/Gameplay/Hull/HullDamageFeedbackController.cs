@@ -2,22 +2,22 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Centralise les feedbacks visuels liés aux dégâts de Hull :
-/// - tremblement de caméra,
-/// - flash rouge plein écran,
-/// - séquence "Hull détruit" (plus longue).
+/// Centralise les feedbacks visuels liÃ©s aux dÃ©gÃ¢ts de Hull :
+/// - tremblement de camÃ©ra,
+/// - flash rouge plein Ã©cran,
+/// - sÃ©quence "Hull dÃ©truit" (plus longue).
 /// </summary>
 public class HullDamageFeedbackController : MonoBehaviour
 {
-    [Header("Références")]
+    [Header("RÃ©fÃ©rences")]
     [SerializeField] private ScreenShake screenShake;
     [SerializeField] private DamageFlashUI damageFlash;
 
     // ============================================================
-    // DÉGÂTS (flush de noires)
+    // DÃ‰GÃ‚TS (flush de noires)
     // ============================================================
 
-    [Header("Intensité (dégâts)")]
+    [Header("IntensitÃ© (dÃ©gÃ¢ts)")]
     [SerializeField] private float baseShakeAmplitude = 0.12f;
     [SerializeField] private float maxShakeAmplitude = 0.25f;
     [SerializeField] private float shakeDuration = 0.15f;
@@ -25,58 +25,62 @@ public class HullDamageFeedbackController : MonoBehaviour
     [SerializeField] private int maxBlackCountForIntensity = 3;
 
     // ============================================================
-    // HULL DÉTRUIT (GameOver)
+    // HULL DÃ‰TRUIT (GameOver)
     // ============================================================
 
-    [Header("Hull détruit (GameOver) - Timing")]
+    [Header("Hull dÃ©truit (GameOver) - Timing")]
     [Tooltip("Freeze initial (unscaled) pour marquer le choc.")]
     [SerializeField] private float destroyedFreezeSec = 0.28f;
 
-    [Tooltip("Pause (unscaled) juste après le freeze, avant de lancer le gros shake. Donne un 'vide' dramatique.")]
+    [Tooltip("Pause (unscaled) juste aprÃ¨s le freeze, avant de lancer le gros shake. Donne un 'vide' dramatique.")]
     [SerializeField] private float destroyedPreImpactPauseSec = 0.08f;
 
-    [Tooltip("Durée du shake principal (unscaled).")]
+    [Tooltip("DurÃ©e du shake principal (unscaled).")]
     [SerializeField] private float destroyedImpactShakeDuration = 0.85f;
 
-    [Tooltip("Après-shock (unscaled) : shake secondaire plus lent, plus lourd.")]
+    [Tooltip("AprÃ¨s-shock (unscaled) : shake secondaire plus lent, plus lourd.")]
     [SerializeField] private float destroyedAftershockDuration = 1.05f;
 
-    [Tooltip("Pause finale (unscaled) sans FX : le cerveau comprend que c'est terminé.")]
+    [Tooltip("Pause finale (unscaled) sans FX : le cerveau comprend que c'est terminÃ©.")]
     [SerializeField] private float destroyedSilencePauseSec = 0.55f;
 
-    [Header("Hull détruit (GameOver) - Shake")]
+    [Header("Hull dÃ©truit (GameOver) - Shake")]
     [SerializeField] private float destroyedImpactShakeAmplitude = 0.38f;
     [SerializeField] private float destroyedImpactShakeFrequency = 20f;
 
     [SerializeField] private float destroyedAftershockAmplitudeMultiplier = 0.35f;
     [SerializeField] private float destroyedAftershockFrequencyMultiplier = 0.55f;
 
-    [Header("Hull détruit (GameOver) - Flash")]
-    [Tooltip("Intensité du flash principal (0..1).")]
+    [Header("Hull dÃ©truit (GameOver) - Flash")]
+    [Tooltip("IntensitÃ© du flash principal (0..1).")]
     [Range(0f, 1f)]
     [SerializeField] private float destroyedImpactFlashIntensity = 1f;
 
-    [Tooltip("Petit flash secondaire (0..1) au début de l'aftershock. Optionnel.")]
+    [Tooltip("Petit flash secondaire (0..1) au dÃ©but de l'aftershock. Optionnel.")]
     [Range(0f, 1f)]
     [SerializeField] private float destroyedAftershockFlashIntensity = 0.25f;
 
     [Tooltip("Active le flash secondaire.")]
     [SerializeField] private bool playAftershockFlash = true;
 
-    [Header("Hull détruit (GameOver) - Post")]
+    [Tooltip("IntensitÃ© du clignotement rouge maintenu jusqu'Ã  l'overlay Game Over.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float destroyedWarningPulseIntensity = 0.5f;
+
+    [Header("Hull dÃ©truit (GameOver) - Post")]
     [Tooltip("Pause finale avant affichage du panel GameOver.")]
     [SerializeField] private float destroyedPostDelaySec = 3.0f;
 
 
-    [Header("Hull détruit (GameOver) - Option")]
-    [Tooltip("Si true, on empêche les feedbacks dégâts normaux pendant la séquence Hull détruit.")]
+    [Header("Hull dÃ©truit (GameOver) - Option")]
+    [Tooltip("Si true, on empÃªche les feedbacks dÃ©gÃ¢ts normaux pendant la sÃ©quence Hull dÃ©truit.")]
     [SerializeField] private bool lockDamageFeedbackDuringDestroyed = true;
 
     private Coroutine runningDestroyedRoutine;
     private bool destroyedRunning;
 
     // ============================================================
-    // DÉGÂTS
+    // DÃ‰GÃ‚TS
     // ============================================================
 
     public void PlayHullDamageFeedback(int blackCount)
@@ -104,12 +108,12 @@ public class HullDamageFeedbackController : MonoBehaviour
     }
 
     // ============================================================
-    // HULL DÉTRUIT
+    // HULL DÃ‰TRUIT
     // ============================================================
 
     /// <summary>
-    /// Séquence plus longue pour un GameOver "Hull détruit".
-    /// Appelle onComplete à la fin (ex: déclencher le panel final).
+    /// SÃ©quence plus longue pour un GameOver "Hull dÃ©truit".
+    /// Appelle onComplete Ã  la fin (ex: dÃ©clencher le panel final).
     /// </summary>
     public void PlayHullDestroyedFeedback(System.Action onComplete)
     {
@@ -157,7 +161,7 @@ public class HullDamageFeedbackController : MonoBehaviour
             yield return new WaitForSecondsRealtime(destroyedImpactShakeDuration);
 
         // --------------------------------------------------
-        // 3) AFTERSHOCK (shake secondaire plus lent + option flash léger)
+        // 3) AFTERSHOCK (shake secondaire plus lent + option flash lÃ©ger)
         // --------------------------------------------------
         if (screenShake != null && destroyedAftershockDuration > 0f)
         {
@@ -174,6 +178,9 @@ public class HullDamageFeedbackController : MonoBehaviour
 
         if (destroyedAftershockDuration > 0f)
             yield return new WaitForSecondsRealtime(destroyedAftershockDuration);
+
+        if (damageFlash != null && destroyedWarningPulseIntensity > 0f)
+            damageFlash.StartPulse(destroyedWarningPulseIntensity);
 
         // --------------------------------------------------
         // 4) SILENCE (pause dramatique sans FX)
@@ -194,5 +201,11 @@ public class HullDamageFeedbackController : MonoBehaviour
         runningDestroyedRoutine = null;
 
         onComplete?.Invoke();
+    }
+
+    public void StopHullDestroyedWarning()
+    {
+        damageFlash?.StopPulse();
+        destroyedRunning = false;
     }
 }

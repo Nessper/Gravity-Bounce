@@ -45,6 +45,7 @@ public class RunHubModulesShopController : MonoBehaviour
     private void OnEnable()
     {
         modulesHub.OnModulesCollectionChanged += RefreshUI;
+        ShipSystemsOverlayTransitionController.SourceUiHidden += ClearSelection;
         RefreshUI();
     }
 
@@ -52,6 +53,14 @@ public class RunHubModulesShopController : MonoBehaviour
     {
         if (modulesHub != null)
             modulesHub.OnModulesCollectionChanged -= RefreshUI;
+
+        ShipSystemsOverlayTransitionController.SourceUiHidden -= ClearSelection;
+    }
+
+    private void ClearSelection()
+    {
+        if (modulesListPanel != null)
+            modulesListPanel.ClearSelection();
     }
 
     /// <summary>

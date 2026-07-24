@@ -1,4 +1,5 @@
 using System.Collections;
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -20,6 +21,17 @@ using UnityEngine;
 /// </summary>
 public class ShipSystemsOverlayTransitionController : MonoBehaviour
 {
+    /// <summary>
+    /// Emis lorsque l ecran source est quitte pour Ship Systems.
+    /// Les overlays sont masques par CanvasGroup et ne recoivent donc pas OnDisable.
+    /// </summary>
+    public static event Action SourceUiHidden;
+
+    /// <summary>
+    /// Emis lorsque Ship Systems est quitte pour revenir a l ecran source.
+    /// </summary>
+    public static event Action ShipSystemsUiHidden;
+
     [Header("Dimmer")]
     [SerializeField] private CanvasGroup dimmerCanvasGroup;
 
@@ -125,7 +137,7 @@ public class ShipSystemsOverlayTransitionController : MonoBehaviour
     {
         isRunning = true;
 
-        // 0) Pré fade de l UI source
+        // 0) PrÃ© fade de l UI source
         yield return FadeUiOut(sourceUiCanvasGroup, sourceUiPreFadeOutSeconds);
 
         // 1) Fade au noir via dimmer
@@ -138,6 +150,7 @@ public class ShipSystemsOverlayTransitionController : MonoBehaviour
         );
 
         // 2) Swap visuel
+        NotifySourceUiHidden();
         HideSourceUiImmediate();
 
         if (HasShipSystemsBackground())
@@ -170,7 +183,7 @@ public class ShipSystemsOverlayTransitionController : MonoBehaviour
     {
         isRunning = true;
 
-        // 0) Pré fade de l UI Ship Systems
+        // 0) PrÃ© fade de l UI Ship Systems
         yield return FadeUiOut(shipSystemsUiCanvasGroup, shipSystemsUiPreFadeOutSeconds);
 
         // 1) Fade au noir via dimmer
@@ -183,6 +196,7 @@ public class ShipSystemsOverlayTransitionController : MonoBehaviour
         );
 
         // 2) Swap visuel
+        NotifyShipSystemsUiHidden();
         HideShipSystemsUiImmediate();
 
         if (HasShipSystemsBackground())
@@ -200,7 +214,7 @@ public class ShipSystemsOverlayTransitionController : MonoBehaviour
 
         ReleaseDimmerInput();
 
-        // 4) Réapparition de l UI source avec punch
+        // 4) RÃ©apparition de l UI source avec punch
         yield return FadeUiWithPunch(
             sourceUiCanvasGroup,
             sourceUiRoot,
@@ -364,6 +378,16 @@ public class ShipSystemsOverlayTransitionController : MonoBehaviour
         shipSystemsUiCanvasGroup.alpha = 0f;
         shipSystemsUiCanvasGroup.interactable = false;
         shipSystemsUiCanvasGroup.blocksRaycasts = false;
+    }
+
+    private void NotifySourceUiHidden()
+    {
+        SourceUiHidden?.Invoke();
+    }
+
+    private void NotifyShipSystemsUiHidden()
+    {
+        ShipSystemsUiHidden?.Invoke();
     }
 
     // ------------------------------------------------------------

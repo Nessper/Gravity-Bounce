@@ -2,7 +2,7 @@
 
 > **Usage** : fiches autonomes pour raisonner sur les systèmes sans parcourir les 266 scripts C# sous `Assets/Project/Scripts`.
 > **Statut** : synthèse statique de l’état observé, pas une spécification d’intention.  
-> **Dernière vérification** : 2026-07-15.  
+> **Dernière vérification** : 2026-07-23.
 > **Compléments** : [contexte global](AI_CONTEXT_404.md) et [guide de travail](AI_WORKING_GUIDE_404.md).
 
 ## Comment lire une fiche
@@ -221,11 +221,11 @@ Chaque domaine indique rôle, état, fonctionnement/cycle, données, persistance
 ## 20. Combos runtime
 
 - **Rôle — état** : reconnaître motifs de couleur, timing, chaîne, volume et compositions mixtes J lors des flushs, puis amplifier leurs points avec I ; **actif**.
-- **Fonctionnement — cycle** : `ComboResolver` applique toutes les règles au snapshot/résolution, met à jour les états de chaîne/timing et active J selon `ModuleRuntimeStats.JComboTier`. Après cette détection complète et avant tout consommateur, la résolution applique une fois `ModuleRuntimeStats.ComboPointsMultiplier` à chaque occurrence, depuis ses points de base.
-- **Données — persistance** : treize définitions dans `ComboDefinitionCatalog.asset`; types distincts et occurrences détaillées dans `ScoreManager`; états runtime statiques réinitialisés à chaque instance de niveau.
+- **Fonctionnement — cycle** : `ComboResolver` applique toutes les règles au snapshot/résolution, met à jour les états de chaîne/timing et active J selon `ModuleRuntimeStats.JComboTier`. Après cette détection complète et avant tout consommateur, la résolution applique une fois `ModuleRuntimeStats.ComboPointsMultiplier` à chaque occurrence, depuis ses points de base. L’UI interpole la progression à l’intérieur de chaque palier et plafonne au `MaxLevel`.
+- **Données — persistance** : treize définitions dans `ComboDefinitionCatalog.asset`; types distincts et occurrences détaillées dans `ScoreManager`; états runtime statiques réinitialisés par l’API commune à l’initialisation, au tutoriel, au retry, à l’arrêt dur et après le flush final.
 - **Classes/assets** : `ComboResolver`, `FlushResolution`, `FlushResolutionEngine`, `ColorComboRule`, `MixedColorComboRule`, `TimingComboRule`, `ChainComboRule`, `VolumeComboRule`, `ChainRuntimeState`, `TimingRuntimeState`.
 - **Entrantes → sortantes** : flush et temps → score, historique, overlays/audio et combos finaux.
-- **Surface publique** : résolution, `DefinitionId`, `OccurrenceKey`, événements de déclenchement et reset à la création du moteur de niveau.
+- **Surface publique** : résolution, `DefinitionId`, `OccurrenceKey`, événements de déclenchement et `FlushResolutionEngine.ResetRuntimeState()`.
 - **Cas limites/validation** : plusieurs occurrences d’un ID comptent séparément pour score/objectifs, mais une seule fois pour la diversité ; I amplifie chaque occurrence sans modifier ces identités et refuse une seconde application ; matrice pure J validée hors Play Mode.
 - **Canonique** : [`score-objectifs-et-combos.md`](../01-systemes/score-objectifs-et-combos.md).
 
@@ -243,7 +243,7 @@ Chaque domaine indique rôle, état, fonctionnement/cycle, données, persistance
 ## 22. Fin de niveau et récompenses
 
 - **Rôle — état** : arrêter proprement la mission, construire et appliquer le résultat ; chemin actuel **actif**, UI de fin **hybride**.
-- **Fonctionnement — cycle** : arrêt contrôles/spawn → évacuation → flush final → cleanup → évaluation → outcome/snapshot → cérémonie → résultat → commit/sortie.
+- **Fonctionnement — cycle** : arrêt contrôles/spawn → évacuation → flush final et présentation → reset des chaînes → cleanup → évaluation → outcome/snapshot → cérémonie → résultat → commit/sortie. La défaite coque directe contourne la cérémonie et enchaîne pulse rouge, fondu du fond puis `EndResult`.
 - **Données — persistance** : outcome temporaire ; snapshot/token persistés avant présentation ; score, argent, vies et progression appliqués au run au commit.
 - **Classes/assets** : `LevelEndFlowController`, `EndSequenceController`, `LevelEvacuationController`, `EndLevelOutcomeBuilder`, `EndLevelSnapshot`.
 - **Entrantes → sortantes** : timer/coque/abandon/objectifs → présentation, sauvegarde, analytics et navigation.
@@ -275,19 +275,19 @@ Chaque domaine indique rôle, état, fonctionnement/cycle, données, persistance
 
 ## 25. Pause, abandon et retry
 
-- **Rôle — état** : suspendre/reprendre et sortir d’une mission ; pause/abandon **actifs**, retry autonome **non établi**.
-- **Fonctionnement — cycle** : overlay de pause suspend le temps, informe l’audio, reprend ou déclenche une sortie/abandon vers le flux de fin/récupération.
+- **Rôle — état** : suspendre/reprendre, retry et sortir d’une mission ; **actif**.
+- **Fonctionnement — cycle** : l’overlay suspend le temps, verrouille paddle/Close Bin/mobile sans perdre la demande métier précédente, informe l’audio, puis reprend, retente avec reset des chaînes ou déclenche une sortie.
 - **Données — persistance** : état de pause temporaire ; abandon/niveau en cours marqués en sauvegarde selon le chemin.
 - **Classes/assets** : `LevelPauseFlowHandler`, `PauseOverlayController`, `LevelRunStateController`, `GameFlowController`.
 - **Entrantes → sortantes** : input/UI → `Time`/contrôles/audio → reprise ou sauvegarde/navigation.
-- **Surface publique** : pause, resume, exit/abandon ; action « retry » distincte non documentée comme système indépendant.
-- **Cas limites/validation** : distinguer retry, rechargement et reprise après crash ; comportement exact doit être observé avant d’en parler comme fonctionnalité.
+- **Surface publique** : pause, resume, retry, exit/abandon et verrou temporaire `SetPaused`.
+- **Cas limites/validation** : la reprise ne doit pas réactiver des contrôles déjà désactivés par le flux ; retry et reprise après crash restent deux chemins distincts.
 - **Canonique** : [`tutoriel-pause-input-et-plateformes.md`](../01-systemes/tutoriel-pause-input-et-plateformes.md), [`fin-de-niveau-recompenses-et-reprise.md`](../01-systemes/fin-de-niveau-recompenses-et-reprise.md).
 
 ## 26. HUD et overlays
 
 - **Rôle — état** : présenter états et séquences, recueillir commandes ; **actif**, UI de score V2 **validée**, écrans de fin **hybrides**.
-- **Fonctionnement — cycle** : binders/contrôleurs s’abonnent aux managers ; `MainUIController` orchestre briefing, countdown, pause, combos, dégâts, évacuation et résultats.
+- **Fonctionnement — cycle** : binders/contrôleurs s’abonnent aux managers ; `MainUIController` orchestre briefing, countdown, pause, combos, dégâts, évacuation et résultats. Les transitions de systèmes vident explicitement les sélections ; achat pulse le bouton Tuning ; la défaite prépare `EndResult` avant son fondu.
 - **Données — persistance** : état de vue temporaire ; aucune autorité métier, sauf commandes transmises aux systèmes.
 - **Classes/assets** : `MainUIController`, `GameplayScoreImpactUI`, `ScoreAttractorUI`, `ScoreFlushAbsorberUI`, `HullBinder`, `ContractLivesBinder`, overlays `ResultsCeremony`/`EndResult`, prefabs UI.
 - **Entrantes → sortantes** : run/score/coque/timer/bacs → vues ; boutons → flow, boutique, équipement, pause et fin.

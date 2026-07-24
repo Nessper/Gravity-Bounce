@@ -32,12 +32,6 @@
     }
   ],
 
-   "ScanText": {
-    "T1": "La bille rouge apparaît en fin de mission.",
-    "T2": "Les obstacles sont placés bas à l’écran, ce qui complique les trajectoires.\n La bille rouge apparaît en fin de mission.",
-    "T3": "Les obstacles, placés bas à l’écran, perturbent les trajectoires au dernier moment.\n En fin de niveau, la bille rouge apparaît dans une phase majoritairement composée de bleues (60 %) et de noires (35 %)."
-  },
-
   "Phases": [
     {
       "Name": "PHASE 1",

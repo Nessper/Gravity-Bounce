@@ -2,7 +2,7 @@
 
 > **Périmètre** : règles structurelles à préserver mentalement pour comprendre le runtime actuel.  
 > **Statut** : invariants déduits de garde-fous explicites ; exceptions incertaines référencées.  
-> **Date de vérification** : 2026-07-15.  
+> **Date de vérification** : 2026-07-23.
 > **Principaux appuis** : services Boot, `RunSessionState`, `SaveManager`, contrôleurs de niveau/fin, systèmes de bac et modules.
 
 ## Cycle global
@@ -45,7 +45,9 @@
 
 ## Durées de vie statiques
 
-`ChainRuntimeState` et `TimingRuntimeState` sont statiques. Leur reset régulier de mission n’a pas été retrouvé ; ils constituent donc une exception potentielle à l’isolation attendue d’un niveau. Ce point reste **incertain** et n’est pas transformé ici en invariant.
+`ChainRuntimeState` et `TimingRuntimeState` sont statiques, mais leur cycle est désormais borné par `FlushResolutionEngine.ResetRuntimeState()`. La même API réinitialise le résolveur et l’UI à l’initialisation, à la fin du tutoriel, au retry, lors d’un arrêt dur et après la présentation du flush final. Invariant : ne pas réintroduire un reset avant la résolution du flush final, sous peine de perdre les chaînes qu’il doit encore produire et afficher.
+
+La pause est un verrou temporaire distinct de l’état métier des contrôles. Elle doit désactiver ensemble paddle, fermeture des bacs et commandes mobiles, puis restaurer la demande antérieure sans rallumer des contrôles déjà arrêtés par le flux.
 
 ## Frontières de confiance
 

@@ -2,18 +2,20 @@
 
 > **Périmètre** : tutoriel embarqué, mise en pause, voies de contrôle souris/tactile/clavier et adaptations de plateforme.  
 > **Statut** : confirmé statiquement ; interactions multi-plateformes non exécutées.  
-> **Date de vérification** : 2026-07-14.  
+> **Date de vérification** : 2026-07-23.
 > **Principaux appuis** : scripts `Gameplay/Tutorial`, `LevelPauseFlowHandler.cs`, `PlayerController.cs`, scripts `Input`, `PlatformTuning.cs`, prefab joueur et réglages Player.
 
 ## Tutoriel
 
 Le tutoriel se déclenche sur W1-L1 tant que le drapeau permanent de complétion est faux. Il déroule quatre étapes guidées, contrôle des spawns et interactions ciblées, et sauvegarde la complétion dans le profil.
 
-La séquence capture puis restaure une partie de l’état de jeu afin de ne pas conserver ses conditions artificielles. Les états statiques de combo sont explicitement réinitialisés dans ce contexte. Le contenu précis des quatre étapes est porté par les contrôleurs de tutoriel et leurs références sérialisées dans `Main`.
+La séquence capture puis restaure une partie de l’état de jeu afin de ne pas conserver ses conditions artificielles. Les états statiques et l’UI de chaînes sont explicitement réinitialisés via la même API que les autres frontières de mission. Le contenu précis des quatre étapes est porté par les contrôleurs de tutoriel et leurs références sérialisées dans `Main`.
 
 ## Pause
 
 `LevelPauseFlowHandler` coordonne le niveau et `PauseOverlayController`. La pause suspend le temps de jeu et informe l’audio afin d’appliquer son comportement dédié. Les options de reprise et sortie sont gérées par l’overlay ; le traitement d’une sortie/abandon rejoint les marqueurs de sauvegarde décrits dans [Sauvegarde](sauvegarde-progression-et-integrite.md).
+
+`LevelControlsController` conserve séparément la demande métier d’activation des contrôles et le verrou temporaire de pause. Pendant la pause, il désactive ensemble le paddle, les commandes de fermeture des bacs et la racine mobile. À la reprise, il ne réactive que ce que le flux de gameplay demandait déjà. Le retry remet également à zéro les chaînes avant de relancer la mission.
 
 ## Voies d’input
 

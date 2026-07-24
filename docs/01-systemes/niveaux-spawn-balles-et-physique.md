@@ -2,12 +2,12 @@
 
 > **Périmètre** : définition des missions, phases, génération des balles, pooling, obstacles et comportement physique.  
 > **Statut** : confirmé par code/données ; hasard exact et physique non joués.  
-> **Date de vérification** : 2026-07-15.  
+> **Date de vérification** : 2026-07-23.
 > **Principaux appuis** : `LevelData.cs`, `LevelCatalogService.cs`, JSON `Resources/Levels`, `BallSpawner.cs`, `BallDefinition*`, `BallState.cs`, `BallPhysicsTuning.cs`, `ObstacleManager.cs`.
 
 ## Contenu de niveau
 
-`LevelCatalog.json` indexe W1-L1 à W1-L6 et un niveau DBG-L1. Chaque fichier de niveau décrit l’objectif, la durée, les phases de spawn, les mélanges de balles, les objectifs secondaires, les obstacles et des références de narration/présentation. Le `LevelContext` runtime combine ces données avec le run et les réglages de modules.
+`LevelCatalog.json` indexe W1-L1 à W1-L6 et un niveau DBG-L1. Chaque fichier de niveau décrit l’objectif, la durée, les phases de spawn, les mélanges de balles, les objectifs secondaires, les obstacles et des références de narration/présentation. Le `LevelContext` runtime combine ces données avec le run et les réglages de modules. Les anciens blocs statiques `ScanText` ont été retirés des niveaux actifs.
 
 Certaines propriétés de `LevelData` appartiennent à des schémas antérieurs. Leur classification est centralisée dans [Systèmes actifs, legacy et hybrides](../04-etat-du-projet/systemes-actifs-legacy-et-hybrides.md) et leur absence de consommation retrouvée dans le [registre d’incertitudes](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md).
 
@@ -22,6 +22,10 @@ Quatre `BallDefinition` sont actives : blanche, bleue, rouge et noire. Les trois
 ## Génération
 
 `BallSpawner` transforme chaque phase en quota et répartit les types selon le mélange demandé. La répartition des comptes est déterministe pour un quota donné ; l’emplacement de spawn utilise de l’aléatoire. Des spawns forcés existent pour les séquences contrôlées, notamment le tutoriel.
+
+Au démarrage du spawn, un log unique en Editor ou Development Build résume le plan réellement construit : identifiant du niveau, total et quantité de chaque définition (`black`, `blue`, `red`, `white`). Le drapeau est réarmé à chaque nouvelle configuration du spawner.
+
+`ScanT1AnalysisBuilder` utilise les mêmes entrées de niveau pour anticiper ces quotas dans le briefing et la pause. Il tient compte de la durée effective, des poids de phase, intervalles, mixes et spawns forcés ; il ne remplace pas le plan autoritaire que `BallSpawner` construit au lancement.
 
 Des champs de spawn sans consommation retrouvée et une divergence de schéma propre à DBG-L1 existent. Leur inventaire et le comportement non établi sont centralisés dans [Incertitudes et contradictions](../04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md).
 

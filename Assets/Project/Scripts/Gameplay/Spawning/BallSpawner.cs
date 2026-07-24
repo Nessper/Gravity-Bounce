@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 [Serializable]
@@ -103,6 +104,7 @@ public class BallSpawner : MonoBehaviour
     private int activatedCount;
     private int recycledCollected;
     private int recycledLost;
+    private bool plannedCountsLogged;
 
     private PhasePlanInfo[] publicPhasePlans = Array.Empty<PhasePlanInfo>();
 
@@ -126,6 +128,7 @@ public class BallSpawner : MonoBehaviour
         activatedCount = 0;
         recycledCollected = 0;
         recycledLost = 0;
+        plannedCountsLogged = false;
 
         pool.Clear();
         activeBalls.Clear();
@@ -664,8 +667,61 @@ public class BallSpawner : MonoBehaviour
         if (loop != null)
             return;
 
+        LogPlannedBallCountsOnce();
+
         running = true;
         loop = StartCoroutine(SpawnLoop());
+    }
+
+    private void LogPlannedBallCountsOnce()
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (plannedCountsLogged)
+            return;
+
+        plannedCountsLogged = true;
+
+        var countsByBallId = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        for (int phaseIndex = 0; phaseIndex < definitionQueues.Count; phaseIndex++)
+        {
+            Queue<BallDefinition> queue = definitionQueues[phaseIndex];
+            if (queue == null)
+                continue;
+
+            foreach (BallDefinition definition in queue)
+            {
+                if (definition == null || string.IsNullOrWhiteSpace(definition.Id))
+                    continue;
+
+                if (!countsByBallId.ContainsKey(definition.Id))
+                    countsByBallId[definition.Id] = 0;
+
+                countsByBallId[definition.Id]++;
+            }
+        }
+
+        var ballIds = new List<string>(countsByBallId.Keys);
+        ballIds.Sort(StringComparer.OrdinalIgnoreCase);
+
+        var details = new StringBuilder();
+        for (int i = 0; i < ballIds.Count; i++)
+        {
+            if (i > 0)
+                details.Append(", ");
+
+            string ballId = ballIds[i];
+            details.Append(ballId);
+            details.Append('=');
+            details.Append(countsByBallId[ballId]);
+        }
+
+        Debug.Log(
+            "[SpawnPlan] Level=" + (data != null ? data.LevelID : "<unknown>") +
+            " | Total=" + PlannedSpawnCount +
+            " | " + details
+        );
+#endif
     }
 
     public void StopSpawning()

@@ -2,7 +2,7 @@
 
 > **Périmètre** : index de la documentation d’architecture du projet Unity 404.  
 > **Statut** : vérifié par analyse statique ; aucune exécution en Play Mode.  
-> **Date de vérification** : 2026-07-14.  
+> **Date de vérification** : 2026-07-23.
 > **Principaux appuis** : `Assets/Project`, `Assets/Resources`, `ProjectSettings`, `Packages/manifest.json`.
 
 Cette documentation décrit l’état observé du projet. Elle ne prescrit ni correction, ni refactorisation, ni évolution. Les mentions **Confirmé**, **Observation statique** et **Incertain** ont le sens défini dans le [guide de lecture](00-vue-ensemble/guide-de-lecture-et-glossaire.md).
@@ -57,6 +57,11 @@ Les pages suivantes constituent l’ensemble de référence, regroupé par usage
 - [Systèmes actifs, legacy et hybrides](04-etat-du-projet/systemes-actifs-legacy-et-hybrides.md)
 - [Incertitudes, contradictions et travaux en cours](04-etat-du-projet/incertitudes-contradictions-et-travaux-en-cours.md)
 - [Maintenance documentaire](05-maintenance/maintenance-documentaire.md)
+
+### Documents de conception complémentaires
+
+- [Guide des modules](Guide_des_modules_404.docx) : fonctions et effets des modules.
+- [Audit des builds de modules](Audit_builds_modules_404.docx) : archétypes early/late game et gameplay émergent, projetés sur cinq mondes et deux boutiques par monde.
 
 ## Limite de vérification
 

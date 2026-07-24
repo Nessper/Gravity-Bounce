@@ -166,7 +166,7 @@ public class LevelBriefingLevelPanelUI : MonoBehaviour
             return;
         }
 
-        string clean = resolvedScanText.Replace("\n", " ").Trim();
+        string clean = resolvedScanText.Replace("\r\n", "\n").Trim();
         SetText(scanText, clean);
     }
 

@@ -19,6 +19,12 @@ using UnityEngine.UI;
 /// </summary>
 public class RunHubModulesBuyController : MonoBehaviour
 {
+    /// <summary>
+    /// Emis uniquement apres l achat effectif d un module depuis le Shop.
+    /// Les feedbacks UI contextuels peuvent s y abonner sans influencer l achat.
+    /// </summary>
+    public static event System.Action ModulePurchased;
+
     [Header("Dependencies")]
     [SerializeField] private ModulesHubController modulesHub;
     [SerializeField] private ModulesListPanelUI modulesListPanel;
@@ -138,6 +144,7 @@ public class RunHubModulesBuyController : MonoBehaviour
         }
 
         BootRoot.Audio?.PlayUi(buySfx);
+        ModulePurchased?.Invoke();
 
         modulesListPanel.ClearSelection();
         shopController.RefreshUI();

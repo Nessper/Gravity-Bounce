@@ -134,38 +134,7 @@ public class LevelBriefingOverlayController : MonoBehaviour
         if (tier == BriefingTier.T0)
             return GetT0ScanText();
 
-        if (data == null || data.ScanText == null)
-            return "scan unavailable";
-
-        switch (tier)
-        {
-            case BriefingTier.T1:
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T1))
-                    return data.ScanText.T1;
-                break;
-
-            case BriefingTier.T2:
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T2))
-                    return data.ScanText.T2;
-
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T1))
-                    return data.ScanText.T1;
-                break;
-
-            case BriefingTier.T3:
-            default:
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T3))
-                    return data.ScanText.T3;
-
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T2))
-                    return data.ScanText.T2;
-
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T1))
-                    return data.ScanText.T1;
-                break;
-        }
-
-        return "scan unavailable";
+        return ScanT1AnalysisBuilder.Build(data, runSessionState) ?? "scan unavailable";
     }
 
     private BriefingTier ResolveBriefingTier()

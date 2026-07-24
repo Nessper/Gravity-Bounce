@@ -111,6 +111,16 @@ public class RuntimeComboOverlayController : MonoBehaviour
         RefreshTiming();
     }
 
+    /// <summary>
+    /// Efface immediatement les indicateurs de chaines et de timing.
+    /// A utiliser quand l etat runtime des combos est reinitialise.
+    /// </summary>
+    public void ClearPresentation()
+    {
+        if (overlayUI != null)
+            overlayUI.HideAll();
+    }
+
     private void RefreshChains()
     {
         if (overlayUI == null || chainState == null)
@@ -148,6 +158,7 @@ public class RuntimeComboOverlayController : MonoBehaviour
 
         string displayName = comboId;
         Color uiColor = Color.white;
+        int maxLevel = int.MaxValue;
 
         if (definition != null)
         {
@@ -155,6 +166,9 @@ public class RuntimeComboOverlayController : MonoBehaviour
                 definition,
                 comboId);
             uiColor = definition.UiColor;
+            maxLevel = definition.MaxLevel > 0
+                ? definition.MaxLevel
+                : int.MaxValue;
         }
 
         overlayUI.SetChain(
@@ -163,7 +177,8 @@ public class RuntimeComboOverlayController : MonoBehaviour
             uiColor,
             currentBalls,
             stepBalls,
-            awardedLevel
+            awardedLevel,
+            maxLevel
         );
     }
 

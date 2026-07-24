@@ -148,6 +148,16 @@ public class EndResultOverlayController : MonoBehaviour
         mainUIController?.HideHoldToSkip(this);
     }
 
+    /// <summary>
+    /// Nettoie l'ancien contenu avant que le conteneur global commence son fondu.
+    /// Les animations de reveal restent lancees uniquement par Play().
+    /// </summary>
+    public void PrepareForReveal()
+    {
+        StopPlayRoutine();
+        ResetAll();
+    }
+
     public void Play(
         string levelName,
         EndResultType resultType,

@@ -2,7 +2,7 @@
 
 > **Usage** : méthode à suivre par un agent IA avant, pendant et après une future modification du projet.  
 > **Statut** : guide opératoire fondé sur l’architecture observée ; il ne donne aucune autorisation de modifier le projet.  
-> **Dernière vérification** : 2026-07-15.  
+> **Dernière vérification** : 2026-07-23.
 > **Contexte associé** : [AI_CONTEXT_404.md](AI_CONTEXT_404.md) et [AI_SYSTEMS_REFERENCE_404.md](AI_SYSTEMS_REFERENCE_404.md).
 
 ## 1. Ordre de lecture recommandé
@@ -147,8 +147,8 @@ Ces règles complètent l’analyse C# en couvrant les sources d’état et de c
 ### Événements statiques
 
 - Rechercher abonnements multiples, désabonnements et resets aux frontières de scène/run.
-- `ChainRuntimeState` et `TimingRuntimeState` sont statiques ; leur reset normal entre niveaux n’est pas confirmé.
-- Ne pas conclure à une fuite inter-scène sans observation runtime, mais inclure ce cas dans la validation.
+- `ChainRuntimeState` et `TimingRuntimeState` sont statiques, mais `FlushResolutionEngine.ResetRuntimeState()` borne maintenant leur durée de vie et efface aussi l’UI.
+- Vérifier que tout nouveau chemin de tutoriel/retry/arrêt/fin utilise cette API commune et que la fin normale ne l’appelle qu’après le flush final et ses impacts visuels.
 
 ### ScriptableObjects
 
@@ -194,7 +194,7 @@ Lire :
 - [`donnees-schemas-et-sources-de-verite.md`](../02-donnees-et-unity/donnees-schemas-et-sources-de-verite.md)
 - [`equilibrage-et-configuration-active.md`](../02-donnees-et-unity/equilibrage-et-configuration-active.md)
 
-Vérifier : `ModuleCatalog.json`, localisation modules, services `RunModule*`, équipement/slots, boutique, points d’application et sauvegarde. Pour les drones, inspecter d’abord `DroneRuntimeControllerBase` et `ModuleRuntimeStats` : K0 doit rester transversal et ne connaître aucune classe concrète. Pour K1, vérifier `K1AntiBlackDroneController`, les deux `BinTrigger`, la priorité de la famille A et l’arbitrage `collected` avec les snapshots. Pour K2, vérifier `K2DroneInterceptorController`, `DroneInterceptionZone`, l’exclusion propriétaire dans `BallState`, les gardes de `BinTrigger`/`VoidTrigger`, la position de réentrée du `BallSpawner` et la libération forcée du nettoyage final.
+Vérifier : `ModuleCatalog.json`, localisation modules, services `RunModule*`, équipement/slots, boutique, points d’application et sauvegarde. Les sélections Shop/inventaire/briefing et Ship Systems sont réinitialisées aux transitions ; un module non équipé peut être installé par slot surligné ou double-clic ; l’achat déclenche le pulse temporaire du bouton Tuning. Pour les drones, inspecter d’abord `DroneRuntimeControllerBase` et `ModuleRuntimeStats` : K0 doit rester transversal et ne connaître aucune classe concrète. Pour K1, vérifier `K1AntiBlackDroneController`, les deux `BinTrigger`, la priorité de la famille A et l’arbitrage `collected` avec les snapshots. Pour K2, vérifier `K2DroneInterceptorController`, `DroneInterceptionZone`, l’exclusion propriétaire dans `BallState`, les gardes de `BinTrigger`/`VoidTrigger`, la position de réentrée du `BallSpawner` et la libération forcée du nettoyage final.
 
 ### Score, progression ou combos
 
@@ -227,7 +227,7 @@ Lire :
 - [`equilibrage-et-configuration-active.md`](../02-donnees-et-unity/equilibrage-et-configuration-active.md)
 - [`prefabs-scriptableobjects-et-assets-runtime.md`](../02-donnees-et-unity/prefabs-scriptableobjects-et-assets-runtime.md)
 
-Vérifier : JSON du niveau, schéma de mix, `BallSpawner`, pool, quatre définitions, prefab/colliders/triggers, cleanup final, tutoriel et tuning.
+Vérifier : JSON du niveau, schéma de mix, `BallSpawner`, pool, quatre définitions, prefab/colliders/triggers, cleanup final, tutoriel et tuning. Le SCAN est calculé par `ScanT1AnalysisBuilder`, tandis que le log `[SpawnPlan]` décrit les files effectivement construites par le spawner.
 
 ### Fin de niveau, récompenses ou cérémonie
 

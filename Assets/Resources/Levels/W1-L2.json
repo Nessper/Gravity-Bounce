@@ -21,12 +21,6 @@
     }
   ],
 
-    "ScanText": {
-      "T1": "Dans la continuité de la mission précédente, avec quelques noires en plus.",
-      "T2": "Les noires sont encore peu nombreuses, mais commencent à apparaître régulièrement.",
-      "T3": "Si vous cherchez à maximiser votre score, entre perdre une blanche et capturer une noire, privilégiez la blanche."
-  },
-
 
   "Phases": [
     {

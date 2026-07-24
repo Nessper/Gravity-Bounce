@@ -2,7 +2,7 @@
 
 > **Périmètre** : répartition des données entre JSON, ScriptableObjects, scènes, runtime et sauvegarde.  
 > **Statut** : canonique pour la propriété des données ; schémas historiques signalés.  
-> **Date de vérification** : 2026-07-14.  
+> **Date de vérification** : 2026-07-23.
 > **Principaux appuis** : classes `Data/Models`, services `Data/Services`, `GameSaveData`, `RunSessionState`, contenus `Assets/Resources` et `Assets/Project/Data`.
 
 ## Matrice de propriété
@@ -32,6 +32,8 @@ Les chemins logiques sont centralisés dans [Identifiants, chemins Resources et 
 ## Données calculées
 
 Le `LevelContext` est une vue calculée : niveau choisi, vaisseau, durée ajustée, modules et mode debug. Un `BinSnapshot` fige un bac ; un `EndLevelSnapshot` fige une fin. Ces snapshots ne remplacent pas leurs catalogues sources.
+
+L’analyse SCAN est également calculée : `ScanT1AnalysisBuilder` dérive son texte des phases, mixes, intervalles, spawns forcés, objectif principal et durée effective du contexte. `LevelData` ne porte plus de `ScanText` statique. Le plan construit par `BallSpawner` reste toutefois l’autorité runtime sur les files effectivement jouées.
 
 ## Schémas hybrides
 

@@ -90,7 +90,12 @@ public class HullGameOverWatcher : MonoBehaviour
             hullFeedback.PlayHullDestroyedFeedback(() =>
             {
                 if (endFlowController != null)
-                    endFlowController.TriggerGameOverFinalRoutine(finalScore);
+                {
+                    endFlowController.TriggerGameOverFinalRoutine(
+                        finalScore,
+                        hullFeedback.StopHullDestroyedWarning
+                    );
+                }
             });
 
             return;

@@ -45,6 +45,7 @@ public class MainExitTransitionController : MonoBehaviour
     private bool isRunning;
     private bool skipRequested;
     private Coroutine playRoutine;
+    private ShipIdleAnimation shipIdleAnimation;
 
     public bool IsRunning => isRunning;
 
@@ -177,6 +178,10 @@ public class MainExitTransitionController : MonoBehaviour
         if (sr == null)
             yield break;
 
+        // L animation idle ecrit elle aussi la position du vaisseau a chaque frame.
+        // Elle doit s arreter avant l outro, sinon elle le ramene a sa position de repos.
+        DisableShipIdleAnimation();
+
         float duration = Mathf.Max(0.01f, shipDepartDuration);
 
         Vector3 start = shipRoot.position;
@@ -233,6 +238,15 @@ public class MainExitTransitionController : MonoBehaviour
         }
 
         shipRoot.position = end;
+    }
+
+    private void DisableShipIdleAnimation()
+    {
+        if (shipIdleAnimation == null && shipRoot != null)
+            shipIdleAnimation = shipRoot.GetComponent<ShipIdleAnimation>();
+
+        if (shipIdleAnimation != null)
+            shipIdleAnimation.enabled = false;
     }
 
     private IEnumerator PlayFlashIfAny()

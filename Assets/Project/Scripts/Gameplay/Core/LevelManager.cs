@@ -33,6 +33,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private CloseBinController closeBinController;
     [SerializeField] private LevelTimer levelTimer;
     [SerializeField] private ScoreManager scoreManager;
+    [SerializeField] private FlushResolutionEngine flushResolutionEngine;
     [SerializeField] private BallSpawner ballSpawner;
     [SerializeField] private ObstacleManager obstacleManager;
     [SerializeField] private LevelControlsController controlsController;
@@ -585,6 +586,10 @@ public class LevelManager : MonoBehaviour
         if (mainUIController != null)
             yield return StartCoroutine(mainUIController.WaitForFinalScorePresentation());
 
+        // Le final flush et tous ses impacts visuels sont termines :
+        // les chaines ne doivent plus rester affichees pendant l outro.
+        flushResolutionEngine?.ResetRuntimeState();
+
         if (endModuleBonusController == null)
             yield break;
 
@@ -621,6 +626,7 @@ public class LevelManager : MonoBehaviour
         evacuationController?.AbortEvacuation();
 
         ballSpawner?.StopSpawning();
+        flushResolutionEngine?.ResetRuntimeState();
 
         closeBinController?.ForceCloseAndLock();
 
@@ -717,6 +723,9 @@ public class LevelManager : MonoBehaviour
             elapsed,
             finalComboConfig
         );
+
+        // Les resultats sont captures : les indicateurs de gameplay ne doivent plus persister.
+        flushResolutionEngine?.ResetRuntimeState();
 
         if (evalResult.Stats == null)
         {

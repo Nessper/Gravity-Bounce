@@ -30,7 +30,8 @@ public class RuntimeComboOverlayUI : MonoBehaviour
     Color uiColor,
     int currentBalls,
     int stepBalls,
-    int awardedLevel)
+    int awardedLevel,
+    int maxLevel)
     {
         RuntimeComboChainLineUI line = GetChainLine(comboId);
 
@@ -42,7 +43,8 @@ public class RuntimeComboOverlayUI : MonoBehaviour
             uiColor,
             currentBalls,
             stepBalls,
-            awardedLevel
+            awardedLevel,
+            maxLevel
         );
     }
 

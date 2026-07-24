@@ -275,18 +275,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 471fec000f8ee8a4a85c689c7a5dc1c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainDebugStarterV3
-  startDestination: 0
+  startDestination: 1
   debugWorldId: W1
-  debugNodeIndex: 0
+  debugNodeIndex: 3
   debugShipId: CORE_SCOUT
-  debugCurrentHull: 9
+  debugCurrentHull: 1
   debugContractLives: 2
   debugMoney: 200
   debugRunScore: 10000
   debugEquippedModuleIds:
-  - 
-  - J_T3
-  - 
+  - SCAN_ARRAY_T1
+  - BLACK_FILTER_T3
+  - TIME_BUFFER_T2
 --- !u!4 &292011952
 Transform:
   m_ObjectHideFlags: 0

@@ -5665,6 +5665,7 @@ MonoBehaviour:
   closeBinController: {fileID: 2049829430}
   levelTimer: {fileID: 567906014}
   scoreManager: {fileID: 975156268}
+  flushResolutionEngine: {fileID: 1968101438}
   ballSpawner: {fileID: 1342328577}
   obstacleManager: {fileID: 1860133842}
   controlsController: {fileID: 818225577}
@@ -16277,7 +16278,7 @@ MonoBehaviour:
   panelFadeDuration: 0.15
   lineRevealFadeDuration: 0.2
   buttonsPanelGroup: {fileID: 2040707193}
-  playCeremonyMusicOnPlay: 0
+  playCeremonyMusicOnPlay: 1
   ceremonyMusicId: 50
   ceremonyFadeOutSec: 2
   ceremonyFadeInSec: 1.5
@@ -16330,6 +16331,7 @@ MonoBehaviour:
   group: {fileID: 586118291}
   label: {fileID: 1636310992}
   fill: {fileID: 703253016}
+  fillLerpDuration: 0.16
 --- !u!224 &586118290
 RectTransform:
   m_ObjectHideFlags: 0
@@ -25400,6 +25402,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelPauseFlowHandler
   abortPenaltyAmount: 1
+  flushResolutionEngine: {fileID: 1968101438}
 --- !u!4 &751752661
 Transform:
   m_ObjectHideFlags: 0
@@ -34100,6 +34103,7 @@ MonoBehaviour:
   group: {fileID: 919705560}
   label: {fileID: 899611590}
   fill: {fileID: 0}
+  fillLerpDuration: 0.16
 --- !u!114 &919705559
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -36251,7 +36255,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 36
   m_fontStyle: 0
-  m_HorizontalAlignment: 2
+  m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -37702,7 +37706,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc1bf79d8e340c945858a07ffe13ac6a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HullGameOverWatcher
-  runSessionState: {fileID: 0}
+  runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
   runStateController: {fileID: 4523183}
   levelManager: {fileID: 326384405}
   endFlowController: {fileID: 970597010}
@@ -39860,6 +39864,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1724953632}
     m_Modifications:
+    - target: {fileID: -3846094304140995981, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
+      propertyPath: sfx
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 5658976343897875929, guid: 554c2fe82a445cf4db00a67f6b33d939, type: 3}
       propertyPath: m_text
       value: NEXT
@@ -40804,7 +40812,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 36
   m_fontStyle: 0
-  m_HorizontalAlignment: 2
+  m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -45463,6 +45471,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PauseOverlayController
   runSessionState: {fileID: 11400000, guid: 9496a5c765231cd4087cffbc895f6cd2, type: 2}
+  levelControlsController: {fileID: 818225577}
   shipStatusController: {fileID: 1147622764}
   levelPanel: {fileID: 809009687}
   toggleKey: 27
@@ -47383,6 +47392,7 @@ MonoBehaviour:
   group: {fileID: 1587130376}
   label: {fileID: 622978059}
   fill: {fileID: 220122045}
+  fillLerpDuration: 0.16
 --- !u!225 &1587130376
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -48599,7 +48609,7 @@ Transform:
   m_GameObject: {fileID: 1646446894}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -0.7, z: 0}
   m_LocalScale: {x: 0.8, y: 0.8, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -51249,6 +51259,7 @@ MonoBehaviour:
   fadeInDuration: 0.05
   fadeOutDuration: 0.18
   maxAlpha: 0.6
+  pulseHoldDuration: 0.1
 --- !u!225 &1765144073
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -51291,7 +51302,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2486092800977986842, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
       propertyPath: m_text
-      value: LEVEL 1-1
+      value: ROCKFALL CORRIDOR
       objectReference: {fileID: 0}
     - target: {fileID: 2486092800977986842, guid: 551494827362e6049bb77289c96a2aa6, type: 3}
       propertyPath: m_fontSize
@@ -54706,6 +54717,7 @@ MonoBehaviour:
   group: {fileID: 1911464763}
   label: {fileID: 1263570785}
   fill: {fileID: 857200073}
+  fillLerpDuration: 0.16
 --- !u!1 &1912892476
 GameObject:
   m_ObjectHideFlags: 0
@@ -56239,6 +56251,7 @@ MonoBehaviour:
   destroyedImpactFlashIntensity: 1
   destroyedAftershockFlashIntensity: 0.5
   playAftershockFlash: 1
+  destroyedWarningPulseIntensity: 0.5
   destroyedPostDelaySec: 3
   lockDamageFeedbackDuringDestroyed: 1
 --- !u!4 &2003993417

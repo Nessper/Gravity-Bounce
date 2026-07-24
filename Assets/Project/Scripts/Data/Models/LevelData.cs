@@ -79,14 +79,6 @@ public class SecondaryObjectiveData
     public int PhaseIndex;
 }
 
-[System.Serializable]
-public class ScanTextData
-{
-    public string T1;
-    public string T2;
-    public string T3;
-}
-
 // --- Root LevelData ---
 [System.Serializable]
 public class LevelData
@@ -109,6 +101,4 @@ public class LevelData
     // Liste des objectifs secondaires pour ce niveau.
     public SecondaryObjectiveData[] SecondaryObjectives;
 
-    // Textes de scan selon le tier du module.
-    public ScanTextData ScanText;
 }

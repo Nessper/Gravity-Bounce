@@ -2,7 +2,7 @@
 
 > **Périmètre** : scène de lancement debug, injection de contexte, installateurs standalone, testeurs runtime et outils Editor.  
 > **Statut** : inventaire confirmé ; effets non déclenchés.  
-> **Date de vérification** : 2026-07-14.  
+> **Date de vérification** : 2026-07-23.
 > **Principaux appuis** : `DebugLauncher.unity`, scripts sous `Assets/Project/Scripts/Debug`, `MainStandaloneInstaller.cs`, scripts `Gameplay/Combos/Debug`, objets sérialisés de `Main.unity`.
 
 ## Chemins de lancement
@@ -14,6 +14,8 @@ Ces chemins peuvent créer ou modifier l’état local de jeu. Ils ne constituen
 ## Outils runtime
 
 Le projet contient notamment : raccourci de rapport de bug, activation de logo debug, bouton de debug Main, journalisation de raycasts UI, détection d’écriture de scale UI, scan de scripts manquants et test de barre de progression.
+
+`BallSpawner` produit aussi, uniquement dans l’Editor et les Development Builds, un message `[SpawnPlan]` au début de chaque mission avec le total prévu et le détail par type de bille. Ce log décrit les files réellement planifiées et facilite la comparaison avec le scan de briefing.
 
 Dans la scène `Main` observée, `ComboSessionTester`, `ChainRuntimeDebugLogger`, `FinalComboTester`, `FlushTest` et `MissingScriptScanner` sont attachés à des GameObjects actifs. Leur présence active est un fait de sérialisation ; leur exécution effective dépend de leurs propres drapeaux et callbacks.
 

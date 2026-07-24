@@ -2,7 +2,7 @@
 
 > **Périmètre** : architecture des interfaces, écrans, HUD de mission, overlays, boutique et systèmes de vaisseau.  
 > **Statut** : inventaire confirmé par scripts/scènes ; chemin visuel du score validé en Play Mode, attente du flush final confirmée statiquement.
-> **Date de vérification** : 2026-07-14.  
+> **Date de vérification** : 2026-07-23.
 > **Principaux appuis** : scripts sous `Assets/Project/Scripts/UI`, scènes de build et prefabs sous `Assets/Project/Prefabs`.
 
 ## Écrans hors mission
@@ -22,11 +22,17 @@ Le HUD expose l’identifiant de niveau, timer, score, progression, objectif, co
 
 `MainUIController` coordonne principalement : briefing, compte à rebours, tutoriel, pause, combos, dégâts, évacuation, cérémonie de résultats, résultat final et transition de sortie. Les overlays de combo runtime et de flush consomment les événements du moteur de score ; ils ne calculent pas le résultat canonique.
 
+Les indicateurs de chaînes restent affichés jusqu’à la fin du flush final et de ses impacts visuels, puis sont effacés par le reset runtime commun. Leur barre de progression interpole sa cible entre deux paliers et se bloque pleine au niveau maximal.
+
 Le détail du cycle de fin est dans [Fin de niveau](fin-de-niveau-recompenses-et-reprise.md). Les écrans historiques qui coexistent sont classés dans [Systèmes actifs, legacy et hybrides](../04-etat-du-projet/systemes-actifs-legacy-et-hybrides.md).
 
 ## UI de boutique et d’équipement
 
 Les vues `RunHubModules*` affichent les offres, achats et rerolls. Les contrôleurs `ShipSystems*` affichent modules possédés, équipés et slots, puis transmettent les interactions aux services de run. `ShipStatusPanelUI` fournit une représentation partagée du vaisseau.
+
+Les transitions vers/depuis `Ship Systems` publient des événements explicites afin de vider les sélections des vues masquées par `CanvasGroup`. L’inventaire surligne le premier slot libre lorsqu’un module non équipé est sélectionné ; un clic sur ce slot ou un double-clic sur le module l’équipe. Après achat, le contour `Frame` et le texte du bouton `Tuning` pulsent en vert fluo, puis retrouvent leurs couleurs initiales à l’arrêt.
+
+Sur le chemin de défaite directe, le HUD gameplay est masqué, le fond rejoint progressivement une opacité complète, puis `EndResult` apparaît. `EndResultOverlayController.PrepareForReveal()` nettoie l’ancien contenu avant le fondu du conteneur afin d’éviter l’apparition furtive d’un écran précédent.
 
 ## Présentation du score pendant un flush
 

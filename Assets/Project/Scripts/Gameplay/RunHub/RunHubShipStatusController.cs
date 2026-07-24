@@ -50,6 +50,7 @@ public class RunHubShipStatusController : MonoBehaviour
     private void OnEnable()
     {
         SubscribeEvents();
+        ShipSystemsOverlayTransitionController.SourceUiHidden += ClearEquippedModuleSelection;
 
         if (hullUI != null)
             hullUI.ResetVisualState();
@@ -60,6 +61,7 @@ public class RunHubShipStatusController : MonoBehaviour
     private void OnDisable()
     {
         UnsubscribeEvents();
+        ShipSystemsOverlayTransitionController.SourceUiHidden -= ClearEquippedModuleSelection;
 
         if (equippedModulesListPanel != null)
             equippedModulesListPanel.Clear();
@@ -103,6 +105,12 @@ public class RunHubShipStatusController : MonoBehaviour
     {
         RefreshOpenSlots();
         RefreshEquippedModules();
+    }
+
+    private void ClearEquippedModuleSelection()
+    {
+        if (equippedModulesListPanel != null)
+            equippedModulesListPanel.ClearSelection();
     }
 
     // ----------------------------------------

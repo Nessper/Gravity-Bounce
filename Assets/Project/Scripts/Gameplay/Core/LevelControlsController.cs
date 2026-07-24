@@ -22,6 +22,8 @@ public class LevelControlsController : MonoBehaviour
     [SerializeField] private GameObject mobileControlsRoot;
 
     private bool isMobileRuntime;
+    private bool gameplayControlsRequested = true;
+    private bool paused;
 
     private void Awake()
     {
@@ -41,14 +43,8 @@ public class LevelControlsController : MonoBehaviour
     /// </summary>
     public void DisableGameplayControls()
     {
-        if (player != null)
-            player.SetActiveControl(false);
-
-        if (closeBinController != null)
-            closeBinController.SetActiveControl(false);
-
-        if (isMobileRuntime && mobileControlsRoot != null)
-            mobileControlsRoot.SetActive(false);
+        gameplayControlsRequested = false;
+        ApplyGameplayControlsState();
     }
 
     /// <summary>
@@ -56,14 +52,17 @@ public class LevelControlsController : MonoBehaviour
     /// </summary>
     public void EnableGameplayControls()
     {
-        if (player != null)
-            player.SetActiveControl(true);
+        gameplayControlsRequested = true;
+        ApplyGameplayControlsState();
+    }
 
-        if (closeBinController != null)
-            closeBinController.SetActiveControl(true);
-
-        if (isMobileRuntime && mobileControlsRoot != null)
-            mobileControlsRoot.SetActive(true);
+    /// <summary>
+    /// Applique un verrou temporaire de pause sans perdre l'etat demande par le flow du niveau.
+    /// </summary>
+    public void SetPaused(bool state)
+    {
+        paused = state;
+        ApplyGameplayControlsState();
     }
 
     /// <summary>
@@ -75,5 +74,19 @@ public class LevelControlsController : MonoBehaviour
             return;
 
         mobileControlsRoot.SetActive(visible);
+    }
+
+    private void ApplyGameplayControlsState()
+    {
+        bool enabled = gameplayControlsRequested && !paused;
+
+        if (player != null)
+            player.SetActiveControl(enabled);
+
+        if (closeBinController != null)
+            closeBinController.SetActiveControl(enabled);
+
+        if (isMobileRuntime && mobileControlsRoot != null)
+            mobileControlsRoot.SetActive(enabled);
     }
 }

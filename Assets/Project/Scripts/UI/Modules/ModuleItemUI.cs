@@ -45,6 +45,7 @@ public class ModuleItemUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     public Action<ModuleItemUI> HoverEntered;
     public Action<ModuleItemUI> HoverExited;
     public Action<ModuleItemUI> Clicked;
+    public Action<ModuleItemUI> DoubleClicked;
 
     private void Awake()
     {
@@ -138,6 +139,9 @@ public class ModuleItemUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     public void OnPointerClick(PointerEventData eventData)
     {
         Clicked?.Invoke(this);
+
+        if (eventData != null && eventData.clickCount == 2)
+            DoubleClicked?.Invoke(this);
     }
 
     private bool ShouldLookFocused()

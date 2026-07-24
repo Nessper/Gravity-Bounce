@@ -83,5 +83,6 @@ public class FlushResolutionEngine : MonoBehaviour
     public void ResetRuntimeState()
     {
         ComboResolver.ResetRuntimeState();
+        mainUIController?.ClearRuntimeComboIndicators();
     }
 }

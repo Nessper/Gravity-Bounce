@@ -26,6 +26,7 @@ public class PauseOverlayController : MonoBehaviour
 
     [Header("Dependencies")]
     [SerializeField] private RunSessionState runSessionState;
+    [SerializeField] private LevelControlsController levelControlsController;
 
     [Header("Panels")]
     [SerializeField] private RunHubShipStatusController shipStatusController;
@@ -164,6 +165,8 @@ public class PauseOverlayController : MonoBehaviour
         isPaused = true;
         relockCursorNextLateUpdate = false;
 
+        levelControlsController?.SetPaused(true);
+
         CursorController.Unlock();
 
         RebindAll();
@@ -183,6 +186,8 @@ public class PauseOverlayController : MonoBehaviour
             return;
 
         isPaused = false;
+
+        levelControlsController?.SetPaused(false);
 
         Time.timeScale = 1f;
         AudioManager.Instance?.SetPaused(false);
@@ -249,38 +254,7 @@ public class PauseOverlayController : MonoBehaviour
         if (tier == BriefingTier.T0)
             return GetT0ScanText();
 
-        if (data == null || data.ScanText == null)
-            return "scan unavailable";
-
-        switch (tier)
-        {
-            case BriefingTier.T1:
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T1))
-                    return data.ScanText.T1;
-                break;
-
-            case BriefingTier.T2:
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T2))
-                    return data.ScanText.T2;
-
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T1))
-                    return data.ScanText.T1;
-                break;
-
-            case BriefingTier.T3:
-            default:
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T3))
-                    return data.ScanText.T3;
-
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T2))
-                    return data.ScanText.T2;
-
-                if (!string.IsNullOrWhiteSpace(data.ScanText.T1))
-                    return data.ScanText.T1;
-                break;
-        }
-
-        return "scan unavailable";
+        return ScanT1AnalysisBuilder.Build(data, runSessionState) ?? "scan unavailable";
     }
 
     private BriefingTier ResolveBriefingTier()
@@ -311,6 +285,8 @@ public class PauseOverlayController : MonoBehaviour
 
         isPaused = false;
         relockCursorNextLateUpdate = false;
+
+        levelControlsController?.SetPaused(false);
 
         Time.timeScale = 1f;
         AudioManager.Instance?.SetPaused(false);

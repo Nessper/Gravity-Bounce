@@ -2,7 +2,7 @@
 
 > **Usage** : porte d’entrée autonome pour un agent IA sans accès initial au dépôt.  
 > **Statut** : synthèse principalement statique ; la chaîne de score et les drones K1/K2 ont aussi reçu des validations Play Mode ciblées par l’utilisateur, sans campagne runtime exhaustive.  
-> **Dernière vérification** : 2026-07-15.  
+> **Dernière vérification** : 2026-07-23.
 > **Sources principales** : les 31 documents sous `docs/`, scènes de build, catalogues `Resources`, ScriptableObjects structurants et état Git observé.
 
 ## 1. Présentation factuelle
@@ -103,8 +103,8 @@ Une valeur présente dans un asset ne devient pas automatiquement active : il fa
 | Vaisseaux | Actif, trois définitions dont un vaisseau debug caché. Divergence de slots sur Aether Runner. |
 | Coque/vies | Actif. Deux ressources séparées ; les noires affectent la coque, les échecs peuvent consommer une vie de contrat. |
 | Économie | Active, monnaie uniquement liée à la run. Achat, réparation et reroll. |
-| Modules | Actif, 39 modules, treize familles, inventaire et équipement persistés pendant la run. I amplifie les points de chaque occurrence de combo ; J débloque les combos mixtes par tier ; K0 améliore transversalement les drones ; K1 neutralise les noires ; K2 sauve certaines billes avant le Void. |
-| Niveaux/spawn | Actif. W1-L1 à W1-L6 plus DBG-L1, phases, quotas, mélange, pooling et spawns forcés. |
+| Modules | Actif, 39 modules, treize familles, inventaire et équipement persistés pendant la run. L’équipement accepte clic sur slot libre ou double-clic et les sélections sont vidées aux changements de vue. SCAN analyse dynamiquement le plan du niveau. I amplifie les points de chaque occurrence de combo ; J débloque les combos mixtes par tier ; K0 améliore transversalement les drones ; K1 neutralise les noires ; K2 sauve certaines billes avant le Void. |
+| Niveaux/spawn | Actif. W1-L1 à W1-L6 plus DBG-L1, phases, quotas, mélange, pooling et spawns forcés. Un log Development `[SpawnPlan]` expose les comptes réellement planifiés. |
 | Balles/physique | Actif. Blanches, bleues, rouges positives ; noires dangereuses. Physique 2D et rebond personnalisé. |
 | Bacs/flush | Actif. Seuil automatique de base 5, transformations de modules, score puis conséquences des noires. |
 | Score/progression | Actif. Le snapshot ajoute le score de base et la résolution ajoute uniquement les bonus de combos. Les noires ne progressent pas l’objectif. |
@@ -128,6 +128,7 @@ La référence condensée par domaine est [AI_SYSTEMS_REFERENCE_404.md](AI_SYSTE
 - `BallSpawner` → physique/drones → `BinTrigger` ou `DroneInterceptionZone` → flush, neutralisation K1 ou téléportation K2. K1 et le snapshot utilisent `collected` comme verrou terminal exclusif ; K2 emploie une exclusion temporaire propriétaire qui le retire des bacs, du Void et des autres drones jusqu’à sa libération.
 - Score/historique/objectifs → évaluateurs de fin → `EndLevelOutcome` → `EndLevelSnapshot` → cérémonie → commit du run.
 - `RunSessionState`, `ScoreManager`, `HullSystem`, timer et bacs alimentent le HUD via événements, UnityEvents, appels directs et binders.
+- Les chaînes sont réinitialisées par l’API commune du moteur à l’initialisation, au tutoriel, au retry, à l’arrêt dur et après la présentation du flush final. La défaite coque contourne la cérémonie, pulse en rouge, fond le background puis révèle un `EndResult` pré-nettoyé.
 
 ## 9. Persistance et temporalité
 

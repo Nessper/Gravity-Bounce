@@ -19,6 +19,9 @@ public class LevelPauseFlowHandler : MonoBehaviour
     [Tooltip("Penalite appliquee lors d un abandon / retry depuis la pause.")]
     [SerializeField] private int abortPenaltyAmount = 1;
 
+    [Header("Combo Runtime")]
+    [SerializeField] private FlushResolutionEngine flushResolutionEngine;
+
     /// <summary>
     /// Gere l action Retry depuis la pause.
     /// </summary>
@@ -26,6 +29,7 @@ public class LevelPauseFlowHandler : MonoBehaviour
     {
         AudioManager.Instance?.StopDialogTypingLoop();
         AudioManager.Instance?.StopAll();
+        flushResolutionEngine?.ResetRuntimeState();
 
         if (SaveManager.Instance == null)
         {

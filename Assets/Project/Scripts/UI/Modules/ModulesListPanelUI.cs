@@ -64,6 +64,11 @@ public class ModulesListPanelUI : MonoBehaviour
     public event Action<ModuleDefinition> OnModuleClicked;
 
     /// <summary>
+    /// Emis lors d un double-clic sur un module.
+    /// </summary>
+    public event Action<ModuleDefinition> OnModuleDoubleClicked;
+
+    /// <summary>
     /// Reconstruit integralement la liste de modules.
     ///
     /// - modules : liste a afficher
@@ -130,6 +135,7 @@ public class ModulesListPanelUI : MonoBehaviour
             item.HoverEntered -= OnItemHoverEntered;
             item.HoverExited -= OnItemHoverExited;
             item.Clicked -= OnItemClicked;
+            item.DoubleClicked -= OnItemDoubleClicked;
         }
 
         spawnedItems.Clear();
@@ -250,6 +256,7 @@ public class ModulesListPanelUI : MonoBehaviour
         item.HoverEntered += OnItemHoverEntered;
         item.HoverExited += OnItemHoverExited;
         item.Clicked += OnItemClicked;
+        item.DoubleClicked += OnItemDoubleClicked;
 
         spawnedItems.Add(item);
         itemToDefinition[item] = def;
@@ -325,6 +332,17 @@ public class ModulesListPanelUI : MonoBehaviour
         OnSelectedModuleChanged?.Invoke(SelectedModule);
     }
 
+    private void OnItemDoubleClicked(ModuleItemUI item)
+    {
+        if (item == null)
+            return;
+
+        if (!itemToDefinition.TryGetValue(item, out ModuleDefinition def) || def == null)
+            return;
+
+        OnModuleDoubleClicked?.Invoke(def);
+    }
+
     private void RefreshWarning(ModuleDefinition targetDef)
     {
         if (warningText == null)
@@ -361,9 +379,9 @@ public class ModulesListPanelUI : MonoBehaviour
         else
         {
             if (missingDefs.Count > 1)
-                warningText.text = "Pré-requis manquants : " + joinedLabels;
+                warningText.text = "PrÃ©-requis manquants : " + joinedLabels;
             else
-                warningText.text = "Pré-requis manquant : " + joinedLabels;
+                warningText.text = "PrÃ©-requis manquant : " + joinedLabels;
         }
     }
 

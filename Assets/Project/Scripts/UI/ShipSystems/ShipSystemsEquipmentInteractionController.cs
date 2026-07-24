@@ -82,9 +82,11 @@ public class ShipSystemsEquipmentInteractionController : MonoBehaviour
     {
         slotsPanelUI.OnSlotClicked += HandleSlotClicked;
         ownedModulesListPanel.OnModuleClicked += HandleOwnedModuleClicked;
+        ownedModulesListPanel.OnModuleDoubleClicked += HandleOwnedModuleDoubleClicked;
 
         runSessionState.OnEquipmentChanged.AddListener(OnEquipmentChanged);
         runSessionState.OnShipChanged.AddListener(OnShipChanged);
+        ShipSystemsOverlayTransitionController.ShipSystemsUiHidden += ClearSelectionOnOverlayExit;
 
         RefreshAllUI();
     }
@@ -93,9 +95,11 @@ public class ShipSystemsEquipmentInteractionController : MonoBehaviour
     {
         slotsPanelUI.OnSlotClicked -= HandleSlotClicked;
         ownedModulesListPanel.OnModuleClicked -= HandleOwnedModuleClicked;
+        ownedModulesListPanel.OnModuleDoubleClicked -= HandleOwnedModuleDoubleClicked;
 
         runSessionState.OnEquipmentChanged.RemoveListener(OnEquipmentChanged);
         runSessionState.OnShipChanged.RemoveListener(OnShipChanged);
+        ShipSystemsOverlayTransitionController.ShipSystemsUiHidden -= ClearSelectionOnOverlayExit;
     }
 
     private void OnEquipmentChanged()
@@ -116,7 +120,10 @@ public class ShipSystemsEquipmentInteractionController : MonoBehaviour
 
         bool isReclicSameSlot = selectedSlotIndex == clickedSlot.slotIndex;
 
-        if (selectedOwnedModule != null && !isReclicSameSlot)
+        // Un module selected doit pouvoir etre equipe dans tout slot libre,
+        // y compris celui automatiquement surligne a sa selection.
+        if (selectedOwnedModule != null &&
+            (!isReclicSameSlot || !clickedSlot.HasModule))
         {
             TryEquipSelectedModuleIntoSlot(clickedSlot.slotIndex);
             return;
@@ -145,13 +152,39 @@ public class ShipSystemsEquipmentInteractionController : MonoBehaviour
             selectedOwnedModule != null &&
             selectedOwnedModule.id == moduleDef.id;
 
-        if (selectedSlotIndex < 0)
+        if (isSameModule)
         {
-            selectedOwnedModule = isSameModule ? null : moduleDef;
+            ClearSelections();
+            RefreshSlotSelectionOnly();
             RefreshOwnedSelectionOnly();
             return;
         }
 
+        if (selectedSlotIndex < 0)
+        {
+            selectedOwnedModule = moduleDef;
+            selectedSlotIndex = selectedOwnedModule != null
+                ? FindFirstOpenEmptySlotIndex()
+                : -1;
+
+            RefreshSlotSelectionOnly();
+            RefreshOwnedSelectionOnly();
+            return;
+        }
+
+        TryEquipModuleIntoSelectedSlot(moduleDef);
+    }
+
+    private void HandleOwnedModuleDoubleClicked(ModuleDefinition moduleDef)
+    {
+        if (moduleDef == null)
+            return;
+
+        int emptySlotIndex = FindFirstOpenEmptySlotIndex();
+        if (emptySlotIndex < 0)
+            return;
+
+        selectedSlotIndex = emptySlotIndex;
         TryEquipModuleIntoSelectedSlot(moduleDef);
     }
 
@@ -253,6 +286,27 @@ public class ShipSystemsEquipmentInteractionController : MonoBehaviour
     {
         selectedSlotIndex = -1;
         selectedOwnedModule = null;
+    }
+
+    private void ClearSelectionOnOverlayExit()
+    {
+        ClearSelections();
+        RefreshSlotSelectionOnly();
+        RefreshOwnedSelectionOnly();
+    }
+
+    private int FindFirstOpenEmptySlotIndex()
+    {
+        for (int i = 0; i < runSessionState.EquipmentSlotCount; i++)
+        {
+            if (runSessionState.IsEquipmentSlotLocked(i))
+                continue;
+
+            if (string.IsNullOrWhiteSpace(runSessionState.GetEquippedModuleId(i)))
+                return i;
+        }
+
+        return -1;
     }
 
     private void ShowEquipFailure(ModuleDefinition targetDef, int slotIndex)

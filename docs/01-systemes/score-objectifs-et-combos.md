@@ -2,7 +2,7 @@
 
 > **Périmètre** : score de niveau, progression, historiques, objectifs principal/secondaires, combos runtime et finaux.
 > **Statut** : architecture confirmée ; combos existants normalisés et familles I/J intégrées.
-> **Date de vérification** : 2026-07-15.
+> **Date de vérification** : 2026-07-23.
 > **Principaux appuis** : `ScoreManager.cs`, `FlushResolution*`, règles sous `Gameplay/Combos`, `SecondaryObjectivesManager.cs`, `LevelResultEvaluator.cs`, `FinalComboEvaluator.cs`, catalogues de combos.
 
 ## État suivi
@@ -21,7 +21,11 @@ Les valeurs unitaires des balles et paramètres de combo sont regroupés dans [�
 - volume : `Super`, `Ultra`, `Monster`.
 - compositions mixtes du module J : `J_MIX_41`, `J_MIX_32`, `J_MIX_221`.
 
-`ChainRuntimeState` et `TimingRuntimeState` conservent un état entre résolutions. `FlushResolutionEngine` les réinitialise lors de la création de chaque nouvelle instance de niveau.
+`ChainRuntimeState` et `TimingRuntimeState` conservent un état entre résolutions. `FlushResolutionEngine.ResetRuntimeState()` constitue l’API commune de remise à zéro : elle réinitialise le résolveur et demande au `MainUIController` d’effacer la présentation des chaînes.
+
+Cette API est appelée à l’initialisation, à la fin du tutoriel, lors d’un retry depuis la pause, lors d’un arrêt dur du gameplay et lors de la fin normale. Dans ce dernier cas, le reset intervient seulement après le flush final et l’achèvement de ses impacts de combo/score ; l’UI de chaînes reste donc visible pendant leur résolution, puis disparaît avant l’outro du plateau. Une remise à zéro défensive suit aussi la capture du résultat.
+
+Chaque ligne de chaîne connaît le `MaxLevel` de sa définition. Son niveau monte par paliers, sa barre bleue représente la progression à l’intérieur du palier courant et reste pleine au niveau maximal. Le remplissage rejoint sa nouvelle cible par interpolation sur `0,16 s`, ce qui évite les sauts visuels sans modifier l’état métier.
 
 Le `ComboDefinitionCatalog` fournit seuils, bonus, clés de localisation et présentation. Les noms des treize combos sont localisés en français et en anglais dans le pack dédié `Resources/Localization/combos`, avec fallback sur l’identifiant. La scène `Boot` charge explicitement ce pack avec `ui`, `ships` et `modules`. Les combos Volume utilisent `PercentOfPositivePoints`; les seuils Color et Volume sont lus dans le catalogue avec garde de repli identique aux anciennes valeurs.
 

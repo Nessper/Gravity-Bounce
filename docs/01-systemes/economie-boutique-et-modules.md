@@ -2,7 +2,7 @@
 
 > **Périmètre** : argent de run, prix, offres, rerolls, réparation, inventaire et effets des modules.  
 > **Statut** : confirmé par code et catalogues ; valeurs en cours de travail signalées séparément.  
-> **Date de vérification** : 2026-07-15.  
+> **Date de vérification** : 2026-07-23.
 > **Principaux appuis** : `EconomyConfig.cs`, `EconomyConfig_Default.asset`, `ModuleCatalog.json`, `ModuleCatalogService.cs`, services `RunModule*`, contrôleurs `RunHubModules*`, `ModuleRuntimeStats.cs`, `DroneRuntimeControllerBase.cs`, `K1AntiBlackDroneController.cs`, `K2DroneInterceptorController.cs`, `modules_shop_rules.json`.
 
 ## Monnaie et boutique
@@ -25,6 +25,14 @@ Les modules ont trois tiers : bronze, argent et or. Les prix par tier et les co�
 
 Les slots proviennent de la définition du vaisseau. L’inventaire et l’équipement sont persistés dans la sauvegarde du run.
 
+## Interactions d’achat et d’équipement
+
+Une sélection de module est locale à la vue courante. L’ouverture de `Ship Systems` efface la sélection et la description du Shop, de l’inventaire ou du briefing ; quitter `Ship Systems` efface à son tour sa sélection. Ce reset est déclenché explicitement par la transition, car masquer une vue avec un `CanvasGroup` ne provoque pas `OnDisable`.
+
+Dans l’inventaire, sélectionner un module possédé non équipé surligne automatiquement le premier slot libre avec le visuel prévu. Cliquer ce slot équipe le module. Un double-clic sur le module produit la même commande directement si un slot libre existe. Cliquer une seconde fois le module déjà sélectionné annule la sélection.
+
+Après un achat, `RunHubModulesBuyController.ModulePurchased` avertit `ShipStatusPanelUI`. Le bouton `Tuning`, instance de `button_small`, fait alors pulser son contour `Frame` et son texte entre leur couleur d’origine et un vert fluo. L’effet utilise le temps non affecté par la pause et restaure toujours les couleurs d’origine lorsqu’il s’arrête ou que l’on ouvre les systèmes.
+
 ## Familles et effets observés
 
 Le catalogue comporte 39 modules répartis sur treize familles :
@@ -32,7 +40,7 @@ Le catalogue comporte 39 modules répartis sur treize familles :
 | Famille | Effet fonctionnel observé |
 |---|---|
 | H | Réparation de coque ou gain d’argent lié à la coque. |
-| SCAN / S | Informations de briefing/scanner. |
+| SCAN / S | Analyse du plan réel de spawn dans le briefing et la pause : quantités utiles/noires, marge face à l’objectif et remarques contextuelles. |
 | GREED / G | Augmente le seuil de flush automatique. |
 | C | Effets conditionnés à une coque pleine, dont maximum de coque ou delta de score. |
 | A | Réserve une charge pour transformer provisoirement une noire dans un bac ; la charge est rendue si elle ressort, ou consommée au flush. La blanche obtenue peut ensuite être convertie par B. |
@@ -44,6 +52,8 @@ Le catalogue comporte 39 modules répartis sur treize familles :
 | K0 | Contrôle transversal des drones : tous commencent chargés ; aux tiers 2 et 3, leurs cooldowns sont respectivement multipliés par `0,9` et `0,8`. K0 ne crée aucun drone et passe uniquement par le socle commun. |
 | K1 | Drone anti-noire : recharge en 30/23/18 s selon le tier, priorise les noires dangereuses présentes dans les bacs puis la noire dangereuse la plus proche sur le plateau, et les neutralise sans score ni perte. |
 | K2 | Drone Interceptor : recharge en 30/25/22 s ; sauve respectivement les billes blanches, blanches/bleues, puis blanches/bleues/rouges avant le Void et les téléporte vers le haut du plateau. |
+
+Les textes SCAN ne viennent plus d’un bloc statique dans les JSON de niveau. `ScanT1AnalysisBuilder` reproduit les quotas du spawner à partir de la durée effective, des phases, mixes et spawns forcés, puis construit l’analyse affichée. La durée tient compte du vaisseau et des modules E. À l’état courant, tous les tiers SCAN supérieurs à zéro consomment cette même analyse dynamique ; aucune différenciation T1/T2/T3 supplémentaire n’est encore appliquée à la sortie.
 
 L’ordre fonctionnel des transformations de bac est décrit dans [Paddle, bacs et flush](paddle-bacs-et-flush.md). Les bonus de fin sont décrits dans [Fin de niveau](fin-de-niveau-recompenses-et-reprise.md).
 

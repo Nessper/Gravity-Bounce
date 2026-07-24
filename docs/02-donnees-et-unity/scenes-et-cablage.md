@@ -2,7 +2,7 @@
 
 > **Périmètre** : scènes du build, rôle de chacune, services persistants et scènes hors build.  
 > **Statut** : confirmé par `EditorBuildSettings` et sérialisation YAML ; aucun chargement exécuté.  
-> **Date de vérification** : 2026-07-15.  
+> **Date de vérification** : 2026-07-23.
 > **Principaux appuis** : `ProjectSettings/EditorBuildSettings.asset`, scènes sous `Assets/Project/Scenes`.
 
 ## Scènes du build
@@ -28,6 +28,8 @@ Les écrans suivants dépendent normalement de ce root. Des installateurs altern
 ## Main
 
 `Main` regroupe le plateau, les managers de niveau, le spawner, le paddle, les bacs, le HUD, les overlays, l’audio de niveau, les feedbacks et les testeurs debug. Le `LevelBootstrapper` résout les dépendances à partir du contexte courant et lance l’orchestration.
+
+Le câblage courant relie `HullGameOverWatcher` à `RunSessionState`, `PauseOverlayController` à `LevelControlsController`, et les chemins retry/arrêt/fin à l’instance commune de `FlushResolutionEngine`. Le pulse de destruction est configuré à une intensité de `0,5` avec un hold de `0,1 s`. La cérémonie active utilise `MusicId.MainEndSequence` avec ses fondus sérialisés. La racine du vaisseau est placée à `Y = -0,7`.
 
 Les drones de gameplay appartiennent au monde et non aux Game Systems. Le câblage actif place `DronesRoot` sous `WorldRoot/BoardRoot`, au même niveau architectural que les autres racines du plateau. `K1 Anti-Black Drone` et `K2 Drone Interceptor` en sont des enfants sur le layer `Gameplay` et le même plan Z.
 

@@ -5,15 +5,15 @@ using UnityEngine;
 /// <summary>
 /// Orchestrateur de fin de niveau.
 ///
-/// Responsabilités :
-/// - recevoir le snapshot final après la Results Ceremony
-/// - appliquer une seule fois les conséquences de run
-/// - préparer les données nécessaires à l'overlay EndResult
+/// ResponsabilitÃ©s :
+/// - recevoir le snapshot final aprÃ¨s la Results Ceremony
+/// - appliquer une seule fois les consÃ©quences de run
+/// - prÃ©parer les donnÃ©es nÃ©cessaires Ã  l'overlay EndResult
 /// - lancer la transition vers EndResult
-/// - gérer les boutons Menu / Retry / Next
+/// - gÃ©rer les boutons Menu / Retry / Next
 ///
-/// Source de vérité : EndLevelSnapshot.
-/// Le token reste uniquement une identité technique anti double-commit.
+/// Source de vÃ©ritÃ© : EndLevelSnapshot.
+/// Le token reste uniquement une identitÃ© technique anti double-commit.
 /// </summary>
 public class LevelEndFlowController : MonoBehaviour
 {
@@ -46,6 +46,7 @@ public class LevelEndFlowController : MonoBehaviour
 
     private bool navigationLocked;
     private bool forcedGameOver;
+    private Action forcedGameOverOverlayReady;
 
     private EndResultState lastEndState;
     private int lastRemainingContractLives;
@@ -60,8 +61,8 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Données préparées après commit pour alimenter l'overlay EndResult.
-    /// Ce n'est pas une save, seulement un état runtime d'affichage.
+    /// DonnÃ©es prÃ©parÃ©es aprÃ¨s commit pour alimenter l'overlay EndResult.
+    /// Ce n'est pas une save, seulement un Ã©tat runtime d'affichage.
     /// </summary>
     private struct FinalCommitSnapshot
     {
@@ -104,8 +105,8 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Appelé quand la Results Ceremony est terminée.
-    /// Ne navigue pas automatiquement : le bouton Next de la cérémonie
+    /// AppelÃ© quand la Results Ceremony est terminÃ©e.
+    /// Ne navigue pas automatiquement : le bouton Next de la cÃ©rÃ©monie
     /// appelle ensuite OnResultsCeremonyNextPressed().
     /// </summary>
     private void HandleCeremonyFinished(EndLevelSnapshot snapshot)
@@ -124,7 +125,7 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Appelé par le bouton Next de la Results Ceremony.
+    /// AppelÃ© par le bouton Next de la Results Ceremony.
     /// </summary>
     public void OnResultsCeremonyNextPressed()
     {
@@ -141,8 +142,8 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Applique une seule fois les conséquences de fin de niveau.
-    /// Le snapshot donne l'état final ; cette méthode applique seulement
+    /// Applique une seule fois les consÃ©quences de fin de niveau.
+    /// Le snapshot donne l'Ã©tat final ; cette mÃ©thode applique seulement
     /// les effets de run : score, money, contrat, progression.
     /// </summary>
     private void PrepareAndCommitOnce(EndLevelSnapshot snapshot)
@@ -259,6 +260,8 @@ public class LevelEndFlowController : MonoBehaviour
 
         CleanupBallsOnce();
 
+        endResultOverlayController?.PrepareForReveal();
+
         if (mainUIController != null)
             mainUIController.ShowEndResultView(this, PlayEndResultOverlay);
         else
@@ -267,6 +270,9 @@ public class LevelEndFlowController : MonoBehaviour
 
     private void PlayEndResultOverlay()
     {
+        forcedGameOverOverlayReady?.Invoke();
+        forcedGameOverOverlayReady = null;
+
         if (endResultOverlayController == null)
         {
             Debug.LogWarning("[LevelEndFlowController] EndResultOverlayController manquant.");
@@ -342,7 +348,7 @@ public class LevelEndFlowController : MonoBehaviour
         }
 
         // --------------------------------------------------
-        // Famille F : bonus money selon médaille
+        // Famille F : bonus money selon mÃ©daille
         // --------------------------------------------------
         if (ModuleRuntimeStats.Instance != null)
         {
@@ -674,12 +680,15 @@ public class LevelEndFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Branche spéciale GameOver Hull.
+    /// Branche spÃ©ciale GameOver Hull.
     /// Affiche directement EndResult sans Results Ceremony.
     /// </summary>
-    public void TriggerGameOverFinalRoutine(int finalScore)
+    public void TriggerGameOverFinalRoutine(
+        int finalScore,
+        Action onOverlayReady = null)
     {
         forcedGameOver = true;
+        forcedGameOverOverlayReady = onOverlayReady;
 
         hasToken = false;
         lastToken = default;
